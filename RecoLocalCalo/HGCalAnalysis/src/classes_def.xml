@@ -1,0 +1,11 @@
+<lcgdict>
+   <class name="AEvent" />
+   <class name="ARecHit" />
+   <class name="ARecHitCollection" />
+   <class name="ACluster2d" />
+   <class name="ACluster2dCollection" />
+   <class name="AGenPart" />
+   <class name="AGenPartCollection" />
+   <class name="AMultiCluster" />
+   <class name="AMultiClusterCollection" />
+</lcgdict>
