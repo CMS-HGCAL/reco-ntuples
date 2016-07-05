@@ -37,8 +37,8 @@
 #include "RecoLocalCalo/HGCalRecHitDump/interface/HGCalMultiCluster.h"
 
 
-#include "RecoLocalCalo/HGCalAnalysis/interface/AEvent.h"
-#include "RecoLocalCalo/HGCalAnalysis/interface/AObData.h"
+#include "RecoNtuples/HGCalAnalysis/interface/AEvent.h"
+#include "RecoNtuples/HGCalAnalysis/interface/AObData.h"
 
 #include <string>
 #include <map>
@@ -50,10 +50,10 @@ public:
 //
   explicit HGCalAnalysis(const edm::ParameterSet&);
   ~HGCalAnalysis();
-  
+
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-  
-  
+
+
 private:
   virtual void beginJob() override;
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
@@ -61,9 +61,9 @@ private:
 
  // ----------member data ---------------------------
 
-  edm::EDGetTokenT<HGCRecHitCollection> _recHitsEE; 
-  edm::EDGetTokenT<HGCRecHitCollection> _recHitsHE; 
-  edm::EDGetTokenT<reco::CaloClusterCollection> _clusters; 
+  edm::EDGetTokenT<HGCRecHitCollection> _recHitsEE;
+  edm::EDGetTokenT<HGCRecHitCollection> _recHitsHE;
+  edm::EDGetTokenT<reco::CaloClusterCollection> _clusters;
   edm::EDGetTokenT<std::vector<TrackingVertex> > _vtx;
   edm::EDGetTokenT<std::vector<TrackingParticle> > _part;
 
@@ -121,7 +121,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 }
 HGCalAnalysis::~HGCalAnalysis()
 {
- 
+
    // do anything here that needs to be done at desctruction time
    // (e.g. close files, deallocate resources etc.)
 
@@ -141,7 +141,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   edm::ESHandle<HGCalGeometry> geoHandleEE;
   iSetup.get<IdealGeometryRecord>().get("HGCalEESensitive",geoHandleEE);
   const HGCalGeometry& hgcGeoEE = *geoHandleEE;
-  
+
   edm::ESHandle<HGCalGeometry> geoHandleHE;
   iSetup.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive",geoHandleHE);
   const HGCalGeometry& hgcGeoHE = *geoHandleHE;
@@ -229,11 +229,11 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
 
 
-  
-  
+
+
   const reco::CaloClusterCollection &clusters = *clusterHandle;
   nclus = clusters.size();
-  multiClusters = pre.makePreClusters(clusters);     
+  multiClusters = pre.makePreClusters(clusters);
   nmclus = multiClusters.size();
   unsigned int cluster_index = 0;
   for(unsigned int i = 0; i < multiClusters.size(); i++){
@@ -246,7 +246,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	//here we loop over detid/fraction pairs
 	ncoreHit += int(hf[j].second);
 	int flags = 0x0;
-	if (hf[j].second>0. && hf[j].second<1.) 
+	if (hf[j].second>0. && hf[j].second<1.)
 	  flags = 0x1;
 	else if(hf[j].second<0.)
 	  flags = 0x3;
@@ -256,14 +256,14 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	layer = HGCalDetId(hf[j].first).layer();
 	if(layer < 29){
 	  const GlobalPoint position( std::move( hgcGeoEE.getPosition( hf[j].first ) ) );
-	  arhc->push_back(ARecHit(layer, position.x(), position.y(), position.z(),  
+	  arhc->push_back(ARecHit(layer, position.x(), position.y(), position.z(),
 				  hit->energy(), hit->time(), 0,
 				  false, flags, cluster_index));
 	  nhit++;
 	}
 	else{
 	  const GlobalPoint position( std::move( hgcGeoHE.getPosition( hf[j].first  ) ) );
-	  arhc->push_back(ARecHit(layer, position.x(), position.y(), position.z(),  
+	  arhc->push_back(ARecHit(layer, position.x(), position.y(), position.z(),
 				  hit->energy(), hit->time(), 0,
 				  false, flags, cluster_index));
 	}
@@ -279,20 +279,20 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				 multiClusters[i].simple_phi(),
 				 multiClusters[i].total_uncalibrated_energy(),
 				 multiClusters[i].size()));
-  }			       
+  }
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nclus,nmclus,
 	     vx,vy,vz);
   tree->Fill();
 }
 
-void 
+void
 HGCalAnalysis::beginJob()
 {
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
-void 
-HGCalAnalysis::endJob() 
+void
+HGCalAnalysis::endJob()
 {
 }
 

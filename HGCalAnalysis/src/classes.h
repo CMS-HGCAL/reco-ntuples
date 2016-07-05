@@ -1,5 +1,5 @@
-#include "RecoLocalCalo/HGCalAnalysis/interface/AEvent.h"
-#include "RecoLocalCalo/HGCalAnalysis/interface/AObData.h"
+#include "RecoNtuples/HGCalAnalysis/interface/AEvent.h"
+#include "RecoNtuples/HGCalAnalysis/interface/AObData.h"
 
 ARecHit ae;
 

@@ -3,9 +3,9 @@
 <use   name="Geometry/HGCalGeometry"/>
 <use   name="DataFormats/CaloRecHit"/>
 <use   name="RecoLocalCalo/HGCalRecHitDump"/>
-<use   name="RecoLocalCalo/HGCalAnalysis"/>
+<use   name="RecoNtuples/HGCalAnalysis"/>
 <use   name="Geometry/Records"/>
-<library   file="*.cc" name="RecoLocalCaloHGCalAnalysisPlugins">
+<library   file="*.cc" name="RecoNtuplesHGCalAnalysisPlugins">
   <flags   EDM_PLUGIN="1"/>
 </library>
 <Flags CXXFLAGS="-O0"/>
