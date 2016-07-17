@@ -186,7 +186,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	 dvy=part[i].decayVertices()[0]->position().y();
 	 dvz=part[i].decayVertices()[0]->position().z();
       }
-      agpc->push_back(AGenPart(part[i].eta(),part[i].phi(),part[i].py(),dvx,dvy,dvz,part[i].pdgId()));
+      agpc->push_back(AGenPart(part[i].eta(),part[i].phi(),part[i].pt(),dvx,dvy,dvz,part[i].pdgId()));
     }
   }
   //make a map detid-rechit
