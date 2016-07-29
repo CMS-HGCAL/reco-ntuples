@@ -255,7 +255,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	const HGCRecHit *hit = hitmap[hf[j].first];
 	layer = HGCalDetId(hf[j].first).layer();
 	if(layer < 29){
-	  const GlobalPoint position( std::move( hgcGeoEE.getPosition( hf[j].first ) ) );
+      const GlobalPoint position( std::move( hgcGeoEE.getPosition( hf[j].first ) ) );
       const HGCalTopology& topo = hgcGeoEE.topology();
       const HGCalDDDConstants& dddConst = topo.dddConstants();
       const unsigned int wafer = HGCalDetId(hf[j].first).wafer();
@@ -268,9 +268,14 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	}
 	else{
 	  const GlobalPoint position( std::move( hgcGeoHE.getPosition( hf[j].first  ) ) );
+      const HGCalTopology& topo = hgcGeoHE.topology();
+      const HGCalDDDConstants& dddConst = topo.dddConstants();
+      const unsigned int wafer = HGCalDetId(hf[j].first).wafer();
+      int cellThickness = dddConst.waferTypeL(wafer);
+      bool isHalfCell = dddConst.isHalfCell(wafer, ((HGCalDetId)(hf[j].first)).cell() );
 	  arhc->push_back(ARecHit(layer, position.x(), position.y(), position.z(),
-				  hit->energy(), hit->time(), 0,
-				  false, flags, cluster_index));
+				  hit->energy(), hit->time(), cellThickness,
+				  isHalfCell, flags, cluster_index));
 	}
       }
 
