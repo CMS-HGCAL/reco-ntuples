@@ -237,11 +237,16 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   nmclus = multiClusters.size();
   unsigned int cluster_index = 0;
   for(unsigned int i = 0; i < multiClusters.size(); i++){
+      int cl2dSeed = 0;
     for(HGCalMultiCluster::component_iterator it = multiClusters[i].begin();
 	it!=multiClusters[i].end(); it++){
+      if(it->energy() > (it+cl2dSeed)->energy()) cl2dSeed = it - multiClusters[i].begin();
+
       const std::vector< std::pair<DetId, float> > &hf = it->hitsAndFractions();
       int ncoreHit = 0;
       int layer = 0;
+      int rhSeed = 0;
+
       for(unsigned int j = 0; j < hf.size(); j++){
 	//here we loop over detid/fraction pairs
 	ncoreHit += int(hf[j].second);
@@ -254,13 +259,15 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  flags = 0x2;
 	const HGCRecHit *hit = hitmap[hf[j].first];
 	layer = HGCalDetId(hf[j].first).layer();
+	if(hit->energy() > hitmap[hf[rhSeed].first]->energy()) rhSeed = j;
+
 	if(layer < 29){
 	  const GlobalPoint position( std::move( hgcGeoEE.getPosition( hf[j].first ) ) );
-      const HGCalTopology& topo = hgcGeoEE.topology();
-      const HGCalDDDConstants& dddConst = topo.dddConstants();
-      const unsigned int wafer = HGCalDetId(hf[j].first).wafer();
-      int cellThickness = dddConst.waferTypeL(wafer);
-      bool isHalfCell = dddConst.isHalfCell(wafer, ((HGCalDetId)(hf[j].first)).cell() );
+	  const HGCalTopology& topo = hgcGeoEE.topology();
+	  const HGCalDDDConstants& dddConst = topo.dddConstants();
+	  const unsigned int wafer = HGCalDetId(hf[j].first).wafer();
+	  int cellThickness = dddConst.waferTypeL(wafer);
+	  bool isHalfCell = dddConst.isHalfCell(wafer, ((HGCalDetId)(hf[j].first)).cell() );
 	  arhc->push_back(ARecHit(layer, position.x(), position.y(), position.z(),
 				  hit->energy(), hit->time(), cellThickness,
 				  isHalfCell, flags, cluster_index));
@@ -268,22 +275,31 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	}
 	else{
 	  const GlobalPoint position( std::move( hgcGeoHE.getPosition( hf[j].first  ) ) );
+	  const HGCalTopology& topo = hgcGeoHE.topology();
+	  const HGCalDDDConstants& dddConst = topo.dddConstants();
+	  const unsigned int wafer = HGCalDetId(hf[j].first).wafer();
+	  int cellThickness = dddConst.waferTypeL(wafer);
+	  bool isHalfCell = dddConst.isHalfCell(wafer, ((HGCalDetId)(hf[j].first)).cell() );
 	  arhc->push_back(ARecHit(layer, position.x(), position.y(), position.z(),
-				  hit->energy(), hit->time(), 0,
-				  false, flags, cluster_index));
+				  hit->energy(), hit->time(), cellThickness,
+				  isHalfCell, flags, cluster_index));
 	}
       }
 
       acdc->push_back(ACluster2d(it->x(),it->y(),it->z(),
 				 it->eta(),it->phi(),it->energy(),
-				 layer, ncoreHit,hf.size(),i));
+				 layer, ncoreHit,hf.size(),i, rhSeed));
       cluster_index++;
     }
 
     amcc->push_back(AMultiCluster(multiClusters[i].simple_eta(vz),
-				 multiClusters[i].simple_phi(),
-				 multiClusters[i].total_uncalibrated_energy(),
-				 multiClusters[i].size()));
+				  multiClusters[i].simple_phi(),
+				  multiClusters[i].simple_z(vz),
+				  multiClusters[i].simple_slope_x(vz),
+				  multiClusters[i].simple_slope_y(vz),
+				  multiClusters[i].total_uncalibrated_energy(),
+				  multiClusters[i].size(), 
+				  cl2dSeed));
   }
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nclus,nmclus,
 	     vx,vy,vz);
