@@ -38,11 +38,11 @@ public:
   ARecHit(int i_layer, float i_x, float i_y, float i_z,  
 	  float i_energy, float i_time, float i_thickness,
 	  bool i_isHalf, int i_flags, int i_cluster2d):  layer(i_layer),x(i_x),y(i_y),z(i_z),
-							 energy(i_energy),time(i_time),
+                                                         energy(i_energy),time(i_time),
 							 thickness(i_thickness),
 							 isHalf(i_isHalf),
 							 flags(i_flags),
-							 cluster2d(i_cluster2d)
+                                                         cluster2d(i_cluster2d)                                                     
   {
   }
 
@@ -66,7 +66,7 @@ class ACluster2d : public TObject
 public:
   
   ACluster2d() :  x(0.),y(0.),z(0.),eta(-1000.),phi(-1000.),
-		  energy(0.),layer(0),nhitCore(0),nhitAll(0), multicluster(-1)
+    energy(0.),layer(0),nhitCore(0),nhitAll(0), multicluster(-1), rechitSeed(-1)
   { 
   }
   ACluster2d(  float i_x,
@@ -78,10 +78,11 @@ public:
 	       int i_layer,
 	       int i_nhitCore,
 	       int i_nhitAll,
-	       int i_multicluster) :  
-    x(i_x),y(i_y),z(i_z),eta(i_eta),phi(i_phi),
+	       int i_multicluster, 
+	       int i_rechitSeed) :  
+  x(i_x),y(i_y),z(i_z),eta(i_eta),phi(i_phi),
     energy(i_energy),layer(i_layer),
-    nhitCore(i_nhitCore),nhitAll(i_nhitAll),multicluster(i_multicluster)
+    nhitCore(i_nhitCore),nhitAll(i_nhitAll),multicluster(i_multicluster), rechitSeed(i_rechitSeed)
   {
   }
 
@@ -96,6 +97,7 @@ public:
   int nhitCore;
   int nhitAll;
   int multicluster;
+  int rechitSeed;
   
   ClassDef(ACluster2d,1)
 };
@@ -105,24 +107,34 @@ class AMultiCluster : public TObject
 {
 public:
   
-  AMultiCluster() :  eta(-1000.),phi(-1000.),
-		     energy(0.), nclus(0)
+ AMultiCluster() :  eta(-1000.),phi(-1000.), z(0), 
+    slopeX(0.), slopeY(0.),
+    energy(0.), nclus(0), cl2dSeed(-1)
   { 
   }
   AMultiCluster(  float i_eta,
 		  float i_phi,
+		  float i_z, 
+		  float i_slopeX, 
+		  float i_slopeY,
 		  float i_energy,
-		  int i_nclus) :  
-    eta(i_eta),phi(i_phi),
-    energy(i_energy),nclus(i_nclus)
+		  int i_nclus, 
+		  int i_cl2dSeed) :  
+  eta(i_eta),phi(i_phi),z(i_z),
+    slopeX(i_slopeX), slopeY(i_slopeY),
+    energy(i_energy),nclus(i_nclus), cl2dSeed(i_cl2dSeed)
   {
   }
 
 
   float eta;
   float phi;
+  float z;
+  float slopeX;
+  float slopeY;
   float energy;
   int nclus;
+  int cl2dSeed;
 
   
   ClassDef(AMultiCluster,1)
