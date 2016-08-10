@@ -14,3 +14,6 @@ ACluster2dCollection vacd;
 
 AMultiCluster amc;
 AMultiClusterCollection vamc;
+
+ASimCluster asc;
+ASimClusterCollection vasc;

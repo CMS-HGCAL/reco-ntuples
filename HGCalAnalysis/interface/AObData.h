@@ -5,12 +5,12 @@
 
 class AGenPart : public TObject
 {
-public: 
+public:
 
   AGenPart(): eta(-1000.),phi(-1000.),pt(-1000.),dvx(0.),dvy(0.),dvz(0.),pid(0)
   {
-  }  
-  AGenPart(float i_eta, float i_phi, float i_pt, 
+  }
+  AGenPart(float i_eta, float i_phi, float i_pt,
 	   float i_dvx, float i_dvy,float i_dvz, int i_pid) :
     eta(i_eta),phi(i_phi),pt(i_pt),dvx(i_dvx),dvy(i_dvy),dvz(i_dvz),pid(i_pid)
   {
@@ -33,25 +33,25 @@ class ARecHit : public TObject
 public:
   ARecHit() :  layer(0),x(0.),y(0.),z(0.),
 	       energy(0),time(-1),thickness(0.),isHalf(false), flags(0), cluster2d(-1)
-  { 
+  {
   }
  ARecHit(int i_layer, int i_wafer, int i_cell,
-	 float i_x, float i_y, float i_z,  
+	 float i_x, float i_y, float i_z,
 	 float i_energy, float i_time, float i_thickness,
-	 bool i_isHalf, int i_flags, int i_cluster2d):  
+	 bool i_isHalf, int i_flags, int i_cluster2d):
     layer(i_layer),wafer(i_wafer),cell(i_cell),
     x(i_x),y(i_y),z(i_z),
     energy(i_energy),time(i_time),
     thickness(i_thickness),
     isHalf(i_isHalf),
     flags(i_flags),
-    cluster2d(i_cluster2d)                                                     
+    cluster2d(i_cluster2d)
     {
   }
 
 
   virtual ~ARecHit() { }
-  
+
   int   layer,wafer,cell;
   float x,y,z;
   float eta,phi;
@@ -67,10 +67,10 @@ public:
 class ACluster2d : public TObject
 {
 public:
-  
+
   ACluster2d() :  x(0.),y(0.),z(0.),eta(-1000.),phi(-1000.),
     energy(0.),layer(0),nhitCore(0),nhitAll(0), multicluster(-1), rechitSeed(-1)
-  { 
+  {
   }
   ACluster2d(  float i_x,
 	       float i_y,
@@ -81,8 +81,8 @@ public:
 	       int i_layer,
 	       int i_nhitCore,
 	       int i_nhitAll,
-	       int i_multicluster, 
-	       int i_rechitSeed) :  
+	       int i_multicluster,
+	       int i_rechitSeed) :
   x(i_x),y(i_y),z(i_z),eta(i_eta),phi(i_phi),
     energy(i_energy),layer(i_layer),
     nhitCore(i_nhitCore),nhitAll(i_nhitAll),multicluster(i_multicluster), rechitSeed(i_rechitSeed)
@@ -101,7 +101,7 @@ public:
   int nhitAll;
   int multicluster;
   int rechitSeed;
-  
+
   ClassDef(ACluster2d,1)
 };
 
@@ -109,20 +109,20 @@ public:
 class AMultiCluster : public TObject
 {
 public:
-  
- AMultiCluster() :  eta(-1000.),phi(-1000.), z(0), 
+
+ AMultiCluster() :  eta(-1000.),phi(-1000.), z(0),
     slopeX(0.), slopeY(0.),
     energy(0.), nclus(0), cl2dSeed(-1)
-  { 
+  {
   }
   AMultiCluster(  float i_eta,
 		  float i_phi,
-		  float i_z, 
-		  float i_slopeX, 
+		  float i_z,
+		  float i_slopeX,
 		  float i_slopeY,
 		  float i_energy,
-		  int i_nclus, 
-		  int i_cl2dSeed) :  
+		  int i_nclus,
+		  int i_cl2dSeed) :
   eta(i_eta),phi(i_phi),z(i_z),
     slopeX(i_slopeX), slopeY(i_slopeY),
     energy(i_energy),nclus(i_nclus), cl2dSeed(i_cl2dSeed)
@@ -139,14 +139,43 @@ public:
   int nclus;
   int cl2dSeed;
 
-  
+
   ClassDef(AMultiCluster,1)
 };
+
+class ASimCluster : public TObject
+{
+public:
+  ASimCluster() :  pt(0), eta(0), phi(0), energy(0),
+    simEnergy(0), hits(0), fractions(0)
+  {
+  }
+ ASimCluster(float i_pt, float i_eta, float i_phi, float i_energy,
+     float i_simEnergy, std::vector<uint32_t> i_hits, std::vector<float> i_fractions):
+    pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy),
+    simEnergy(i_simEnergy)
+    {
+    hits = i_hits;
+    fractions = i_fractions;
+  }
+
+
+  virtual ~ASimCluster() { }
+
+  float pt, eta, phi, energy, simEnergy;
+  std::vector<uint32_t> hits;
+  std::vector<float> fractions;
+
+
+  ClassDef(ASimCluster,1)
+};
+
 
 
 typedef std::vector<AGenPart> AGenPartCollection;
 typedef std::vector<ARecHit> ARecHitCollection;
 typedef std::vector<ACluster2d> ACluster2dCollection;
 typedef std::vector<AMultiCluster> AMultiClusterCollection;
+typedef std::vector<ASimCluster> ASimClusterCollection;
 
 #endif

@@ -14,9 +14,11 @@
 #include "DataFormats/ForwardDetId/interface/HGCEEDetId.h"
 #include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
 #include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
+#include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
-
+#include "SimDataFormats/CaloAnalysis/interface/SimCluster.h"
+#include "SimDataFormats/CaloAnalysis/interface/CaloParticle.h"
 
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
@@ -66,6 +68,9 @@ private:
   edm::EDGetTokenT<reco::CaloClusterCollection> _clusters;
   edm::EDGetTokenT<std::vector<TrackingVertex> > _vtx;
   edm::EDGetTokenT<std::vector<TrackingParticle> > _part;
+  edm::EDGetTokenT<std::vector<SimCluster> > _simClusters;
+  edm::EDGetTokenT<std::vector<reco::PFCluster> > _pfClusters;
+  edm::EDGetTokenT<std::vector<CaloParticle> > _caloParticles;
 
   TTree                     *tree;
   AEvent                    *event;
@@ -73,6 +78,7 @@ private:
   ARecHitCollection         *arhc;
   ACluster2dCollection      *acdc;
   AMultiClusterCollection   *amcc;
+  ASimClusterCollection     *ascc;
   std::string                detector;
   int                        algo;
   HGCalDepthPreClusterer     pre;
@@ -104,6 +110,9 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   }
   _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
   _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
+  _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
+  _pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
+  _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
 
   edm::Service<TFileService> fs;
   fs->make<TH1F>("totale", "totale", 100, 0, 5.);
@@ -112,12 +121,14 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   arhc = new ARecHitCollection();
   acdc = new ACluster2dCollection();
   amcc = new AMultiClusterCollection();
+  ascc = new ASimClusterCollection();
   event = new AEvent();
   tree->Branch("event","AEvent",&event,16000,99);
   tree->Branch("particles","AGenPartCollection",&agpc,16000,0);
   tree->Branch("rechits","ARecHitCollection",&arhc,16000,0);
   tree->Branch("cluster2d","ACluster2dCollection",&acdc,16000,0);
   tree->Branch("multicluster","AMultiClusterCollection",&amcc,16000,0);
+  tree->Branch("simcluster","ASimClusterCollection",&ascc,16000,0);
 }
 HGCalAnalysis::~HGCalAnalysis()
 {
@@ -136,6 +147,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   arhc->clear();
   acdc->clear();
   amcc->clear();
+  ascc->clear();
 
 
   edm::ESHandle<HGCalGeometry> geoHandleEE;
@@ -152,6 +164,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   int nhit  = 0;
   int nclus = 0;
   int nmclus = 0;
+  int nsimclus = 0;
 
   Handle<HGCRecHitCollection> recHitHandleEE;
   Handle<HGCRecHitCollection> recHitHandleHE;
@@ -166,6 +179,17 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   const std::vector<TrackingVertex>& vtxs = *vtxHandle;
   const std::vector<TrackingParticle>& part = *partHandle;
 
+  Handle<std::vector<SimCluster> > simClusterHandle;
+  Handle<std::vector<reco::PFCluster> > pfClusterHandle;
+  Handle<std::vector<CaloParticle> > caloParticleHandle;
+
+  iEvent.getByToken(_simClusters, simClusterHandle);
+  iEvent.getByToken(_pfClusters, pfClusterHandle);
+  iEvent.getByToken(_caloParticles, caloParticleHandle);
+
+  const std::vector<SimCluster>& simClusters = *simClusterHandle;
+  const std::vector<reco::PFCluster>& pfClusters = *pfClusterHandle;
+  const std::vector<CaloParticle>& caloParticles = *caloParticleHandle;
 
   float vx = 0.;
   float vy = 0.;
@@ -304,10 +328,33 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				  multiClusters[i].simple_slope_x(vz),
 				  multiClusters[i].simple_slope_y(vz),
 				  multiClusters[i].total_uncalibrated_energy(),
-				  multiClusters[i].size(), 
+				  multiClusters[i].size(),
 				  cl2dSeed));
   }
+
+  // loop over simClusters
+  for (std::vector<SimCluster>::const_iterator it_simClus = simClusters.begin(); it_simClus != simClusters.end(); ++it_simClus) {
+
+    const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_simClus->hits_and_fractions();
+    std::vector<uint32_t> hits;
+    std::vector<float> fractions;
+    for (std::vector<std::pair<uint32_t,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
+        hits.push_back(it_haf->first);
+        fractions.push_back(it_haf->second);
+    }
+    ascc->push_back(ASimCluster(it_simClus->pt(),
+				  it_simClus->eta(),
+				  it_simClus->phi(),
+				  it_simClus->energy(),
+				  it_simClus->simEnergy(),
+				  hits,
+				  fractions));
+
+  }
+
+
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nclus,nmclus,
+         nsimclus,
 	     vx,vy,vz);
   tree->Fill();
 }

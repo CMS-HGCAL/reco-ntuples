@@ -2,9 +2,11 @@
 <use   name="FWCore/Framework"/>
 <use   name="Geometry/HGCalGeometry"/>
 <use   name="DataFormats/CaloRecHit"/>
+<use   name="DataFormats/ParticleFlowReco"/>
 <use   name="RecoLocalCalo/HGCalRecHitDump"/>
 <use   name="RecoNtuples/HGCalAnalysis"/>
 <use   name="Geometry/Records"/>
+<use   name="SimDataFormats/CaloAnalysis"/>
 <library   file="*.cc" name="RecoNtuplesHGCalAnalysisPlugins">
   <flags   EDM_PLUGIN="1"/>
 </library>
