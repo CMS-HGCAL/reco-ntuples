@@ -159,14 +159,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   acpc->clear();
 
 
-  edm::ESHandle<HGCalGeometry> geoHandleEE;
-  iSetup.get<IdealGeometryRecord>().get("HGCalEESensitive",geoHandleEE);
-  const HGCalGeometry& hgcGeoEE = *geoHandleEE;
-
-  edm::ESHandle<HGCalGeometry> geoHandleHE;
-  iSetup.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive",geoHandleHE);
-  const HGCalGeometry& hgcGeoHE = *geoHandleHE;
-
   recHitTools.getEventSetup(iSetup);
 
   int npart = 0;
