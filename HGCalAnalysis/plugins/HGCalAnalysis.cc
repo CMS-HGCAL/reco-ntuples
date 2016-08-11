@@ -347,6 +347,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				  it_simClus->phi(),
 				  it_simClus->energy(),
 				  it_simClus->simEnergy(),
+                  it_simClus->numberOfSimHits(),
+                  it_simClus->numberOfRecHits(),
 				  hits,
 				  fractions));
 

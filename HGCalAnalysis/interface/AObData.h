@@ -151,9 +151,10 @@ public:
   {
   }
  ASimCluster(float i_pt, float i_eta, float i_phi, float i_energy,
-     float i_simEnergy, std::vector<uint32_t> i_hits, std::vector<float> i_fractions):
+     float i_simEnergy, int i_numberOfSimHits, int i_numberOfRecHits,
+     std::vector<uint32_t> i_hits, std::vector<float> i_fractions):
     pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy),
-    simEnergy(i_simEnergy)
+    simEnergy(i_simEnergy), numberOfSimHits(i_numberOfSimHits), numberOfRecHits(i_numberOfRecHits)
     {
     hits = i_hits;
     fractions = i_fractions;
@@ -163,6 +164,7 @@ public:
   virtual ~ASimCluster() { }
 
   float pt, eta, phi, energy, simEnergy;
+  int numberOfSimHits, numberOfRecHits;
   std::vector<uint32_t> hits;
   std::vector<float> fractions;
 
