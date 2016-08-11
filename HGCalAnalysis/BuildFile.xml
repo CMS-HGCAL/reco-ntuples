@@ -1,5 +1,5 @@
 <use name="root"/>
-
+<use name="RecoLocalCalo/HGCalRecAlgos"/>
 <export>
   <lib   name="1"/>
 </export>
