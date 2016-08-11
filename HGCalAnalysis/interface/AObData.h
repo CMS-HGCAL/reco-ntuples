@@ -173,6 +173,37 @@ public:
 };
 
 
+class APFCluster : public TObject
+{
+public:
+  APFCluster() :  pt(0), eta(0), phi(0), energy(0)
+    // simEnergy(0), hits(0), fractions(0)
+  {
+  }
+ APFCluster(float i_pt, float i_eta, float i_phi, float i_energy
+    //  float i_simEnergy, int i_numberOfSimHits, int i_numberOfRecHits,
+    //  std::vector<uint32_t> i_hits, std::vector<float> i_fractions
+ ):
+    pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy)
+    // simEnergy(i_simEnergy), numberOfSimHits(i_numberOfSimHits), numberOfRecHits(i_numberOfRecHits)
+    {
+    // hits = i_hits;
+    // fractions = i_fractions;
+  }
+
+
+  virtual ~APFCluster() { }
+
+  float pt, eta, phi, energy; //, simEnergy;
+  // int numberOfSimHits, numberOfRecHits;
+  // std::vector<uint32_t> hits;
+  // std::vector<float> fractions;
+
+
+  ClassDef(APFCluster,1)
+};
+
+
 class ACaloParticle : public TObject
 {
 public:
@@ -211,6 +242,7 @@ typedef std::vector<ARecHit> ARecHitCollection;
 typedef std::vector<ACluster2d> ACluster2dCollection;
 typedef std::vector<AMultiCluster> AMultiClusterCollection;
 typedef std::vector<ASimCluster> ASimClusterCollection;
+typedef std::vector<APFCluster> APFClusterCollection;
 typedef std::vector<ACaloParticle> ACaloParticleCollection;
 
 #endif

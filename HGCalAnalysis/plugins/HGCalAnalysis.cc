@@ -79,6 +79,7 @@ private:
   ACluster2dCollection      *acdc;
   AMultiClusterCollection   *amcc;
   ASimClusterCollection     *ascc;
+  APFClusterCollection      *apfcc;
   ACaloParticleCollection   *acpc;
   std::string                detector;
   int                        algo;
@@ -123,6 +124,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   acdc = new ACluster2dCollection();
   amcc = new AMultiClusterCollection();
   ascc = new ASimClusterCollection();
+  apfcc = new APFClusterCollection();
   acpc = new ACaloParticleCollection();
   event = new AEvent();
   tree->Branch("event","AEvent",&event,16000,99);
@@ -131,6 +133,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   tree->Branch("cluster2d","ACluster2dCollection",&acdc,16000,0);
   tree->Branch("multicluster","AMultiClusterCollection",&amcc,16000,0);
   tree->Branch("simcluster","ASimClusterCollection",&ascc,16000,0);
+  tree->Branch("pfcluster","APFClusterCollection",&apfcc,16000,0);
   tree->Branch("caloparticles","ACaloParticleCollection",&acpc,16000,0);
 }
 HGCalAnalysis::~HGCalAnalysis()
@@ -151,6 +154,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   acdc->clear();
   amcc->clear();
   ascc->clear();
+  apfcc->clear();
   acpc->clear();
 
 
@@ -169,6 +173,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   int nclus = 0;
   int nmclus = 0;
   int nsimclus = 0;
+  int npfclus = 0;
   int ncalopart = 0;
 
   Handle<HGCRecHitCollection> recHitHandleEE;
@@ -359,6 +364,16 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   } // end loop over simClusters
 
+  // loop over pfClusters
+  for (std::vector<reco::PFCluster>::const_iterator it_pfClus = pfClusters.begin(); it_pfClus != pfClusters.end(); ++it_pfClus) {
+    ++npfclus;
+    apfcc->push_back(APFCluster(it_pfClus->pt(),
+                  it_pfClus->eta(),
+                  it_pfClus->phi(),
+                  it_pfClus->energy()));
+
+  } // end loop over pfClusters
+
   // loop over caloParticles
   for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles.begin(); it_caloPart != caloParticles.end(); ++it_caloPart) {
     ++ncalopart;
@@ -385,11 +400,11 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				  fractions,
                   simClusterIndex));
 
-  } // end loop over simClusters
+  } // end loop over caloParticles
 
 
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nclus,nmclus,
-         nsimclus, ncalopart,
+         nsimclus, npfclus, ncalopart,
 	     vx,vy,vz);
   tree->Fill();
 }
