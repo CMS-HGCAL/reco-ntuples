@@ -17,3 +17,6 @@ AMultiClusterCollection vamc;
 
 ASimCluster asc;
 ASimClusterCollection vasc;
+
+ACaloParticle acp;
+ACaloParticleCollection vacp;

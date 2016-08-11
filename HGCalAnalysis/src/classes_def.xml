@@ -10,4 +10,6 @@
    <class name="AMultiClusterCollection" />
    <class name="ASimCluster" />
    <class name="ASimClusterCollection" />
+   <class name="ACaloParticle" />
+   <class name="ACaloParticleCollection" />
 </lcgdict>

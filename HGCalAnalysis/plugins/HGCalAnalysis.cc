@@ -79,6 +79,7 @@ private:
   ACluster2dCollection      *acdc;
   AMultiClusterCollection   *amcc;
   ASimClusterCollection     *ascc;
+  ACaloParticleCollection   *acpc;
   std::string                detector;
   int                        algo;
   HGCalDepthPreClusterer     pre;
@@ -122,6 +123,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   acdc = new ACluster2dCollection();
   amcc = new AMultiClusterCollection();
   ascc = new ASimClusterCollection();
+  acpc = new ACaloParticleCollection();
   event = new AEvent();
   tree->Branch("event","AEvent",&event,16000,99);
   tree->Branch("particles","AGenPartCollection",&agpc,16000,0);
@@ -129,6 +131,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   tree->Branch("cluster2d","ACluster2dCollection",&acdc,16000,0);
   tree->Branch("multicluster","AMultiClusterCollection",&amcc,16000,0);
   tree->Branch("simcluster","ASimClusterCollection",&ascc,16000,0);
+  tree->Branch("caloparticles","ACaloParticleCollection",&acpc,16000,0);
 }
 HGCalAnalysis::~HGCalAnalysis()
 {
@@ -148,6 +151,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   acdc->clear();
   amcc->clear();
   ascc->clear();
+  acpc->clear();
 
 
   edm::ESHandle<HGCalGeometry> geoHandleEE;
@@ -165,6 +169,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   int nclus = 0;
   int nmclus = 0;
   int nsimclus = 0;
+  int ncalopart = 0;
 
   Handle<HGCRecHitCollection> recHitHandleEE;
   Handle<HGCRecHitCollection> recHitHandleHE;
@@ -334,7 +339,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   // loop over simClusters
   for (std::vector<SimCluster>::const_iterator it_simClus = simClusters.begin(); it_simClus != simClusters.end(); ++it_simClus) {
-
+    ++nsimclus;
     const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_simClus->hits_and_fractions();
     std::vector<uint32_t> hits;
     std::vector<float> fractions;
@@ -352,11 +357,39 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				  hits,
 				  fractions));
 
-  }
+  } // end loop over simClusters
+
+  // loop over caloParticles
+  for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles.begin(); it_caloPart != caloParticles.end(); ++it_caloPart) {
+    ++ncalopart;
+    const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_caloPart->hits_and_fractions();
+    std::vector<uint32_t> hits;
+    std::vector<float> fractions;
+    for (std::vector<std::pair<uint32_t,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
+        hits.push_back(it_haf->first);
+        fractions.push_back(it_haf->second);
+    }
+    const SimClusterRefVector simClusterRefVector = it_caloPart->simClusters();
+    std::vector<uint32_t> simClusterIndex;
+    for (CaloParticle::sc_iterator it_sc = simClusterRefVector.begin(); it_sc != simClusterRefVector.end(); ++it_sc) {
+        simClusterIndex.push_back((*it_sc).key());
+    }
+    acpc->push_back(ACaloParticle(it_caloPart->pt(),
+				  it_caloPart->eta(),
+				  it_caloPart->phi(),
+				  it_caloPart->energy(),
+				  it_caloPart->simEnergy(),
+                  it_caloPart->numberOfSimHits(),
+                  it_caloPart->numberOfRecHits(),
+				  hits,
+				  fractions,
+                  simClusterIndex));
+
+  } // end loop over simClusters
 
 
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nclus,nmclus,
-         nsimclus,
+         nsimclus, ncalopart,
 	     vx,vy,vz);
   tree->Fill();
 }
