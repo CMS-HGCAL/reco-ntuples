@@ -349,8 +349,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				  it_simClus->phi(),
 				  it_simClus->energy(),
 				  it_simClus->simEnergy(),
-                  it_simClus->numberOfSimHits(),
-                  it_simClus->numberOfRecHits(),
 				  hits,
 				  fractions,
                   layers,
@@ -372,13 +370,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   // loop over caloParticles
   for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles.begin(); it_caloPart != caloParticles.end(); ++it_caloPart) {
     ++ncalopart;
-    const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_caloPart->hits_and_fractions();
-    std::vector<uint32_t> hits;
-    std::vector<float> fractions;
-    for (std::vector<std::pair<uint32_t,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
-        hits.push_back(it_haf->first);
-        fractions.push_back(it_haf->second);
-    }
     const SimClusterRefVector simClusterRefVector = it_caloPart->simClusters();
     std::vector<uint32_t> simClusterIndex;
     for (CaloParticle::sc_iterator it_sc = simClusterRefVector.begin(); it_sc != simClusterRefVector.end(); ++it_sc) {
@@ -389,10 +380,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				  it_caloPart->phi(),
 				  it_caloPart->energy(),
 				  it_caloPart->simEnergy(),
-                  it_caloPart->numberOfSimHits(),
-                  it_caloPart->numberOfRecHits(),
-				  hits,
-				  fractions,
                   simClusterIndex));
 
   } // end loop over caloParticles

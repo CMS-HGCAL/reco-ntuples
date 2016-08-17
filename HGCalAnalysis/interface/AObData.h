@@ -161,11 +161,11 @@ public:
   {
   }
  ASimCluster(float i_pt, float i_eta, float i_phi, float i_energy,
-     float i_simEnergy, int i_numberOfSimHits, int i_numberOfRecHits,
+     float i_simEnergy,
      std::vector<uint32_t> i_hits, std::vector<float> i_fractions,
      std::vector<unsigned int> i_layers, std::vector<unsigned int> i_wafers, std::vector<unsigned int> i_cells):
     pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy),
-    simEnergy(i_simEnergy), numberOfSimHits(i_numberOfSimHits), numberOfRecHits(i_numberOfRecHits)
+    simEnergy(i_simEnergy)
     {
     hits = i_hits;
     fractions = i_fractions;
@@ -178,7 +178,6 @@ public:
   virtual ~ASimCluster() { }
 
   float pt, eta, phi, energy, simEnergy;
-  int numberOfSimHits, numberOfRecHits;
   std::vector<uint32_t> hits;
   std::vector<float> fractions;
   std::vector<unsigned int> layers;
@@ -225,18 +224,15 @@ class ACaloParticle : public TObject
 {
 public:
   ACaloParticle() :  pt(0), eta(0), phi(0), energy(0),
-    simEnergy(0), hits(0), fractions(0), simClusterIndex(0)
+    simEnergy(0), simClusterIndex(0)
   {
   }
  ACaloParticle(float i_pt, float i_eta, float i_phi, float i_energy,
-     float i_simEnergy, int i_numberOfSimHits, int i_numberOfRecHits,
-     std::vector<uint32_t> i_hits, std::vector<float> i_fractions,
+     float i_simEnergy,
      std::vector<uint32_t> i_simClusterIndex):
     pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy),
-    simEnergy(i_simEnergy), numberOfSimHits(i_numberOfSimHits), numberOfRecHits(i_numberOfRecHits)
+    simEnergy(i_simEnergy)
     {
-    hits = i_hits;
-    fractions = i_fractions;
     simClusterIndex = i_simClusterIndex;
   }
 
@@ -244,9 +240,6 @@ public:
   virtual ~ACaloParticle() { }
 
   float pt, eta, phi, energy, simEnergy;
-  int numberOfSimHits, numberOfRecHits;
-  std::vector<uint32_t> hits;
-  std::vector<float> fractions;
   std::vector<uint32_t> simClusterIndex;
 
 
