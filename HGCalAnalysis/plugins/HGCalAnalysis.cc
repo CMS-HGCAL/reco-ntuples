@@ -334,9 +334,15 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_simClus->hits_and_fractions();
     std::vector<uint32_t> hits;
     std::vector<float> fractions;
+    std::vector<unsigned int> layers;
+    std::vector<unsigned int> wafers;
+    std::vector<unsigned int> cells;
     for (std::vector<std::pair<uint32_t,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
         hits.push_back(it_haf->first);
         fractions.push_back(it_haf->second);
+        layers.push_back(HGCalDetId(it_haf->first).layer());
+        wafers.push_back(recHitTools.getWafer(it_haf->first));
+        cells.push_back(recHitTools.getCell(it_haf->first));
     }
     ascc->push_back(ASimCluster(it_simClus->pt(),
 				  it_simClus->eta(),
@@ -346,7 +352,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                   it_simClus->numberOfSimHits(),
                   it_simClus->numberOfRecHits(),
 				  hits,
-				  fractions));
+				  fractions,
+                  layers,
+                  wafers,
+                  cells));
 
   } // end loop over simClusters
 
