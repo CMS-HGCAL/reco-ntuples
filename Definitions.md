@@ -1,7 +1,7 @@
 # Ntuple content definitions
 
 | branch name | collection name | collection type | definition  |
-| ------------- |-------------| -----|
+| ------------- | ------------- | ----- | ----- |
 | event | - | - | general event info |
 | particles | `mix::MergedTrackTruth` | `std::vector<TrackingParticle>` | truth level tracks/particles |
 | simcluster | `mix:MergedCaloTruth` | `std::vector<SimCluster>` | Geant particle and its associated hits (DetIds) in the HGCal |
