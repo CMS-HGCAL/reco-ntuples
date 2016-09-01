@@ -11,7 +11,6 @@ cd CMSSW_8_1_0_pre8/src
 cmsenv
 git cms-merge-topic CMS-HGCAL:emilio_plus_sharing
 git cms-merge-topic lgray:topic_simclustering_pre7
-git cms-merge-topic clelange:RecHitToolsImprovements
 git clone git@github.com:CMS-HGCAL/reco-ntuples.git RecoNtuples
 scram b -j9
 cd RecoNtuples/HGCalAnalysis/test
