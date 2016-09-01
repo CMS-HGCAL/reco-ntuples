@@ -8,4 +8,10 @@
    <class name="AGenPartCollection" />
    <class name="AMultiCluster" />
    <class name="AMultiClusterCollection" />
+   <class name="ASimCluster" />
+   <class name="ASimClusterCollection" />
+   <class name="APFCluster" />
+   <class name="APFClusterCollection" />
+   <class name="ACaloParticle" />
+   <class name="ACaloParticleCollection" />
 </lcgdict>

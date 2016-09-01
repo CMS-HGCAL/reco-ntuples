@@ -1,6 +1,8 @@
 # reco-ntuples
 Home of the Ntuplizer for the HGCAL reconstruction software studies
 
+Ntuple content definitions can be found at [Definitions.md](Definitions.md).
+
 to be added on top of CMS-HGCAL:emilio_plus_sharing (the other two cms-merge-topics are temporary until https://github.com/CMS-HGCAL/cmssw/pull/2 and https://github.com/CMS-HGCAL/cmssw/pull/4 are merged):
 
 ```

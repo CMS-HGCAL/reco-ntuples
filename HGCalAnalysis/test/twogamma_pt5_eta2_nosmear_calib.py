@@ -13,7 +13,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(5) )
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-        'root://eoscms.cern.ch//eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_pdg22_pt35_malgeri_20160628/RECO/partGun_PDGid22_x100_Pt35.0To35.0_RECO_1.root'
+        'root://eoscms.cern.ch//eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_clange_PDGid22_nPart1_Pt5_20160729/RECO/partGun_PDGid22_x40_Pt5.0To5.0_RECO_1.root'
     ),
     duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
 )

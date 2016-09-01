@@ -14,3 +14,12 @@ ACluster2dCollection vacd;
 
 AMultiCluster amc;
 AMultiClusterCollection vamc;
+
+ASimCluster asc;
+ASimClusterCollection vasc;
+
+APFCluster apfc;
+APFClusterCollection vapfc;
+
+ACaloParticle acp;
+ACaloParticleCollection vacp;
