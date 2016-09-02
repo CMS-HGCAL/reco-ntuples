@@ -289,6 +289,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	layer = HGCalDetId(hf[j].first).layer();
 
     const GlobalPoint position = recHitTools.getPosition(hf[j].first);
+    const unsigned int detid = hf[j].first;
     const unsigned int wafer = recHitTools.getWafer(hf[j].first);
     const unsigned int cell  = recHitTools.getCell(hf[j].first);
     const double cellThickness = recHitTools.getSiThickness(hf[j].first);
@@ -302,7 +303,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	if(layer < 29){
 	  nhit++;
 	}
-    arhc->push_back(ARecHit(layer, wafer, cell,
+    arhc->push_back(ARecHit(layer, wafer, cell, detid,
                 position.x(), position.y(), position.z(),
                 eta,phi,pt,
                 hit->energy(), hit->time(), cellThickness,
