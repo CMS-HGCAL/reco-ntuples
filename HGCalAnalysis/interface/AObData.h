@@ -32,19 +32,19 @@ public:
 class ARecHit : public TObject
 {
 public:
-  ARecHit() :  layer(0),wafer(0),cell(0),
+  ARecHit() :  layer(0),wafer(0),cell(0),detid(0),
                 x(0.),y(0.),z(0.),
                 eta(-1000.),phi(-1000.),pt(-1000.),
                 energy(-1000.),time(-1),thickness(0.),
                 isHalf(false), flags(0), cluster2d(-1)
   {
   }
- ARecHit(int i_layer, int i_wafer, int i_cell,
+ ARecHit(int i_layer, int i_wafer, int i_cell, unsigned int i_detid,
 	 float i_x, float i_y, float i_z,
      float i_eta, float i_phi, float i_pt,
 	 float i_energy, float i_time, float i_thickness,
 	 bool i_isHalf, int i_flags, int i_cluster2d):
-    layer(i_layer),wafer(i_wafer),cell(i_cell),
+    layer(i_layer),wafer(i_wafer),cell(i_cell),detid(i_detid),
     x(i_x),y(i_y),z(i_z),
     eta(i_eta),phi(i_phi),pt(i_pt),
     energy(i_energy),time(i_time),thickness(i_thickness),
@@ -58,6 +58,7 @@ public:
   virtual ~ARecHit() { }
 
   int   layer,wafer,cell;
+  unsigned int detid;
   float x,y,z;
   float eta,phi,pt;
   float energy,time,thickness;

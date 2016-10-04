@@ -76,6 +76,7 @@ private:
   AEvent                    *event;
   AGenPartCollection        *agpc;
   ARecHitCollection         *arhc;
+  ARecHitCollection         *arhc_raw;
   ACluster2dCollection      *acdc;
   AMultiClusterCollection   *amcc;
   ASimClusterCollection     *ascc;
@@ -84,6 +85,7 @@ private:
   std::string                detector;
   int                        algo;
   HGCalDepthPreClusterer     pre;
+  bool                       rawRecHits;
   hgcal::RecHitTools         recHitTools;
 };
 
@@ -91,7 +93,8 @@ private:
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   detector(iConfig.getParameter<std::string >("detector")),
-  pre(iConfig.getParameter<double>("depthClusteringCone"))
+  pre(iConfig.getParameter<double>("depthClusteringCone")),
+  rawRecHits(iConfig.getParameter<bool>("rawRecHits"))
 {
   //now do what ever initialization is needed
   usesResource("TFileService");
@@ -100,17 +103,15 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   if(detector=="both"){
     _recHitsEE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCEERecHits"));
     _recHitsHE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
-    _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
     algo = 1;
   }else if(detector=="EE"){
     _recHitsEE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCEERecHits"));
-    _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
     algo = 2;
   }else{
     _recHitsHE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
-    _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
     algo = 3;
   }
+  _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
   _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
   _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
   _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
@@ -118,10 +119,12 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
 
   edm::Service<TFileService> fs;
-  fs->make<TH1F>("totale", "totale", 100, 0, 5.);
+  fs->make<TH1F>("total", "total", 100, 0, 5.);
   tree = new TTree("hgc","Analysis");
   agpc = new AGenPartCollection();
   arhc = new ARecHitCollection();
+  if (rawRecHits)
+    arhc_raw = new ARecHitCollection();
   acdc = new ACluster2dCollection();
   amcc = new AMultiClusterCollection();
   ascc = new ASimClusterCollection();
@@ -131,6 +134,8 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   tree->Branch("event","AEvent",&event,16000,99);
   tree->Branch("particles","AGenPartCollection",&agpc,16000,0);
   tree->Branch("rechits","ARecHitCollection",&arhc,16000,0);
+  if (rawRecHits)
+    tree->Branch("rechits_raw","ARecHitCollection",&arhc_raw,16000,0);
   tree->Branch("cluster2d","ACluster2dCollection",&acdc,16000,0);
   tree->Branch("multicluster","AMultiClusterCollection",&amcc,16000,0);
   tree->Branch("simcluster","ASimClusterCollection",&ascc,16000,0);
@@ -152,6 +157,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   using namespace edm;
   agpc->clear();
   arhc->clear();
+  arhc_raw->clear();
   acdc->clear();
   amcc->clear();
   ascc->clear();
@@ -163,6 +169,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   int npart = 0;
   int nhit  = 0;
+  int nhit_raw = 0;
   int nclus = 0;
   int nmclus = 0;
   int nsimclus = 0;
@@ -256,8 +263,65 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     break;
   }
 
+  // dump raw RecHits
+  if (rawRecHits) {
+     if (algo < 3) {
+        const HGCRecHitCollection& rechitsEE = *recHitHandleEE;
+        // loop over EE RecHits
+        for (HGCRecHitCollection::const_iterator it_hit = rechitsEE.begin(); it_hit < rechitsEE.end(); ++it_hit) {
+            int clusterIndex = -1;
+            int flags = 0x0;
 
+        	const HGCalDetId detid = it_hit->detid();
+        	unsigned int layer = recHitTools.getLayerWithOffset(detid);
+            const GlobalPoint position = recHitTools.getPosition(it_hit->detid());
+            const unsigned int wafer = recHitTools.getWafer(detid);
+            const unsigned int cell  = recHitTools.getCell(detid);
+            const double cellThickness = recHitTools.getSiThickness(detid);
+            const bool isHalfCell = recHitTools.isHalfCell(detid);
+            const double eta = recHitTools.getEta(position, vz);
+            const double phi = recHitTools.getPhi(position);
+            const double pt = recHitTools.getPt(position, it_hit->energy(), vz);
 
+        	++nhit_raw;
+
+            arhc_raw->push_back(ARecHit(layer, wafer, cell, detid,
+                        position.x(), position.y(), position.z(),
+                        eta,phi,pt,
+                        it_hit->energy(), it_hit->time(), cellThickness,
+                        isHalfCell, flags, clusterIndex));
+
+        }
+     }
+     if (algo != 2) {
+         const HGCRecHitCollection& rechitsHE = *recHitHandleHE;
+         // loop over EE RecHits
+         for (HGCRecHitCollection::const_iterator it_hit = rechitsHE.begin(); it_hit < rechitsHE.end(); ++it_hit) {
+             int clusterIndex = -1;
+             int flags = 0x0;
+
+         	 const HGCalDetId detid = it_hit->detid();
+         	 unsigned int layer = recHitTools.getLayerWithOffset(detid);
+             const GlobalPoint position = recHitTools.getPosition(it_hit->detid());
+             const unsigned int wafer = recHitTools.getWafer(detid);
+             const unsigned int cell  = recHitTools.getCell(detid);
+             const double cellThickness = recHitTools.getSiThickness(detid);
+             const bool isHalfCell = recHitTools.isHalfCell(detid);
+             const double eta = recHitTools.getEta(position, vz);
+             const double phi = recHitTools.getPhi(position);
+             const double pt = recHitTools.getPt(position, it_hit->energy(), vz);
+
+         	++nhit_raw;
+
+             arhc_raw->push_back(ARecHit(layer, wafer, cell, detid,
+                         position.x(), position.y(), position.z(),
+                         eta,phi,pt,
+                         it_hit->energy(), it_hit->time(), cellThickness,
+                         isHalfCell, flags, clusterIndex));
+
+         }
+     }
+  }
 
   const reco::CaloClusterCollection &clusters = *clusterHandle;
   nclus = clusters.size();
@@ -286,9 +350,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	else if(hf[j].second==0.)
 	  flags = 0x2;
 	const HGCRecHit *hit = hitmap[hf[j].first];
-	layer = HGCalDetId(hf[j].first).layer();
+	layer = recHitTools.getLayerWithOffset(hf[j].first);
 
     const GlobalPoint position = recHitTools.getPosition(hf[j].first);
+    const unsigned int detid = hf[j].first;
     const unsigned int wafer = recHitTools.getWafer(hf[j].first);
     const unsigned int cell  = recHitTools.getCell(hf[j].first);
     const double cellThickness = recHitTools.getSiThickness(hf[j].first);
@@ -298,11 +363,9 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     const double pt = recHitTools.getPt(position, hit->energy(), vz);
 
 	if(hit->energy() > hitmap[hf[rhSeed].first]->energy()) rhSeed = j;
+	++nhit;
 
-	if(layer < 29){
-	  nhit++;
-	}
-    arhc->push_back(ARecHit(layer, wafer, cell,
+    arhc->push_back(ARecHit(layer, wafer, cell, detid,
                 position.x(), position.y(), position.z(),
                 eta,phi,pt,
                 hit->energy(), hit->time(), cellThickness,
@@ -340,7 +403,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     for (std::vector<std::pair<uint32_t,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
         hits.push_back(it_haf->first);
         fractions.push_back(it_haf->second);
-        layers.push_back(HGCalDetId(it_haf->first).layer());
+        layers.push_back(recHitTools.getLayerWithOffset(it_haf->first));
         wafers.push_back(recHitTools.getWafer(it_haf->first));
         cells.push_back(recHitTools.getCell(it_haf->first));
     }
@@ -385,7 +448,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   } // end loop over caloParticles
 
 
-  event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nclus,nmclus,
+  event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nhit_raw,nclus,nmclus,
          nsimclus, npfclus, ncalopart,
 	     vx,vy,vz);
   tree->Fill();
