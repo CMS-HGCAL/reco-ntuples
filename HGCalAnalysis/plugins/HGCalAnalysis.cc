@@ -12,6 +12,7 @@
 
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
 #include "DataFormats/ForwardDetId/interface/HGCEEDetId.h"
+#include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
 #include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
 #include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
@@ -64,7 +65,8 @@ private:
  // ----------member data ---------------------------
 
   edm::EDGetTokenT<HGCRecHitCollection> _recHitsEE;
-  edm::EDGetTokenT<HGCRecHitCollection> _recHitsHE;
+  edm::EDGetTokenT<HGCRecHitCollection> _recHitsFH;
+  edm::EDGetTokenT<HGCRecHitCollection> _recHitsBH;
   edm::EDGetTokenT<reco::CaloClusterCollection> _clusters;
   edm::EDGetTokenT<std::vector<TrackingVertex> > _vtx;
   edm::EDGetTokenT<std::vector<TrackingParticle> > _part;
@@ -100,15 +102,17 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   usesResource("TFileService");
 
 
-  if(detector=="both"){
+  if(detector=="all") {
     _recHitsEE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCEERecHits"));
-    _recHitsHE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
+    _recHitsFH = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
+    _recHitsBH = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEBRecHits"));
     algo = 1;
-  }else if(detector=="EE"){
+  }else if(detector=="EM") {
     _recHitsEE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCEERecHits"));
     algo = 2;
-  }else{
-    _recHitsHE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
+  }else if(detector=="HAD") {
+    _recHitsFH = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
+    _recHitsBH = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEBRecHits"));
     algo = 3;
   }
   _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
@@ -177,7 +181,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   int ncalopart = 0;
 
   Handle<HGCRecHitCollection> recHitHandleEE;
-  Handle<HGCRecHitCollection> recHitHandleHE;
+  Handle<HGCRecHitCollection> recHitHandleFH;
+  Handle<HGCRecHitCollection> recHitHandleBH;
   Handle<reco::CaloClusterCollection> clusterHandle;
 
   std::vector<HGCalMultiCluster> multiClusters;
@@ -225,19 +230,24 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     }
   }
   //make a map detid-rechit
-  std::map<HGCalDetId,const HGCRecHit*> hitmap;
+  std::map<DetId,const HGCRecHit*> hitmap;
   switch(algo){
   case 1:
     {
       iEvent.getByToken(_recHitsEE,recHitHandleEE);
-      iEvent.getByToken(_recHitsHE,recHitHandleHE);
-      const HGCRecHitCollection& rechitsEE = *recHitHandleEE;
-      const HGCRecHitCollection& rechitsHE = *recHitHandleHE;
-      for(unsigned int i = 0; i < rechitsEE.size(); i++){
-	hitmap[HGCalDetId(rechitsEE[i].detid())] = &rechitsEE[i];
+      iEvent.getByToken(_recHitsFH,recHitHandleFH);
+      iEvent.getByToken(_recHitsBH,recHitHandleBH);
+      const auto& rechitsEE = *recHitHandleEE;
+      const auto& rechitsFH = *recHitHandleFH;
+      const auto& rechitsBH = *recHitHandleBH;
+      for(unsigned int i = 0; i < rechitsEE.size(); ++i){
+	hitmap[rechitsEE[i].detid()] = &rechitsEE[i];
       }
-      for(unsigned int i = 0; i < rechitsHE.size(); i++){
-	hitmap[HGCalDetId(rechitsHE[i].detid())] = &rechitsHE[i];
+      for(unsigned int i = 0; i < rechitsFH.size(); ++i){
+	hitmap[rechitsFH[i].detid()] = &rechitsFH[i];
+      }
+      for(unsigned int i = 0; i < rechitsBH.size(); ++i){
+	hitmap[rechitsBH[i].detid()] = &rechitsBH[i];
       }
       break;
     }
@@ -246,16 +256,21 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       iEvent.getByToken(_recHitsEE,recHitHandleEE);
       const HGCRecHitCollection& rechitsEE = *recHitHandleEE;
       for(unsigned int i = 0; i < rechitsEE.size(); i++){
-	hitmap[HGCalDetId(rechitsEE[i].detid())] = &rechitsEE[i];
+	hitmap[rechitsEE[i].detid()] = &rechitsEE[i];
       }
       break;
     }
   case 3:
     {
-      iEvent.getByToken(_recHitsHE,recHitHandleHE);
-      const HGCRecHitCollection& rechitsHE = *recHitHandleHE;
-      for(unsigned int i = 0; i < rechitsHE.size(); i++){
-	hitmap[HGCalDetId(rechitsHE[i].detid())] = &rechitsHE[i];
+      iEvent.getByToken(_recHitsFH,recHitHandleFH);
+      iEvent.getByToken(_recHitsBH,recHitHandleBH);
+      const auto& rechitsFH = *recHitHandleFH;
+      const auto& rechitsBH = *recHitHandleBH;
+      for(unsigned int i = 0; i < rechitsFH.size(); i++){
+	hitmap[rechitsFH[i].detid()] = &rechitsFH[i];
+      }
+      for(unsigned int i = 0; i < rechitsBH.size(); i++){
+	hitmap[rechitsBH[i].detid()] = &rechitsBH[i];
       }
       break;
     }
@@ -272,8 +287,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
             int clusterIndex = -1;
             int flags = 0x0;
 
-        	const HGCalDetId detid = it_hit->detid();
-        	unsigned int layer = recHitTools.getLayerWithOffset(detid);
+	    const HGCalDetId detid = it_hit->detid();
+	    unsigned int layer = recHitTools.getLayerWithOffset(detid);
             const GlobalPoint position = recHitTools.getPosition(it_hit->detid());
             const unsigned int wafer = recHitTools.getWafer(detid);
             const unsigned int cell  = recHitTools.getCell(detid);
@@ -294,9 +309,9 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         }
      }
      if (algo != 2) {
-         const HGCRecHitCollection& rechitsHE = *recHitHandleHE;
+         const HGCRecHitCollection& rechitsFH = *recHitHandleFH;
          // loop over EE RecHits
-         for (HGCRecHitCollection::const_iterator it_hit = rechitsHE.begin(); it_hit < rechitsHE.end(); ++it_hit) {
+         for (HGCRecHitCollection::const_iterator it_hit = rechitsFH.begin(); it_hit < rechitsFH.end(); ++it_hit) {
              int clusterIndex = -1;
              int flags = 0x0;
 
@@ -306,6 +321,32 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
              const unsigned int wafer = recHitTools.getWafer(detid);
              const unsigned int cell  = recHitTools.getCell(detid);
              const double cellThickness = recHitTools.getSiThickness(detid);
+             const bool isHalfCell = recHitTools.isHalfCell(detid);
+             const double eta = recHitTools.getEta(position, vz);
+             const double phi = recHitTools.getPhi(position);
+             const double pt = recHitTools.getPt(position, it_hit->energy(), vz);
+
+         	++nhit_raw;
+
+             arhc_raw->push_back(ARecHit(layer, wafer, cell, detid,
+                         position.x(), position.y(), position.z(),
+                         eta,phi,pt,
+                         it_hit->energy(), it_hit->time(), cellThickness,
+                         isHalfCell, flags, clusterIndex));
+
+         }
+	 const HGCRecHitCollection& rechitsBH = *recHitHandleBH;
+         // loop over EE RecHits
+         for (HGCRecHitCollection::const_iterator it_hit = rechitsBH.begin(); it_hit < rechitsBH.end(); ++it_hit) {
+             int clusterIndex = -1;
+             int flags = 0x0;
+
+	     const HcalDetId detid = it_hit->detid();
+	     unsigned int layer = recHitTools.getLayerWithOffset(detid);
+             const GlobalPoint position = recHitTools.getPosition(it_hit->detid());
+             const unsigned int wafer = std::numeric_limits<unsigned int>::max();//recHitTools.getWafer(detid);
+             const unsigned int cell  = std::numeric_limits<unsigned int>::max();//recHitTools.getCell(detid);
+             const double cellThickness = std::numeric_limits<std::float_t>::max();//recHitTools.getSiThickness(detid);
              const bool isHalfCell = recHitTools.isHalfCell(detid);
              const double eta = recHitTools.getEta(position, vz);
              const double phi = recHitTools.getPhi(position);
@@ -354,9 +395,9 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
     const GlobalPoint position = recHitTools.getPosition(hf[j].first);
     const unsigned int detid = hf[j].first;
-    const unsigned int wafer = recHitTools.getWafer(hf[j].first);
-    const unsigned int cell  = recHitTools.getCell(hf[j].first);
-    const double cellThickness = recHitTools.getSiThickness(hf[j].first);
+    const unsigned int wafer = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getWafer(hf[j].first) : std::numeric_limits<unsigned int>::max() );
+    const unsigned int cell  = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getCell(hf[j].first) :  std::numeric_limits<unsigned int>::max() );
+    const double cellThickness = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getSiThickness(hf[j].first) : std::numeric_limits<std::float_t>::max() );
     const bool isHalfCell = recHitTools.isHalfCell(hf[j].first);
     const double eta = recHitTools.getEta(position, vz);
     const double phi = recHitTools.getPhi(position);
@@ -404,8 +445,13 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         hits.push_back(it_haf->first);
         fractions.push_back(it_haf->second);
         layers.push_back(recHitTools.getLayerWithOffset(it_haf->first));
-        wafers.push_back(recHitTools.getWafer(it_haf->first));
-        cells.push_back(recHitTools.getCell(it_haf->first));
+	if( DetId::Forward == DetId(it_haf->first).det() ) {
+	  wafers.push_back(recHitTools.getWafer(it_haf->first));
+	  cells.push_back(recHitTools.getCell(it_haf->first));
+	} else {
+	  wafers.push_back(std::numeric_limits<unsigned int>::max());
+	  cells.push_back(std::numeric_limits<unsigned int>::max());
+	}
     }
     ascc->push_back(ASimCluster(it_simClus->pt(),
 				  it_simClus->eta(),
