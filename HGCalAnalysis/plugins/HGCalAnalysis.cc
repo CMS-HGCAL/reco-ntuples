@@ -36,8 +36,8 @@
 
 
 
-#include "RecoLocalCalo/HGCalRecHitDump/interface/HGCalDepthPreClusterer.h"
-#include "RecoLocalCalo/HGCalRecHitDump/interface/HGCalMultiCluster.h"
+#include "RecoLocalCalo/HGCalRecAlgos/interface/HGCalDepthPreClusterer.h"
+#include "RecoLocalCalo/HGCalRecAlgos/interface/HGCalMultiCluster.h"
 #include "RecoLocalCalo/HGCalRecAlgos/interface/RecHitTools.h"
 
 #include "RecoNtuples/HGCalAnalysis/interface/AEvent.h"
