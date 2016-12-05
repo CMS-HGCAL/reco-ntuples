@@ -115,7 +115,8 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
     _recHitsBH = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEBRecHits"));
     algo = 3;
   }
-  _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
+  //_clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
+  _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
   _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
   _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
   _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
