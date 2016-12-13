@@ -422,14 +422,14 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       cluster_index++;
     }
 
-    double pt = multiClusters[i].total_uncalibrated_energy() / cosh(multiClusters[i].simple_eta(vz));
-    amcc->push_back(AMultiCluster(multiClusters[i].simple_eta(vz),
-				  multiClusters[i].simple_phi(),
-                  pt,
-				  multiClusters[i].simple_z(vz),
-				  multiClusters[i].simple_slope_x(vz),
-				  multiClusters[i].simple_slope_y(vz),
-				  multiClusters[i].total_uncalibrated_energy(),
+    double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
+    amcc->push_back(AMultiCluster(multiClusters[i].eta(),
+				  multiClusters[i].phi(),
+                                  pt,
+				  multiClusters[i].z(),
+				  multiClusters[i].x(),
+				  multiClusters[i].y(),
+                                  multiClusters[i].energy(),
 				  multiClusters[i].size(),
 				  cl2dSeed));
   }
