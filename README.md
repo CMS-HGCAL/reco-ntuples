@@ -3,11 +3,11 @@ Home of the Ntuplizer for the HGCAL reconstruction software studies
 
 Ntuple content definitions can be found at [Definitions.md](Definitions.md).
 
-based on CMSSW_9_0_0_pre2:
+based on CMSSW_9_0_X:
 
 ```
-cmsrel CMSSW_9_0_0_pre2
-cd CMSSW_9_0_0_pre2/src
+cmsrel CMSSW_9_0_X_2016-12-07-2300
+cd CMSSW_9_0_X_2016-12-07-2300/src
 cmsenv
 git cms-merge-topic lgray:hgcal_cluster_speed
 git cms-merge-topic edjtscott:hgcal_multiclustering_realspacecone
