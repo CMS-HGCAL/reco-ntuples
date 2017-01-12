@@ -36,8 +36,7 @@
 
 
 
-#include "RecoLocalCalo/HGCalRecHitDump/interface/HGCalDepthPreClusterer.h"
-#include "RecoLocalCalo/HGCalRecHitDump/interface/HGCalMultiCluster.h"
+#include "RecoLocalCalo/HGCalRecAlgos/interface/HGCalDepthPreClusterer.h"
 #include "RecoLocalCalo/HGCalRecAlgos/interface/RecHitTools.h"
 
 #include "RecoNtuples/HGCalAnalysis/interface/AEvent.h"
@@ -73,6 +72,7 @@ private:
   edm::EDGetTokenT<std::vector<SimCluster> > _simClusters;
   edm::EDGetTokenT<std::vector<reco::PFCluster> > _pfClusters;
   edm::EDGetTokenT<std::vector<CaloParticle> > _caloParticles;
+  edm::EDGetTokenT<std::vector<reco::HGCalMultiCluster> > _multiClusters;
 
   TTree                     *tree;
   AEvent                    *event;
@@ -95,7 +95,6 @@ private:
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   detector(iConfig.getParameter<std::string >("detector")),
-  pre(iConfig.getParameter<double>("depthClusteringCone")),
   rawRecHits(iConfig.getParameter<bool>("rawRecHits"))
 {
   //now do what ever initialization is needed
@@ -115,12 +114,13 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
     _recHitsBH = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEBRecHits"));
     algo = 3;
   }
-  _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("imagingClusterHGCal"));
+  _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
   _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
   _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
   _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
   _pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
   _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
+  _multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
 
   edm::Service<TFileService> fs;
   fs->make<TH1F>("total", "total", 100, 0, 5.);
@@ -185,7 +185,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   Handle<HGCRecHitCollection> recHitHandleBH;
   Handle<reco::CaloClusterCollection> clusterHandle;
 
-  std::vector<HGCalMultiCluster> multiClusters;
   iEvent.getByToken(_clusters,clusterHandle);
   Handle<std::vector<TrackingVertex> > vtxHandle;
   Handle<std::vector<TrackingParticle> > partHandle;
@@ -205,6 +204,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   const std::vector<SimCluster>& simClusters = *simClusterHandle;
   const std::vector<reco::PFCluster>& pfClusters = *pfClusterHandle;
   const std::vector<CaloParticle>& caloParticles = *caloParticleHandle;
+
+  Handle<std::vector<reco::HGCalMultiCluster> > multiClusterHandle;
+  iEvent.getByToken(_multiClusters, multiClusterHandle);
+  const std::vector<reco::HGCalMultiCluster>& multiClusters = *multiClusterHandle;
 
   float vx = 0.;
   float vy = 0.;
@@ -366,16 +369,15 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   const reco::CaloClusterCollection &clusters = *clusterHandle;
   nclus = clusters.size();
-  multiClusters = pre.makePreClusters(clusters);
   nmclus = multiClusters.size();
   unsigned int cluster_index = 0;
   for(unsigned int i = 0; i < multiClusters.size(); i++){
       int cl2dSeed = 0;
-    for(HGCalMultiCluster::component_iterator it = multiClusters[i].begin();
+    for(reco::HGCalMultiCluster::component_iterator it = multiClusters[i].begin();
 	it!=multiClusters[i].end(); it++){
-      if(it->energy() > (it+cl2dSeed)->energy()) cl2dSeed = it - multiClusters[i].begin();
+      if((*it)->energy() > (*(it+cl2dSeed))->energy()) cl2dSeed = it - multiClusters[i].begin();
 
-      const std::vector< std::pair<DetId, float> > &hf = it->hitsAndFractions();
+      const std::vector< std::pair<DetId, float> > &hf = (*it)->hitsAndFractions();
       int ncoreHit = 0;
       int layer = 0;
       int rhSeed = 0;
@@ -413,21 +415,21 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 isHalfCell, flags, cluster_index));
 
       }
-      double pt = it->energy() / cosh(it->eta());
-      acdc->push_back(ACluster2d(it->x(),it->y(),it->z(),
-				 it->eta(),it->phi(),pt,it->energy(),
+      double pt = (*it)->energy() / cosh((*it)->eta());
+      acdc->push_back(ACluster2d((*it)->x(),(*it)->y(),(*it)->z(),
+				 (*it)->eta(),(*it)->phi(),pt,(*it)->energy(),
 				 layer, ncoreHit,hf.size(),i, rhSeed));
       cluster_index++;
     }
 
-    double pt = multiClusters[i].total_uncalibrated_energy() / cosh(multiClusters[i].simple_eta(vz));
-    amcc->push_back(AMultiCluster(multiClusters[i].simple_eta(vz),
-				  multiClusters[i].simple_phi(),
-                  pt,
-				  multiClusters[i].simple_z(vz),
-				  multiClusters[i].simple_slope_x(vz),
-				  multiClusters[i].simple_slope_y(vz),
-				  multiClusters[i].total_uncalibrated_energy(),
+    double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
+    amcc->push_back(AMultiCluster(multiClusters[i].eta(),
+				  multiClusters[i].phi(),
+                                  pt,
+				  multiClusters[i].z(),
+				  multiClusters[i].x(),
+				  multiClusters[i].y(),
+                                  multiClusters[i].energy(),
 				  multiClusters[i].size(),
 				  cl2dSeed));
   }
