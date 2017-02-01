@@ -23,13 +23,16 @@
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
-#include "Geometry/CaloGeometry/interface/TruncatedPyramid.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
+#include "Geometry/CaloTopology/interface/HGCalTopology.h"
+
 
 #include "FastSimulation/Event/interface/FSimEvent.h"
 #include "FastSimulation/Event/interface/FSimTrack.h"
 #include "FastSimulation/Event/interface/FSimVertex.h"
 #include "FastSimulation/Particle/interface/ParticleTable.h"
+#include "FastSimulation/BaseParticlePropagator/interface/BaseParticlePropagator.h"
 
 #include "TTree.h"
 #include "TH1F.h"
@@ -46,6 +49,7 @@
 
 #include <string>
 #include <map>
+#include <vector>
 
 class HGCalAnalysis : public  edm::one::EDAnalyzer<edm::one::WatchRuns,edm::one::SharedResources>  {
 public:
@@ -64,6 +68,9 @@ private:
   virtual void beginJob() override;
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
+
+  void retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo) ;
+
   // ---------parameters ----------------------------
   bool readOfficialReco;
   bool readCaloParticles;
@@ -103,6 +110,7 @@ private:
   // -------convenient tool to deal with simulated tracks
   FSimEvent * mySimEvent;
   edm::ParameterSet particleFilter;
+  std::vector <float> layerPositions;
 };
 
 HGCalAnalysis::HGCalAnalysis() {;}
@@ -298,12 +306,34 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     {
       npart = mySimEvent->nTracks();
       for (unsigned int i=0;i<npart ; ++i) {
+	std::vector<float> xp,yp,zp;
 	FSimTrack &myTrack = mySimEvent->track(i);
 	math::XYZTLorentzVectorD vtx(0,0,0,0);
+//	if(!myTrack.noMother())
+//	  std::cout << myTrack << std::endl;
 	if(!myTrack.noEndVertex()) 
-	  vtx = myTrack.endVertex().position();
-	
-	agpc->push_back(AGenPart(myTrack.momentum().eta(),myTrack.momentum().phi(),myTrack.momentum().pt(),myTrack.momentum().energy(),vtx.x(),vtx.y(),vtx.z(),myTrack.type()));
+	  {
+	    vtx = myTrack.endVertex().position();	    
+	  }
+	else   
+	  {
+	    // went up to calorimeter: propagate it 
+	    RawParticle part(myTrack.momentum(),myTrack.vertex().position());
+	    part.setID(myTrack.id());
+	    BaseParticlePropagator myPropag(part,140,layerPositions[0],3.8);
+	    myPropag.propagate(); 	    
+	    vtx=myPropag.vertex();
+	    for(unsigned il=0;il<28;++il) {
+	      myPropag.setPropagationConditions(140,layerPositions[il]);
+	      myPropag.propagate();
+	      xp.push_back(myPropag.vertex().x());
+	      yp.push_back(myPropag.vertex().y());
+	      zp.push_back(myPropag.vertex().z());
+	    }
+	  }
+	AGenPart part(myTrack.momentum().eta(),myTrack.momentum().phi(),myTrack.momentum().pt(),myTrack.momentum().energy(),vtx.x(),vtx.y(),vtx.z(),myTrack.type(),myTrack.genpartIndex());
+	part.setExtrapolations(xp,yp,zp);
+	agpc->push_back(part);
       }
     }
   //make a map detid-rechit
@@ -582,7 +612,17 @@ void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) 
     edm::ESHandle < HepPDT::ParticleDataTable > pdt;
     es.getData(pdt);
     mySimEvent->initializePdt(&(*pdt));
-    std::cout << " FSimEvent initialized " << &(*pdt) << std::endl;
+
+    edm::ESHandle<HGCalGeometry> geom;
+    es.get<IdealGeometryRecord>().get("HGCalEESensitive",geom);
+    
+    edm::ESHandle<HGCalTopology> topo;
+    es.get<IdealGeometryRecord>().get("HGCalEESensitive",topo);
+
+    if (geom.isValid() && topo.isValid())
+      retrieveLayerPositions(*geom,*topo);
+
+
 }
 
 void HGCalAnalysis::endRun(edm::Run const& iEvent, edm::EventSetup const&) {;}
@@ -598,6 +638,27 @@ void
 HGCalAnalysis::endJob()
 {
 }
+
+// ------------ method to be called once --------------------------------------------------
+
+void HGCalAnalysis::retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo)
+{
+  int sector=1;
+  int type=geom.topology().dddConstants().waferTypeT(sector);
+  for(unsigned ilayer=0;ilayer<29;++ilayer) {
+    DetId id=(HGCEEDetId(HGCEE,1,ilayer,sector,type,1));
+    if (topo.valid(id)) 
+      {
+	//	const CaloCellGeometry* icell = geom.getGeometry(id);
+	GlobalPoint pos = geom.getPosition(id);
+	//	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
+	layerPositions.push_back(pos.z());
+      }
+  }
+
+}
+
+
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void

@@ -2,20 +2,27 @@
 #define aobdata_h
 
 #include "TObject.h"
+#include <vector>
 
 class AGenPart : public TObject
 {
 public:
 
-  AGenPart(): eta(-1000.),phi(-1000.),pt(-1000.),energy(-1000.),dvx(0.),dvy(0.),dvz(0.),pid(0)
+ AGenPart(): eta(-1000.),phi(-1000.),pt(-1000.),energy(-1000.),dvx(0.),dvy(0.),dvz(0.),pid(0),gen(-1)
   {
   }
   AGenPart(float i_eta, float i_phi, float i_pt, float i_energy,
-	   float i_dvx, float i_dvy,float i_dvz, int i_pid) :
-    eta(i_eta),phi(i_phi),pt(i_pt),energy(i_energy),dvx(i_dvx),dvy(i_dvy),dvz(i_dvz),pid(i_pid)
+	   float i_dvx, float i_dvy,float i_dvz, int i_pid,int i_gen=-1) :
+  eta(i_eta),phi(i_phi),pt(i_pt),energy(i_energy),dvx(i_dvx),dvy(i_dvy),dvz(i_dvz),pid(i_pid),gen(i_gen)
   {
   }
 
+  inline void setExtrapolations(const std::vector<float>&x,const std::vector<float>& y,const std::vector<float>& z) 
+  {
+    posx=x;
+    posy=y;
+    posz=z;
+  }
   float eta;
   float phi;
   float pt;
@@ -24,8 +31,11 @@ public:
   float dvy;
   float dvz;
   int pid;
-
-  ClassDef(AGenPart,1)
+  int gen;
+  std::vector<float> posx;
+  std::vector<float> posy;
+  std::vector<float> posz;
+  ClassDef(AGenPart,1)      
 };
 
 
