@@ -307,10 +307,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       npart = mySimEvent->nTracks();
       for (unsigned int i=0;i<npart ; ++i) {
 	std::vector<float> xp,yp,zp;
-	FSimTrack &myTrack = mySimEvent->track(i);
+	FSimTrack &myTrack(mySimEvent->track(i));
 	math::XYZTLorentzVectorD vtx(0,0,0,0);
-//	if(!myTrack.noMother())
-//	  std::cout << myTrack << std::endl;
+
+	int reachedEE=0;
 	if(!myTrack.noEndVertex()) 
 	  {
 	    vtx = myTrack.endVertex().position();	    
@@ -318,20 +318,21 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	else   
 	  {
 	    // went up to calorimeter: propagate it 
+	    reachedEE=1;
 	    RawParticle part(myTrack.momentum(),myTrack.vertex().position());
 	    part.setID(myTrack.id());
 	    BaseParticlePropagator myPropag(part,140,layerPositions[0],3.8);
 	    myPropag.propagate(); 	    
 	    vtx=myPropag.vertex();
 	    for(unsigned il=0;il<28;++il) {
-	      myPropag.setPropagationConditions(140,layerPositions[il]);
+	      myPropag.setPropagationConditions(140,layerPositions[il],false);
 	      myPropag.propagate();
 	      xp.push_back(myPropag.vertex().x());
 	      yp.push_back(myPropag.vertex().y());
 	      zp.push_back(myPropag.vertex().z());
 	    }
 	  }
-	AGenPart part(myTrack.momentum().eta(),myTrack.momentum().phi(),myTrack.momentum().pt(),myTrack.momentum().energy(),vtx.x(),vtx.y(),vtx.z(),myTrack.type(),myTrack.genpartIndex());
+	AGenPart part(myTrack.momentum().eta(),myTrack.momentum().phi(),myTrack.momentum().pt(),myTrack.momentum().energy(),vtx.x(),vtx.y(),vtx.z(),myTrack.type(),myTrack.genpartIndex(),reachedEE);
 	part.setExtrapolations(xp,yp,zp);
 	agpc->push_back(part);
       }
