@@ -50,6 +50,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <set>
 
 class HGCalAnalysis : public  edm::one::EDAnalyzer<edm::one::WatchRuns,edm::one::SharedResources>  {
 public:
@@ -74,6 +75,7 @@ private:
   // ---------parameters ----------------------------
   bool readOfficialReco;
   bool readCaloParticles;
+  double layerClusterPtThreshold;
   std::string                detector;
   bool                       rawRecHits;
 
@@ -111,6 +113,7 @@ private:
   FSimEvent * mySimEvent;
   edm::ParameterSet particleFilter;
   std::vector <float> layerPositions;
+
 };
 
 HGCalAnalysis::HGCalAnalysis() {;}
@@ -118,6 +121,7 @@ HGCalAnalysis::HGCalAnalysis() {;}
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
   readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
+  layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
   detector(iConfig.getParameter<std::string >("detector")),
   rawRecHits(iConfig.getParameter<bool>("rawRecHits")),
   particleFilter(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter"))
@@ -310,12 +314,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	FSimTrack &myTrack(mySimEvent->track(i));
 	math::XYZTLorentzVectorD vtx(0,0,0,0);
 
-	int reachedEE=0;
-	if(!myTrack.noEndVertex()) 
-	  {
-	    vtx = myTrack.endVertex().position();	    
-	  }
-	else   
+	int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
+	if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)   
 	  {
 	    // went up to calorimeter: propagate it 
 	    reachedEE=1;
@@ -324,14 +324,22 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    BaseParticlePropagator myPropag(part,140,layerPositions[0],3.8);
 	    myPropag.propagate(); 	    
 	    vtx=myPropag.vertex();
+	    
 	    for(unsigned il=0;il<28;++il) {
 	      myPropag.setPropagationConditions(140,layerPositions[il],false);
+	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
+		myPropag.setID(22);
 	      myPropag.propagate();
 	      xp.push_back(myPropag.vertex().x());
 	      yp.push_back(myPropag.vertex().y());
 	      zp.push_back(myPropag.vertex().z());
 	    }
 	  }
+	else
+	  {
+	    vtx = myTrack.endVertex().position();	    
+	  }
+	
 	AGenPart part(myTrack.momentum().eta(),myTrack.momentum().phi(),myTrack.momentum().pt(),myTrack.momentum().energy(),vtx.x(),vtx.y(),vtx.z(),myTrack.type(),myTrack.genpartIndex(),reachedEE);
 	part.setExtrapolations(xp,yp,zp);
 	agpc->push_back(part);
@@ -476,6 +484,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   nclus = clusters.size();
   nmclus = multiClusters.size();
   unsigned int cluster_index = 0;
+  // to keep track of the 2d clusters stored within the loop on multiclusters
+  std::set<edm::Ptr<reco::BasicCluster> > storedLayerClusters;
   for(unsigned int i = 0; i < multiClusters.size(); i++){
       int cl2dSeed = 0;
     for(reco::HGCalMultiCluster::component_iterator it = multiClusters[i].begin();
@@ -500,33 +510,34 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	const HGCRecHit *hit = hitmap[hf[j].first];
 	layer = recHitTools.getLayerWithOffset(hf[j].first);
 
-    const GlobalPoint position = recHitTools.getPosition(hf[j].first);
-    const unsigned int detid = hf[j].first;
-    const unsigned int wafer = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getWafer(hf[j].first) : std::numeric_limits<unsigned int>::max() );
-    const unsigned int cell  = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getCell(hf[j].first) :  std::numeric_limits<unsigned int>::max() );
-    const double cellThickness = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getSiThickness(hf[j].first) : std::numeric_limits<std::float_t>::max() );
-    const bool isHalfCell = recHitTools.isHalfCell(hf[j].first);
-    const double eta = recHitTools.getEta(position, vz);
-    const double phi = recHitTools.getPhi(position);
-    const double pt = recHitTools.getPt(position, hit->energy(), vz);
-
+	const GlobalPoint position = recHitTools.getPosition(hf[j].first);
+	const unsigned int detid = hf[j].first;
+	const unsigned int wafer = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getWafer(hf[j].first) : std::numeric_limits<unsigned int>::max() );
+	const unsigned int cell  = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getCell(hf[j].first) :  std::numeric_limits<unsigned int>::max() );
+	const double cellThickness = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getSiThickness(hf[j].first) : std::numeric_limits<std::float_t>::max() );
+	const bool isHalfCell = recHitTools.isHalfCell(hf[j].first);
+	const double eta = recHitTools.getEta(position, vz);
+	const double phi = recHitTools.getPhi(position);
+	const double pt = recHitTools.getPt(position, hit->energy(), vz);
+	
 	if(hit->energy() > hitmap[hf[rhSeed].first]->energy()) rhSeed = j;
 	++nhit;
-
-    arhc->push_back(ARecHit(layer, wafer, cell, detid,
-                position.x(), position.y(), position.z(),
-                eta,phi,pt,
-                hit->energy(), hit->time(), cellThickness,
-                isHalfCell, flags, cluster_index));
+	
+	arhc->push_back(ARecHit(layer, wafer, cell, detid,
+				position.x(), position.y(), position.z(),
+				eta,phi,pt,
+				hit->energy(), hit->time(), cellThickness,
+				isHalfCell, flags, cluster_index));
 
       }
       double pt = (*it)->energy() / cosh((*it)->eta());
       acdc->push_back(ACluster2d((*it)->x(),(*it)->y(),(*it)->z(),
 				 (*it)->eta(),(*it)->phi(),pt,(*it)->energy(),
 				 layer, ncoreHit,hf.size(),i, rhSeed));
+      storedLayerClusters.insert((*it));
       cluster_index++;
     }
-
+    
     double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
     amcc->push_back(AMultiCluster(multiClusters[i].eta(),
 				  multiClusters[i].phi(),
@@ -537,6 +548,21 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                                   multiClusters[i].energy(),
 				  multiClusters[i].size(),
 				  cl2dSeed));
+
+  }
+
+  // Fills the additional 2d layers
+  for(unsigned ic=0 ; ic < nclus ; ++ic )  {
+    edm::Ptr<reco::BasicCluster> clusterPtr(clusterHandle,ic);
+    if(storedLayerClusters.find(clusterPtr)==storedLayerClusters.end() ) {
+      double pt = clusterPtr->energy() / cosh(clusterPtr->eta());
+      if(pt>layerClusterPtThreshold) {
+	int layer = recHitTools.getLayerWithOffset(clusterPtr->hitsAndFractions()[0].first);
+	acdc->push_back(ACluster2d(clusterPtr->x(),clusterPtr->y(),clusterPtr->z(),
+				   clusterPtr->eta(),clusterPtr->phi(),pt,clusterPtr->energy(),
+				   layer, 0, (int)clusterPtr->hitsAndFractions().size(),-1, -1));
+      }
+    }
   }
 
   if (!readOfficialReco) {
@@ -606,7 +632,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nhit_raw,nclus,nmclus,
          nsimclus, npfclus, ncalopart,
 	     vx,vy,vz);
-  tree->Fill();
+  tree->Fill();					
 }
 
 void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) {
@@ -626,7 +652,7 @@ void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) 
 
 }
 
-void HGCalAnalysis::endRun(edm::Run const& iEvent, edm::EventSetup const&) {;}
+void HGCalAnalysis::endRun(edm::Run const& iEvent, edm::EventSetup const&) {}
 
 void
 HGCalAnalysis::beginJob()
