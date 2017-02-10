@@ -9,6 +9,7 @@ process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+process.load('RecoLocalCalo.HGCalRecProducers.HGCalLocalRecoSequence_cff')
 
 from FastSimulation.Event.ParticleFilter_cfi import *
 #process.load("RecoLocalCalo.HGCalRecProducers.hgcalLayerClusters_cfi")
@@ -48,5 +49,6 @@ process.TFileService = cms.Service("TFileService",
 #process.imagingClusterHGCal.ecut = cms.double(0.01)
 #process.imagingClusterHGCal.eventsToDisplay = cms.untracked.uint32(2)
 
-#process.p = cms.Path(process.hgcalLayerClusters+process.ana)
+# If one wants to re-reconstruct the clusters. The code is located in​RecoLocalCalo/​HGCalRecAlgos/​src/​HGCalImagingAlgo.cc
+#process.p = cms.Path(process.HGCalLocalRecoSequence+process.ana)
 process.p = cms.Path( process.ana)
