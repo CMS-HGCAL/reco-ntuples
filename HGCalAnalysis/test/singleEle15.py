@@ -48,7 +48,12 @@ process.TFileService = cms.Service("TFileService",
                                    )
 #process.imagingClusterHGCal.ecut = cms.double(0.01)
 #process.imagingClusterHGCal.eventsToDisplay = cms.untracked.uint32(2)
+process.hgcalLayerClusters.minClusters = cms.uint32(0)
+process.hgcalLayerClusters.realSpaceCone = cms.bool(True)
+process.hgcalLayerClusters.multiclusterRadius = cms.double(2.)
+process.hgcalLayerClusters.dependSensor = cms.bool(True)
+process.hgcalLayerClusters.ecut = cms.double(3.)
+process.hgcalLayerClusters.kappa = cms.double(9.)
 
-# If one wants to re-reconstruct the clusters. The code is located in​RecoLocalCalo/​HGCalRecAlgos/​src/​HGCalImagingAlgo.cc
-#process.p = cms.Path(process.HGCalLocalRecoSequence+process.ana)
-process.p = cms.Path( process.ana)
+process.p = cms.Path(process.HGCalLocalRecoSequence+process.ana)
+#process.p = cms.Path( process.ana)
