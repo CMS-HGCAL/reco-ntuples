@@ -8,8 +8,6 @@
 
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
-
-
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
 #include "DataFormats/ForwardDetId/interface/HGCEEDetId.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
@@ -20,14 +18,21 @@
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/CaloAnalysis/interface/SimCluster.h"
 #include "SimDataFormats/CaloAnalysis/interface/CaloParticle.h"
+#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
-#include "Geometry/CaloGeometry/interface/TruncatedPyramid.h"
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
+#include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
+#include "Geometry/CaloTopology/interface/HGCalTopology.h"
 
 
+#include "FastSimulation/Event/interface/FSimEvent.h"
+#include "FastSimulation/Event/interface/FSimTrack.h"
+#include "FastSimulation/Event/interface/FSimVertex.h"
+#include "FastSimulation/Particle/interface/ParticleTable.h"
+#include "FastSimulation/BaseParticlePropagator/interface/BaseParticlePropagator.h"
 
 #include "TTree.h"
 #include "TH1F.h"
@@ -44,22 +49,35 @@
 
 #include <string>
 #include <map>
+#include <vector>
+#include <set>
 
-class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::SharedResources>  {
+class HGCalAnalysis : public  edm::one::EDAnalyzer<edm::one::WatchRuns,edm::one::SharedResources>  {
 public:
 //
 // constructors and destructor
 //
+  HGCalAnalysis();
   explicit HGCalAnalysis(const edm::ParameterSet&);
   ~HGCalAnalysis();
 
   static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-
+  virtual void beginRun(edm::Run const& iEvent, edm::EventSetup const&) override; 
+  virtual void endRun(edm::Run const& iEvent, edm::EventSetup const&) override ;
 
 private:
   virtual void beginJob() override;
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
+
+  void retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo) ;
+
+  // ---------parameters ----------------------------
+  bool readOfficialReco;
+  bool readCaloParticles;
+  double layerClusterPtThreshold;
+  std::string                detector;
+  bool                       rawRecHits;
 
  // ----------member data ---------------------------
 
@@ -73,6 +91,9 @@ private:
   edm::EDGetTokenT<std::vector<reco::PFCluster> > _pfClusters;
   edm::EDGetTokenT<std::vector<CaloParticle> > _caloParticles;
   edm::EDGetTokenT<std::vector<reco::HGCalMultiCluster> > _multiClusters;
+  edm::EDGetTokenT<std::vector<SimTrack> > _simTracks;
+  edm::EDGetTokenT<std::vector<SimVertex> > _simVertices;
+  edm::EDGetTokenT<edm::HepMCProduct> _hev;
 
   TTree                     *tree;
   AEvent                    *event;
@@ -84,22 +105,30 @@ private:
   ASimClusterCollection     *ascc;
   APFClusterCollection      *apfcc;
   ACaloParticleCollection   *acpc;
-  std::string                detector;
   int                        algo;
   HGCalDepthPreClusterer     pre;
-  bool                       rawRecHits;
   hgcal::RecHitTools         recHitTools;
+
+  // -------convenient tool to deal with simulated tracks
+  FSimEvent * mySimEvent;
+  edm::ParameterSet particleFilter;
+  std::vector <float> layerPositions;
+
 };
 
-
+HGCalAnalysis::HGCalAnalysis() {;}
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
+  readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
+  readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
+  layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
   detector(iConfig.getParameter<std::string >("detector")),
-  rawRecHits(iConfig.getParameter<bool>("rawRecHits"))
+  rawRecHits(iConfig.getParameter<bool>("rawRecHits")),
+  particleFilter(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter"))
 {
   //now do what ever initialization is needed
   usesResource("TFileService");
-
+  mySimEvent = new FSimEvent(particleFilter);
 
   if(detector=="all") {
     _recHitsEE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCEERecHits"));
@@ -115,12 +144,23 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
     algo = 3;
   }
   _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
-  _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
-  _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
-  _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
+  if(!readOfficialReco) {
+    _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
+    _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
+    _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
+    if (!readCaloParticles) {
+      _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
+    } 
+  }
+  else {
+    _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
+    _simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
+    _simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));    
+  }
   _pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
-  _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
   _multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
+
+
 
   edm::Service<TFileService> fs;
   fs->make<TH1F>("total", "total", 100, 0, 5.);
@@ -154,7 +194,6 @@ HGCalAnalysis::~HGCalAnalysis()
 
 }
 
-
 void
 HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
@@ -168,17 +207,17 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   apfcc->clear();
   acpc->clear();
 
-
+  ParticleTable::Sentry ptable(mySimEvent->theTable());
   recHitTools.getEventSetup(iSetup);
 
-  int npart = 0;
-  int nhit  = 0;
-  int nhit_raw = 0;
-  int nclus = 0;
-  int nmclus = 0;
-  int nsimclus = 0;
-  int npfclus = 0;
-  int ncalopart = 0;
+  unsigned int npart = 0;
+  unsigned int nhit  = 0;
+  unsigned int nhit_raw = 0;
+  unsigned int nclus = 0;
+  unsigned int nmclus = 0;
+  unsigned int nsimclus = 0;
+  unsigned int npfclus = 0;
+  unsigned int ncalopart = 0;
 
   Handle<HGCRecHitCollection> recHitHandleEE;
   Handle<HGCRecHitCollection> recHitHandleFH;
@@ -188,22 +227,49 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(_clusters,clusterHandle);
   Handle<std::vector<TrackingVertex> > vtxHandle;
   Handle<std::vector<TrackingParticle> > partHandle;
-  iEvent.getByToken(_vtx,vtxHandle);
-  iEvent.getByToken(_part,partHandle);
-  const std::vector<TrackingVertex>& vtxs = *vtxHandle;
-  const std::vector<TrackingParticle>& part = *partHandle;
+  const std::vector<TrackingVertex>* vtxs;
+  const std::vector<TrackingParticle> * part;
 
+  Handle<edm::HepMCProduct> hevH;
+  Handle<std::vector<SimTrack> >simTracksHandle;
+  Handle<std::vector<SimVertex> >simVerticesHandle;
+
+  if(!readOfficialReco) {
+    iEvent.getByToken(_vtx,vtxHandle);
+    iEvent.getByToken(_part,partHandle);
+    vtxs = &(*vtxHandle);
+    part = &(*partHandle);
+  } else  // use SimTracks and HepMCProduct 
+    { 
+      iEvent.getByToken(_hev,hevH);
+      iEvent.getByToken(_simTracks,simTracksHandle);
+      iEvent.getByToken(_simVertices,simVerticesHandle);
+      //      std::cout << " Filling FSimEvent " << simTracksHandle->size() << " " << simVerticesHandle->size() << std::endl;
+      //      for(unsigned i=0; i<simTracksHandle->size();++i)
+      //	std::cout << "i " << (*simTracksHandle)[i].type() << std::endl;
+      mySimEvent->fill(*simTracksHandle,*simVerticesHandle);
+      
+    }
+    
+  
   Handle<std::vector<SimCluster> > simClusterHandle;
   Handle<std::vector<reco::PFCluster> > pfClusterHandle;
   Handle<std::vector<CaloParticle> > caloParticleHandle;
 
-  iEvent.getByToken(_simClusters, simClusterHandle);
-  iEvent.getByToken(_pfClusters, pfClusterHandle);
-  iEvent.getByToken(_caloParticles, caloParticleHandle);
+  const std::vector<SimCluster> * simClusters = 0 ; 
+  if(!readOfficialReco) {
+    iEvent.getByToken(_simClusters, simClusterHandle);
+    simClusters = &(*simClusterHandle);
+  }    
 
-  const std::vector<SimCluster>& simClusters = *simClusterHandle;
+  iEvent.getByToken(_pfClusters, pfClusterHandle);
   const std::vector<reco::PFCluster>& pfClusters = *pfClusterHandle;
-  const std::vector<CaloParticle>& caloParticles = *caloParticleHandle;
+
+  const std::vector<CaloParticle>* caloParticles;
+  if(readCaloParticles) {
+    iEvent.getByToken(_caloParticles, caloParticleHandle);
+    caloParticles = &(*caloParticleHandle);
+  }
 
   Handle<std::vector<reco::HGCalMultiCluster> > multiClusterHandle;
   iEvent.getByToken(_multiClusters, multiClusterHandle);
@@ -212,26 +278,73 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   float vx = 0.;
   float vy = 0.;
   float vz = 0.;
-  if(vtxs.size()!=0){
-    vx = vtxs[0].position().x();
-    vy = vtxs[0].position().y();
-    vz = vtxs[0].position().z();
-  }
+  
+  if(!readOfficialReco && vtxs->size()!=0){
+    vx = (*vtxs)[0].position().x();
+    vy = (*vtxs)[0].position().y();
+    vz = (*vtxs)[0].position().z();
+  } else {
+    HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
+    vx = primaryVertex->position().x()/10.; // to put in official units
+    vy = primaryVertex->position().y()/10.;
+    vz = primaryVertex->position().z()/10.;
+  } 
   // TODO: should fall back to beam spot if no vertex
-  npart = part.size();
-  for(unsigned int i=0;i<part.size();++i){
-    if(part[i].parentVertex()->nGenVertices()>0){
-      float dvx=0.;
-      float dvy=0.;
-      float dvz=0.;
-      if(part[i].decayVertices().size()==1){
-	 dvx=part[i].decayVertices()[0]->position().x();
-	 dvy=part[i].decayVertices()[0]->position().y();
-	 dvz=part[i].decayVertices()[0]->position().z();
+  // Comment from FB: in principe no need, the HepMCProduct should always contain the primary vertex and could be used in all cases
+  if( !readOfficialReco) {
+    npart = part->size();
+    for(unsigned int i=0;i<npart;++i){
+      if((*part)[i].parentVertex()->nGenVertices()>0){
+	float dvx=0.;
+	float dvy=0.;
+	float dvz=0.;
+	if((*part)[i].decayVertices().size()==1){
+	  dvx=(*part)[i].decayVertices()[0]->position().x();
+	  dvy=(*part)[i].decayVertices()[0]->position().y();
+	  dvz=(*part)[i].decayVertices()[0]->position().z();
+	}
+	agpc->push_back(AGenPart((*part)[i].eta(),(*part)[i].phi(),(*part)[i].pt(),(*part)[i].energy(),dvx,dvy,dvz,(*part)[i].pdgId()));
       }
-      agpc->push_back(AGenPart(part[i].eta(),part[i].phi(),part[i].pt(),part[i].energy(),dvx,dvy,dvz,part[i].pdgId()));
     }
-  }
+  } else
+    {
+      npart = mySimEvent->nTracks();
+      for (unsigned int i=0;i<npart ; ++i) {
+	std::vector<float> xp,yp,zp;
+	FSimTrack &myTrack(mySimEvent->track(i));
+	math::XYZTLorentzVectorD vtx(0,0,0,0);
+
+	int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
+	if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)   
+	  {
+	    // went up to calorimeter: propagate it 
+	    reachedEE=1;
+	    RawParticle part(myTrack.momentum(),myTrack.vertex().position());
+	    part.setID(myTrack.id());
+	    BaseParticlePropagator myPropag(part,140,layerPositions[0],3.8);
+	    myPropag.propagate(); 	    
+	    vtx=myPropag.vertex();
+	    
+	    for(unsigned il=0;il<28;++il) {
+	      myPropag.setPropagationConditions(140,layerPositions[il],false);
+	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
+		myPropag.setID(22);
+	      myPropag.propagate();
+	      xp.push_back(myPropag.vertex().x());
+	      yp.push_back(myPropag.vertex().y());
+	      zp.push_back(myPropag.vertex().z());
+	    }
+	  }
+	else
+	  {
+	    vtx = myTrack.endVertex().position();	    
+	  }
+	
+	AGenPart part(myTrack.momentum().eta(),myTrack.momentum().phi(),myTrack.momentum().pt(),myTrack.momentum().energy(),vtx.x(),vtx.y(),vtx.z(),myTrack.type(),myTrack.genpartIndex(),reachedEE);
+	part.setExtrapolations(xp,yp,zp);
+	agpc->push_back(part);
+      }
+    }
   //make a map detid-rechit
   std::map<DetId,const HGCRecHit*> hitmap;
   switch(algo){
@@ -371,6 +484,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   nclus = clusters.size();
   nmclus = multiClusters.size();
   unsigned int cluster_index = 0;
+  // to keep track of the 2d clusters stored within the loop on multiclusters
+  std::set<edm::Ptr<reco::BasicCluster> > storedLayerClusters;
   for(unsigned int i = 0; i < multiClusters.size(); i++){
       int cl2dSeed = 0;
     for(reco::HGCalMultiCluster::component_iterator it = multiClusters[i].begin();
@@ -395,33 +510,34 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	const HGCRecHit *hit = hitmap[hf[j].first];
 	layer = recHitTools.getLayerWithOffset(hf[j].first);
 
-    const GlobalPoint position = recHitTools.getPosition(hf[j].first);
-    const unsigned int detid = hf[j].first;
-    const unsigned int wafer = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getWafer(hf[j].first) : std::numeric_limits<unsigned int>::max() );
-    const unsigned int cell  = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getCell(hf[j].first) :  std::numeric_limits<unsigned int>::max() );
-    const double cellThickness = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getSiThickness(hf[j].first) : std::numeric_limits<std::float_t>::max() );
-    const bool isHalfCell = recHitTools.isHalfCell(hf[j].first);
-    const double eta = recHitTools.getEta(position, vz);
-    const double phi = recHitTools.getPhi(position);
-    const double pt = recHitTools.getPt(position, hit->energy(), vz);
-
+	const GlobalPoint position = recHitTools.getPosition(hf[j].first);
+	const unsigned int detid = hf[j].first;
+	const unsigned int wafer = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getWafer(hf[j].first) : std::numeric_limits<unsigned int>::max() );
+	const unsigned int cell  = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getCell(hf[j].first) :  std::numeric_limits<unsigned int>::max() );
+	const double cellThickness = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getSiThickness(hf[j].first) : std::numeric_limits<std::float_t>::max() );
+	const bool isHalfCell = recHitTools.isHalfCell(hf[j].first);
+	const double eta = recHitTools.getEta(position, vz);
+	const double phi = recHitTools.getPhi(position);
+	const double pt = recHitTools.getPt(position, hit->energy(), vz);
+	
 	if(hit->energy() > hitmap[hf[rhSeed].first]->energy()) rhSeed = j;
 	++nhit;
-
-    arhc->push_back(ARecHit(layer, wafer, cell, detid,
-                position.x(), position.y(), position.z(),
-                eta,phi,pt,
-                hit->energy(), hit->time(), cellThickness,
-                isHalfCell, flags, cluster_index));
+	
+	arhc->push_back(ARecHit(layer, wafer, cell, detid,
+				position.x(), position.y(), position.z(),
+				eta,phi,pt,
+				hit->energy(), hit->time(), cellThickness,
+				isHalfCell, flags, cluster_index));
 
       }
       double pt = (*it)->energy() / cosh((*it)->eta());
       acdc->push_back(ACluster2d((*it)->x(),(*it)->y(),(*it)->z(),
 				 (*it)->eta(),(*it)->phi(),pt,(*it)->energy(),
 				 layer, ncoreHit,hf.size(),i, rhSeed));
+      storedLayerClusters.insert((*it));
       cluster_index++;
     }
-
+    
     double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
     amcc->push_back(AMultiCluster(multiClusters[i].eta(),
 				  multiClusters[i].phi(),
@@ -432,18 +548,34 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                                   multiClusters[i].energy(),
 				  multiClusters[i].size(),
 				  cl2dSeed));
+
   }
 
-  // loop over simClusters
-  for (std::vector<SimCluster>::const_iterator it_simClus = simClusters.begin(); it_simClus != simClusters.end(); ++it_simClus) {
-    ++nsimclus;
-    const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_simClus->hits_and_fractions();
-    std::vector<uint32_t> hits;
-    std::vector<float> fractions;
-    std::vector<unsigned int> layers;
-    std::vector<unsigned int> wafers;
-    std::vector<unsigned int> cells;
-    for (std::vector<std::pair<uint32_t,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
+  // Fills the additional 2d layers
+  for(unsigned ic=0 ; ic < nclus ; ++ic )  {
+    edm::Ptr<reco::BasicCluster> clusterPtr(clusterHandle,ic);
+    if(storedLayerClusters.find(clusterPtr)==storedLayerClusters.end() ) {
+      double pt = clusterPtr->energy() / cosh(clusterPtr->eta());
+      if(pt>layerClusterPtThreshold) {
+	int layer = recHitTools.getLayerWithOffset(clusterPtr->hitsAndFractions()[0].first);
+	acdc->push_back(ACluster2d(clusterPtr->x(),clusterPtr->y(),clusterPtr->z(),
+				   clusterPtr->eta(),clusterPtr->phi(),pt,clusterPtr->energy(),
+				   layer, 0, (int)clusterPtr->hitsAndFractions().size(),-1, -1));
+      }
+    }
+  }
+
+  if (!readOfficialReco) {
+    // loop over simClusters
+    for (std::vector<SimCluster>::const_iterator it_simClus = simClusters->begin(); it_simClus != simClusters->end(); ++it_simClus) {
+      ++nsimclus;
+      const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_simClus->hits_and_fractions();
+      std::vector<uint32_t> hits;
+      std::vector<float> fractions;
+      std::vector<unsigned int> layers;
+      std::vector<unsigned int> wafers;
+      std::vector<unsigned int> cells;
+      for (std::vector<std::pair<uint32_t,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
         hits.push_back(it_haf->first);
         fractions.push_back(it_haf->second);
         layers.push_back(recHitTools.getLayerWithOffset(it_haf->first));
@@ -454,20 +586,20 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  wafers.push_back(std::numeric_limits<unsigned int>::max());
 	  cells.push_back(std::numeric_limits<unsigned int>::max());
 	}
-    }
-    ascc->push_back(ASimCluster(it_simClus->pt(),
+      }
+      ascc->push_back(ASimCluster(it_simClus->pt(),
 				  it_simClus->eta(),
 				  it_simClus->phi(),
 				  it_simClus->energy(),
 				  it_simClus->simEnergy(),
 				  hits,
 				  fractions,
-                  layers,
-                  wafers,
-                  cells));
-
-  } // end loop over simClusters
-
+				  layers,
+				  wafers,
+				  cells));      
+    } // end loop over simClusters
+  }
+  
   // loop over pfClusters
   for (std::vector<reco::PFCluster>::const_iterator it_pfClus = pfClusters.begin(); it_pfClus != pfClusters.end(); ++it_pfClus) {
     ++npfclus;
@@ -479,32 +611,53 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   } // end loop over pfClusters
 
   // loop over caloParticles
-  for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles.begin(); it_caloPart != caloParticles.end(); ++it_caloPart) {
-    ++ncalopart;
-    const SimClusterRefVector simClusterRefVector = it_caloPart->simClusters();
-    std::vector<uint32_t> simClusterIndex;
-    for (CaloParticle::sc_iterator it_sc = simClusterRefVector.begin(); it_sc != simClusterRefVector.end(); ++it_sc) {
+  if (readCaloParticles) {
+    for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles->begin(); it_caloPart != caloParticles->end(); ++it_caloPart) {
+      ++ncalopart;
+      const SimClusterRefVector simClusterRefVector = it_caloPart->simClusters();
+      std::vector<uint32_t> simClusterIndex;
+      for (CaloParticle::sc_iterator it_sc = simClusterRefVector.begin(); it_sc != simClusterRefVector.end(); ++it_sc) {
         simClusterIndex.push_back((*it_sc).key());
-    }
-    acpc->push_back(ACaloParticle(it_caloPart->pt(),
-				  it_caloPart->eta(),
-				  it_caloPart->phi(),
-				  it_caloPart->energy(),
-				  it_caloPart->simEnergy(),
-                  simClusterIndex));
-
-  } // end loop over caloParticles
-
+      }
+      acpc->push_back(ACaloParticle(it_caloPart->pt(),
+				    it_caloPart->eta(),
+				    it_caloPart->phi(),
+				    it_caloPart->energy(),
+				    it_caloPart->simEnergy(),
+				    simClusterIndex));
+      
+    } // end loop over caloParticles
+  }
 
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nhit_raw,nclus,nmclus,
          nsimclus, npfclus, ncalopart,
 	     vx,vy,vz);
-  tree->Fill();
+  tree->Fill();					
 }
+
+void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) {
+    edm::ESHandle < HepPDT::ParticleDataTable > pdt;
+    es.getData(pdt);
+    mySimEvent->initializePdt(&(*pdt));
+
+    edm::ESHandle<HGCalGeometry> geom;
+    es.get<IdealGeometryRecord>().get("HGCalEESensitive",geom);
+    
+    edm::ESHandle<HGCalTopology> topo;
+    es.get<IdealGeometryRecord>().get("HGCalEESensitive",topo);
+
+    if (geom.isValid() && topo.isValid())
+      retrieveLayerPositions(*geom,*topo);
+
+
+}
+
+void HGCalAnalysis::endRun(edm::Run const& iEvent, edm::EventSetup const&) {}
 
 void
 HGCalAnalysis::beginJob()
 {
+  ;
 }
 
 // ------------ method called once each job just after ending the event loop  ------------
@@ -512,6 +665,27 @@ void
 HGCalAnalysis::endJob()
 {
 }
+
+// ------------ method to be called once --------------------------------------------------
+
+void HGCalAnalysis::retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo)
+{
+  int sector=1;
+  int type=geom.topology().dddConstants().waferTypeT(sector);
+  for(unsigned ilayer=0;ilayer<29;++ilayer) {
+    DetId id=(HGCEEDetId(HGCEE,1,ilayer,sector,type,1));
+    if (topo.valid(id)) 
+      {
+	//	const CaloCellGeometry* icell = geom.getGeometry(id);
+	GlobalPoint pos = geom.getPosition(id);
+	//	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
+	layerPositions.push_back(pos.z());
+      }
+  }
+
+}
+
+
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
 void
