@@ -19,4 +19,4 @@ cd ../
 scram b -j4
 ```
 
-The input file needs to be step3 (i.e. RECO). Example configs are provided in [HGCalAnalysis/test].
+The input file needs to be step3 (i.e. RECO). Example configs are provided in [HGCalAnalysis/test](HGCalAnalysis/test).
