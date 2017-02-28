@@ -20,6 +20,9 @@
 #include "SimDataFormats/CaloAnalysis/interface/CaloParticle.h"
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 
+// track data formats
+#include "DataFormats/TrackReco/interface/Track.h"
+
 #include "Geometry/CaloGeometry/interface/CaloSubdetectorGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloGeometry.h"
 #include "Geometry/CaloGeometry/interface/CaloCellGeometry.h"
@@ -94,6 +97,7 @@ private:
   edm::EDGetTokenT<std::vector<SimTrack> > _simTracks;
   edm::EDGetTokenT<std::vector<SimVertex> > _simVertices;
   edm::EDGetTokenT<edm::HepMCProduct> _hev;
+  edm::EDGetTokenT<std::vector<reco::Track> > _tracks;
 
   TTree                     *tree;
   AEvent                    *event;
@@ -105,6 +109,7 @@ private:
   ASimClusterCollection     *ascc;
   APFClusterCollection      *apfcc;
   ACaloParticleCollection   *acpc;
+  ATrackCollection          *atrc;
   int                        algo;
   HGCalDepthPreClusterer     pre;
   hgcal::RecHitTools         recHitTools;
@@ -159,6 +164,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   }
   _pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
   _multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
+  _tracks = consumes<std::vector<reco::Track> >(edm::InputTag("generalTracks"));
 
 
 
@@ -174,6 +180,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   ascc = new ASimClusterCollection();
   apfcc = new APFClusterCollection();
   acpc = new ACaloParticleCollection();
+  atrc = new ATrackCollection();
   event = new AEvent();
   tree->Branch("event","AEvent",&event,16000,99);
   tree->Branch("particles","AGenPartCollection",&agpc,16000,0);
@@ -185,6 +192,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   tree->Branch("simcluster","ASimClusterCollection",&ascc,16000,0);
   tree->Branch("pfcluster","APFClusterCollection",&apfcc,16000,0);
   tree->Branch("caloparticles","ACaloParticleCollection",&acpc,16000,0);
+  tree->Branch("tracks","ATrackCollection", &atrc, 16000, 0);
 }
 HGCalAnalysis::~HGCalAnalysis()
 {
@@ -206,6 +214,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   ascc->clear();
   apfcc->clear();
   acpc->clear();
+  atrc->clear();
 
   ParticleTable::Sentry ptable(mySimEvent->theTable());
   recHitTools.getEventSetup(iSetup);
@@ -218,6 +227,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   unsigned int nsimclus = 0;
   unsigned int npfclus = 0;
   unsigned int ncalopart = 0;
+  unsigned int ntracks = 0;
 
   Handle<HGCRecHitCollection> recHitHandleEE;
   Handle<HGCRecHitCollection> recHitHandleFH;
@@ -255,6 +265,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   Handle<std::vector<SimCluster> > simClusterHandle;
   Handle<std::vector<reco::PFCluster> > pfClusterHandle;
   Handle<std::vector<CaloParticle> > caloParticleHandle;
+  Handle<std::vector<reco::Track> > trackHandle;
 
   const std::vector<SimCluster> * simClusters = 0 ;
   iEvent.getByToken(_simClusters, simClusterHandle);
@@ -268,6 +279,9 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     iEvent.getByToken(_caloParticles, caloParticleHandle);
     caloParticles = &(*caloParticleHandle);
   }
+
+  iEvent.getByToken(_tracks, trackHandle);
+  const std::vector<reco::Track>& tracks = *trackHandle;
 
   Handle<std::vector<reco::HGCalMultiCluster> > multiClusterHandle;
   iEvent.getByToken(_multiClusters, multiClusterHandle);
@@ -625,8 +639,22 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     } // end loop over caloParticles
   }
 
+  // loop over tracks
+  for (std::vector<reco::Track>::const_iterator it_track = tracks.begin(); it_track != tracks.end(); ++it_track) {
+
+      if (it_track->quality(reco::Track::highPurity)) {
+          ++ntracks;
+          double energy = it_track->pt() * cosh(it_track->eta());
+          atrc->push_back(ATrack(it_track->pt(),
+                          it_track->eta(),
+                          it_track->phi(),
+                          energy));
+      }
+
+  } // end loop over tracks
+
   event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nhit_raw,nclus,nmclus,
-         nsimclus, npfclus, ncalopart,
+         nsimclus, npfclus, ncalopart, ntracks,
 	     vx,vy,vz);
   tree->Fill();
 }

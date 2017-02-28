@@ -14,4 +14,6 @@
    <class name="APFClusterCollection" />
    <class name="ACaloParticle" />
    <class name="ACaloParticleCollection" />
+   <class name="ATrack" />
+   <class name="ATrackCollection" />
 </lcgdict>
