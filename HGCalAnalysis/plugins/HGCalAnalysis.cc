@@ -148,15 +148,15 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
     _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
     _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
     _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
-    if (!readCaloParticles) {
-      _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
-    } 
   }
   else {
     _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
     _simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
     _simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));    
   }
+  if (readCaloParticles) {
+    _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
+  } 
   _pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
   _multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
 
