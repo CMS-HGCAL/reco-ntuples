@@ -6,7 +6,9 @@
 | particles | `mix::MergedTrackTruth` | `std::vector<TrackingParticle>` | truth level tracks/particles |
 | simcluster | `mix:MergedCaloTruth` | `std::vector<SimCluster>` | Geant particle and its associated hits (DetIds) in the HGCal |
 | pfcluster | `particleFlowClusterHGCal` | `std::vector<reco::PFCluster>` | mapping of the SimCluster DetIds to the reconstructed hits |
-| cluster2d | `imagingClusterHGCal` | `reco::CaloClusterCollection` | reconstructed 2D clusters |
-| multicluster | - | `reco::CaloClusterCollection` | reconstructed 3D cluster built from 2D clusters
-| rechits | `HGCalRecHit::HGCEERecHits` <br> `HGCalRecHit::HGCHEFRecHits` | `HGCRecHitCollection` | reconstructed calorimeter hits |
+| cluster2d | `imagingClusterHGCal` | `reco::CaloClusterCollection` | reconstructed layer (2D) clusters |
+| multicluster | - | `reco::CaloClusterCollection` | reconstructed multi-cluster (3D) built from layer clusters |
+| rechits_raw | `HGCalRecHit::HGCEERecHits` <br> `HGCalRecHit::HGCHEFRecHits` <br> `HGCalRecHit::HGCHEBRecHits` | `HGCRecHitCollection` | all reconstructed calorimeter hits |
+| rechits | `HGCalRecHit::HGCEERecHits` <br> `HGCalRecHit::HGCHEFRecHits` <br> `HGCalRecHit::HGCHEBRecHits` | `HGCRecHitCollection` | reconstructed calorimeter hits associated to layer clusters |
 | caloparticles | `mix:MergedCaloTruth` | `std::vector<CaloParticle>` | |
+| tracks | `generalTracks` | `std::vector<reco::Track>` | tracks passing highPurity selection |

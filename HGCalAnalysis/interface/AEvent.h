@@ -11,18 +11,19 @@ class ACluster2d;
 class AMultiCluster;
 class ASimCluster;
 class ACaloParticle;
+class ATrack;
 class AEvent : public TObject
 {
 public:
 
   AEvent(): run(0), evn(0), ngen(0), nhit(0), nhit_raw(0), nclus2d(0),nclus3d(0),
-        nsimclus(0), npfclus(0), ncalopart(0),
+        nsimclus(0), npfclus(0), ncalopart(0), ntracks(0),
 	    vx(0.), vy(0.), vz(0.)
   {
   }
   void set(int i_run, int i_event,
 	   int i_ngen, int i_nhit, int i_nhit_raw, int i_nclus, int i_nmclus,
-       int i_nsimclus, int i_npfclus, int i_ncalopart,
+       int i_nsimclus, int i_npfclus, int i_ncalopart, int i_ntracks,
 	   float i_vx,float i_vy,float i_vz)
   {
     run =   i_run;
@@ -35,6 +36,7 @@ public:
     nsimclus = i_nsimclus;
     npfclus = i_npfclus;
     ncalopart = i_ncalopart;
+    ntracks = i_ntracks;
     vx = i_vx;
     vy = i_vy;
     vz = i_vz;
@@ -51,6 +53,7 @@ public:
   int   nsimclus;
   int   npfclus;
   int   ncalopart;
+  int   ntracks;
   float vx;
   float vy;
   float vz;

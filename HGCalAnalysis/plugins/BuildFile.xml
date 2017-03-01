@@ -3,6 +3,7 @@
 <use   name="Geometry/HGCalGeometry"/>
 <use   name="DataFormats/CaloRecHit"/>
 <use   name="DataFormats/ParticleFlowReco"/>
+<use   name="DataFormats/TrackReco"/>
 <use   name="RecoNtuples/HGCalAnalysis"/>
 <use   name="Geometry/Records"/>
 <use   name="SimDataFormats/CaloAnalysis"/>
