@@ -17,7 +17,7 @@ public:
   {
   }
 
-  inline void setExtrapolations(const std::vector<float>&x,const std::vector<float>& y,const std::vector<float>& z) 
+  inline void setExtrapolations(const std::vector<float>&x,const std::vector<float>& y,const std::vector<float>& z)
   {
     posx=x;
     posy=y;
@@ -36,7 +36,7 @@ public:
   std::vector<float> posx;
   std::vector<float> posy;
   std::vector<float> posz;
-  ClassDef(AGenPart,1)      
+  ClassDef(AGenPart,1)
 };
 
 
@@ -259,6 +259,23 @@ public:
 };
 
 
+class ATrack : public TObject
+{
+public:
+  ATrack() :  pt(0), eta(0), phi(0), energy(0)
+  {}
+ ATrack(float i_pt, float i_eta, float i_phi, float i_energy):
+    pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy)
+    {}
+
+
+  virtual ~ATrack() { }
+
+  float pt, eta, phi, energy;
+
+  ClassDef(ATrack,1)
+};
+
 typedef std::vector<AGenPart> AGenPartCollection;
 typedef std::vector<ARecHit> ARecHitCollection;
 typedef std::vector<ACluster2d> ACluster2dCollection;
@@ -266,5 +283,6 @@ typedef std::vector<AMultiCluster> AMultiClusterCollection;
 typedef std::vector<ASimCluster> ASimClusterCollection;
 typedef std::vector<APFCluster> APFClusterCollection;
 typedef std::vector<ACaloParticle> ACaloParticleCollection;
+typedef std::vector<ATrack> ATrackCollection;
 
 #endif
