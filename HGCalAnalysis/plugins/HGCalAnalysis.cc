@@ -9,7 +9,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
-#include "DataFormats/ForwardDetId/interface/HGCEEDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCalDetId.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
 #include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
@@ -73,7 +73,7 @@ private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
 
-  void retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo) ;
+  void retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo, unsigned layers, bool ee) ;
 
   // ---------parameters ----------------------------
   bool readOfficialReco;
@@ -337,7 +337,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    myPropag.propagate();
 	    vtx=myPropag.vertex();
 
-	    for(unsigned il=0;il<28;++il) {
+	    for(unsigned il=0;il<40;++il) {
 	      myPropag.setPropagationConditions(140,layerPositions[il],false);
 	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
 		myPropag.setID(22);
@@ -671,7 +671,13 @@ void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) 
     es.get<IdealGeometryRecord>().get("HGCalEESensitive",topo);
 
     if (geom.isValid() && topo.isValid())
-      retrieveLayerPositions(*geom,*topo);
+      retrieveLayerPositions(*geom,*topo,28,true);
+
+    es.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive",geom);
+    es.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive",topo);
+    if (geom.isValid() && topo.isValid())
+      retrieveLayerPositions(*geom,*topo,12,false);
+
 
 
 }
@@ -692,22 +698,23 @@ HGCalAnalysis::endJob()
 
 // ------------ method to be called once --------------------------------------------------
 
-void HGCalAnalysis::retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo)
+void HGCalAnalysis::retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo,unsigned layers, bool ee)
 {
-  int sector=1;
-  int type=geom.topology().dddConstants().waferTypeT(sector);
-  for(unsigned ilayer=0;ilayer<29;++ilayer) {
-    DetId id=(HGCEEDetId(HGCEE,1,ilayer,sector,type,1));
-    if (topo.valid(id))
+  int wafer=1;
+  int type=geom.topology().dddConstants().waferTypeT(wafer);
+  for(unsigned ilayer=1;ilayer<=layers;++ilayer) {
+    DetId id = (ee)? HGCalDetId(ForwardSubdetector::HGCEE,1,ilayer,wafer,type,1) : HGCalDetId(ForwardSubdetector::HGCHEF,1,ilayer,wafer,type,1) ;
+      if (topo.valid(id)) 
       {
 	//	const CaloCellGeometry* icell = geom.getGeometry(id);
 	GlobalPoint pos = geom.getPosition(id);
+	//	std::cout << ( (ee) ? "EE " : "FH" ) ;
 	//	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
 	layerPositions.push_back(pos.z());
       }
   }
-
 }
+
 
 
 
