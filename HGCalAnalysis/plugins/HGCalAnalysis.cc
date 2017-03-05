@@ -150,12 +150,12 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   }
   _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
   _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
+  _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
   if(!readOfficialReco) {
     _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
     _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
   }
   else {
-    _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
     _simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
     _simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));
   }
@@ -237,21 +237,23 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(_clusters,clusterHandle);
   Handle<std::vector<TrackingVertex> > vtxHandle;
   Handle<std::vector<TrackingParticle> > partHandle;
-  const std::vector<TrackingVertex>* vtxs;
+  // no longer needed . FB 
+  //  const std::vector<TrackingVertex>* vtxs;
   const std::vector<TrackingParticle> * part;
 
   Handle<edm::HepMCProduct> hevH;
   Handle<std::vector<SimTrack> >simTracksHandle;
   Handle<std::vector<SimVertex> >simVerticesHandle;
 
+  iEvent.getByToken(_hev,hevH);
   if(!readOfficialReco) {
     iEvent.getByToken(_vtx,vtxHandle);
     iEvent.getByToken(_part,partHandle);
-    vtxs = &(*vtxHandle);
+    // no longer needed. FB
+    //    vtxs = &(*vtxHandle); 
     part = &(*partHandle);
-  } else  // use SimTracks and HepMCProduct
+  } else  // use SimTracks 
     {
-      iEvent.getByToken(_hev,hevH);
       iEvent.getByToken(_simTracks,simTracksHandle);
       iEvent.getByToken(_simVertices,simVerticesHandle);
       //      std::cout << " Filling FSimEvent " << simTracksHandle->size() << " " << simVerticesHandle->size() << std::endl;
@@ -287,22 +289,18 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(_multiClusters, multiClusterHandle);
   const std::vector<reco::HGCalMultiCluster>& multiClusters = *multiClusterHandle;
 
-  float vx = 0.;
-  float vy = 0.;
-  float vz = 0.;
+  HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
+  float vx = primaryVertex->position().x()/10.; // to put in official units
+  float vy = primaryVertex->position().y()/10.;
+  float vz = primaryVertex->position().z()/10.;
 
-  if(!readOfficialReco && vtxs->size()!=0){
-    vx = (*vtxs)[0].position().x();
-    vy = (*vtxs)[0].position().y();
-    vz = (*vtxs)[0].position().z();
-  } else {
-    HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
-    vx = primaryVertex->position().x()/10.; // to put in official units
-    vy = primaryVertex->position().y()/10.;
-    vz = primaryVertex->position().z()/10.;
-  }
-  // TODO: should fall back to beam spot if no vertex
-  // Comment from FB: in principe no need, the HepMCProduct should always contain the primary vertex and could be used in all cases
+// deprecated  FB
+//  if(!readOfficialReco && vtxs->size()!=0){
+//    vx = (*vtxs)[0].position().x();
+//    vy = (*vtxs)[0].position().y();
+//    vz = (*vtxs)[0].position().z();
+//  }
+
   if( !readOfficialReco) {
     npart = part->size();
     for(unsigned int i=0;i<npart;++i){
