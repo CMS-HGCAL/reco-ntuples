@@ -330,14 +330,16 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
 	  {
 	    // went up to calorimeter: propagate it
-	    reachedEE=1;
+	    if (myTrack.noEndVertex()) reachedEE=1;
 	    RawParticle part(myTrack.momentum(),myTrack.vertex().position());
 	    part.setID(myTrack.id());
 	    BaseParticlePropagator myPropag(part,140,layerPositions[0],3.8);
 	    myPropag.propagate();
 	    vtx=myPropag.vertex();
+	    // for the particles reaching EE compute the extrapolations, otherwise, only to the first layer.
+	    unsigned nlayers=(myTrack.noEndVertex()) ? 40 : 1 ; 
 
-	    for(unsigned il=0;il<28;++il) {
+	    for(unsigned il=0;il<nlayers;++il) {
 	      myPropag.setPropagationConditions(140,layerPositions[il],false);
 	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
 		myPropag.setID(22);
