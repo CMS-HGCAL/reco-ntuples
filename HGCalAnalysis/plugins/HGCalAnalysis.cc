@@ -9,7 +9,7 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
-#include "DataFormats/ForwardDetId/interface/HGCEEDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCalDetId.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
 #include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
@@ -73,7 +73,7 @@ private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
 
-  void retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo) ;
+  void retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo, unsigned layers, bool ee) ;
 
   // ---------parameters ----------------------------
   bool readOfficialReco;
@@ -150,12 +150,12 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   }
   _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
   _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
+  _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
   if(!readOfficialReco) {
     _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
     _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
   }
   else {
-    _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
     _simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
     _simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));
   }
@@ -237,21 +237,23 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(_clusters,clusterHandle);
   Handle<std::vector<TrackingVertex> > vtxHandle;
   Handle<std::vector<TrackingParticle> > partHandle;
-  const std::vector<TrackingVertex>* vtxs;
+  // no longer needed . FB 
+  //  const std::vector<TrackingVertex>* vtxs;
   const std::vector<TrackingParticle> * part;
 
   Handle<edm::HepMCProduct> hevH;
   Handle<std::vector<SimTrack> >simTracksHandle;
   Handle<std::vector<SimVertex> >simVerticesHandle;
 
+  iEvent.getByToken(_hev,hevH);
   if(!readOfficialReco) {
     iEvent.getByToken(_vtx,vtxHandle);
     iEvent.getByToken(_part,partHandle);
-    vtxs = &(*vtxHandle);
+    // no longer needed. FB
+    //    vtxs = &(*vtxHandle); 
     part = &(*partHandle);
-  } else  // use SimTracks and HepMCProduct
+  } else  // use SimTracks 
     {
-      iEvent.getByToken(_hev,hevH);
       iEvent.getByToken(_simTracks,simTracksHandle);
       iEvent.getByToken(_simVertices,simVerticesHandle);
       //      std::cout << " Filling FSimEvent " << simTracksHandle->size() << " " << simVerticesHandle->size() << std::endl;
@@ -287,22 +289,18 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(_multiClusters, multiClusterHandle);
   const std::vector<reco::HGCalMultiCluster>& multiClusters = *multiClusterHandle;
 
-  float vx = 0.;
-  float vy = 0.;
-  float vz = 0.;
+  HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
+  float vx = primaryVertex->position().x()/10.; // to put in official units
+  float vy = primaryVertex->position().y()/10.;
+  float vz = primaryVertex->position().z()/10.;
 
-  if(!readOfficialReco && vtxs->size()!=0){
-    vx = (*vtxs)[0].position().x();
-    vy = (*vtxs)[0].position().y();
-    vz = (*vtxs)[0].position().z();
-  } else {
-    HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
-    vx = primaryVertex->position().x()/10.; // to put in official units
-    vy = primaryVertex->position().y()/10.;
-    vz = primaryVertex->position().z()/10.;
-  }
-  // TODO: should fall back to beam spot if no vertex
-  // Comment from FB: in principe no need, the HepMCProduct should always contain the primary vertex and could be used in all cases
+// deprecated  FB
+//  if(!readOfficialReco && vtxs->size()!=0){
+//    vx = (*vtxs)[0].position().x();
+//    vy = (*vtxs)[0].position().y();
+//    vz = (*vtxs)[0].position().z();
+//  }
+
   if( !readOfficialReco) {
     npart = part->size();
     for(unsigned int i=0;i<npart;++i){
@@ -330,14 +328,17 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
 	  {
 	    // went up to calorimeter: propagate it
-	    reachedEE=1;
+	    if (myTrack.noEndVertex()) reachedEE=1;
 	    RawParticle part(myTrack.momentum(),myTrack.vertex().position());
 	    part.setID(myTrack.id());
 	    BaseParticlePropagator myPropag(part,140,layerPositions[0],3.8);
 	    myPropag.propagate();
 	    vtx=myPropag.vertex();
+	    // for the particles reaching EE compute the extrapolations, otherwise, only to the first layer.
+	    unsigned nlayers=(myTrack.noEndVertex()) ? 40 : 1 ; 
 
-	    for(unsigned il=0;il<28;++il) {
+	    for(unsigned il=0;il<nlayers;++il) {
+
 	      myPropag.setPropagationConditions(140,layerPositions[il],false);
 	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
 		myPropag.setID(22);
@@ -671,7 +672,13 @@ void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) 
     es.get<IdealGeometryRecord>().get("HGCalEESensitive",topo);
 
     if (geom.isValid() && topo.isValid())
-      retrieveLayerPositions(*geom,*topo);
+      retrieveLayerPositions(*geom,*topo,28,true);
+
+    es.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive",geom);
+    es.get<IdealGeometryRecord>().get("HGCalHESiliconSensitive",topo);
+    if (geom.isValid() && topo.isValid())
+      retrieveLayerPositions(*geom,*topo,12,false);
+
 
 
 }
@@ -692,22 +699,23 @@ HGCalAnalysis::endJob()
 
 // ------------ method to be called once --------------------------------------------------
 
-void HGCalAnalysis::retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo)
+void HGCalAnalysis::retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo,unsigned layers, bool ee)
 {
-  int sector=1;
-  int type=geom.topology().dddConstants().waferTypeT(sector);
-  for(unsigned ilayer=0;ilayer<29;++ilayer) {
-    DetId id=(HGCEEDetId(HGCEE,1,ilayer,sector,type,1));
-    if (topo.valid(id))
+  int wafer=1;
+  int type=geom.topology().dddConstants().waferTypeT(wafer);
+  for(unsigned ilayer=1;ilayer<=layers;++ilayer) {
+    DetId id = (ee)? HGCalDetId(ForwardSubdetector::HGCEE,1,ilayer,wafer,type,1) : HGCalDetId(ForwardSubdetector::HGCHEF,1,ilayer,wafer,type,1) ;
+      if (topo.valid(id)) 
       {
 	//	const CaloCellGeometry* icell = geom.getGeometry(id);
 	GlobalPoint pos = geom.getPosition(id);
+	//	std::cout << ( (ee) ? "EE " : "FH" ) ;
 	//	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
 	layerPositions.push_back(pos.z());
       }
   }
-
 }
+
 
 
 
