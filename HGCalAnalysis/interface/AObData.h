@@ -12,8 +12,8 @@ public:
   {
   }
   AGenPart(float i_eta, float i_phi, float i_pt, float i_energy,
-	   float i_dvx, float i_dvy,float i_dvz, int i_pid,int i_gen=-1,int i_reachedEE=-1) :
-  eta(i_eta),phi(i_phi),pt(i_pt),energy(i_energy),dvx(i_dvx),dvy(i_dvy),dvz(i_dvz),pid(i_pid),gen(i_gen),reachedEE(i_reachedEE)
+	   float i_dvx, float i_dvy,float i_dvz, int i_pid,int i_gen=-1,int i_reachedEE=-1, bool i_fromBeamPipe=true) :
+  eta(i_eta),phi(i_phi),pt(i_pt),energy(i_energy),dvx(i_dvx),dvy(i_dvy),dvz(i_dvz),pid(i_pid),gen(i_gen),reachedEE(i_reachedEE),fromBeamPipe(i_fromBeamPipe)
   {
   }
 
@@ -33,6 +33,7 @@ public:
   int pid;
   int gen;
   int reachedEE;
+  bool fromBeamPipe;
   std::vector<float> posx;
   std::vector<float> posy;
   std::vector<float> posz;
@@ -271,7 +272,17 @@ public:
 
   virtual ~ATrack() { }
 
+  inline void setExtrapolations(const std::vector<float>&x,const std::vector<float>& y,const std::vector<float>& z)
+  {
+    posx=x;
+    posy=y;
+    posz=z;
+  }
+
   float pt, eta, phi, energy;
+  std::vector<float> posx;
+  std::vector<float> posy;
+  std::vector<float> posz;
 
   ClassDef(ATrack,1)
 };

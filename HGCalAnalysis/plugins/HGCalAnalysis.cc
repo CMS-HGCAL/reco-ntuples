@@ -9,7 +9,8 @@
 #include "FWCore/ParameterSet/interface/ParameterSet.h"
 
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
-#include "DataFormats/ForwardDetId/interface/HGCEEDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCalDetId.h"
+#include "Geometry/HcalTowerAlgo/interface/HcalGeometry.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
 #include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
@@ -29,19 +30,23 @@
 #include "Geometry/Records/interface/CaloGeometryRecord.h"
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
 #include "Geometry/CaloTopology/interface/HGCalTopology.h"
-
+#include "DataFormats/GeometrySurface/interface/PlaneBuilder.h"
 
 #include "FastSimulation/Event/interface/FSimEvent.h"
 #include "FastSimulation/Event/interface/FSimTrack.h"
 #include "FastSimulation/Event/interface/FSimVertex.h"
 #include "FastSimulation/Particle/interface/ParticleTable.h"
 #include "FastSimulation/BaseParticlePropagator/interface/BaseParticlePropagator.h"
+#include "MagneticField/Engine/interface/MagneticField.h"
+#include "MagneticField/Records/interface/IdealMagneticFieldRecord.h"
+#include "TrackPropagation/RungeKutta/interface/defaultRKPropagator.h"
+#include "MagneticField/VolumeGeometry/interface/MagVolumeOutsideValidity.h"
+
 
 #include "TTree.h"
 #include "TH1F.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
-
 
 
 #include "RecoLocalCalo/HGCalRecAlgos/interface/HGCalDepthPreClusterer.h"
@@ -73,12 +78,15 @@ private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
 
-  void retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo) ;
+  void retrieveLayerPositions(const edm::EventSetup&, unsigned layers) ;
 
+  //  Surface::RotationType rotation( const GlobalVector& zDir) const;
+  
   // ---------parameters ----------------------------
   bool readOfficialReco;
   bool readCaloParticles;
   double layerClusterPtThreshold;
+  double propagationPtThreshold;
   std::string                detector;
   bool                       rawRecHits;
 
@@ -119,6 +127,8 @@ private:
   edm::ParameterSet particleFilter;
   std::vector <float> layerPositions;
 
+  // and also the magnetic field
+  MagneticField const * aField;
 };
 
 HGCalAnalysis::HGCalAnalysis() {;}
@@ -127,6 +137,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
   readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
   layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
+  propagationPtThreshold(iConfig.getUntrackedParameter<double>("propagationPtThreshold",3.0)),
   detector(iConfig.getParameter<std::string >("detector")),
   rawRecHits(iConfig.getParameter<bool>("rawRecHits")),
   particleFilter(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter"))
@@ -153,15 +164,15 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   if(!readOfficialReco) {
     _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
     _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
-    if (!readCaloParticles) {
-      _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
-    }
   }
   else {
     _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
     _simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
     _simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));
   }
+  if (readCaloParticles) {
+    _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
+  } 
   _pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
   _multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
   _tracks = consumes<std::vector<reco::Track> >(edm::InputTag("generalTracks"));
@@ -193,6 +204,8 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   tree->Branch("pfcluster","APFClusterCollection",&apfcc,16000,0);
   tree->Branch("caloparticles","ACaloParticleCollection",&acpc,16000,0);
   tree->Branch("tracks","ATrackCollection", &atrc, 16000, 0);
+
+  
 }
 HGCalAnalysis::~HGCalAnalysis()
 {
@@ -203,6 +216,7 @@ HGCalAnalysis::~HGCalAnalysis()
 }
 
 void
+
 HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
@@ -306,17 +320,33 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if( !readOfficialReco) {
     npart = part->size();
     for(unsigned int i=0;i<npart;++i){
-      if((*part)[i].parentVertex()->nGenVertices()>0){
-	float dvx=0.;
-	float dvy=0.;
-	float dvz=0.;
-	if((*part)[i].decayVertices().size()==1){
-	  dvx=(*part)[i].decayVertices()[0]->position().x();
-	  dvy=(*part)[i].decayVertices()[0]->position().y();
-	  dvz=(*part)[i].decayVertices()[0]->position().z();
+
+	// event=0 is the hard scattering (all PU have event()>=1)
+	// bunchCrossing == 0 intime, buncCrossing!=0 offtime, standard generation has [-12,+3]
+        if((*part)[i].eventId().event() ==0 and (*part)[i].eventId().bunchCrossing()==0){
+
+	  //look for the generator particle, set to -1 for Geant produced paticles
+	  int tp_genpart=-1;
+	  if (! (*part)[i].genParticles().empty()) tp_genpart=(*part)[i].genParticle_begin().key();
+
+	  // default values for decay position is outside detector, i.e. ~stable 
+	  int reachedEE=1;
+	  float dvx=999.;
+	  float dvy=999.;
+	  float dvz=999.;
+	  if((*part)[i].decayVertices().size()>=1){ //they can be delta rays, in this case you have multiple decay verices
+	    dvx=(*part)[i].decayVertices()[0]->position().x();
+	    dvy=(*part)[i].decayVertices()[0]->position().y();
+	    dvz=(*part)[i].decayVertices()[0]->position().z();
+	    if ((*part)[i].decayVertices()[0]->inVolume()) reachedEE=0; //if it decays inside the tracker volume
+	  }
+	  
+	  //look for origin of particle inside the beampipe so that we can assess if a track can potentially give a reco::Track
+	  float r_origin=(*part)[i].parentVertex()->position().Pt();
+	  bool fromBeamPipe=true;
+	  if (r_origin>2.0) fromBeamPipe=false;
+	  agpc->push_back(AGenPart((*part)[i].eta(),(*part)[i].phi(),(*part)[i].pt(),(*part)[i].energy(),dvx,dvy,dvz,(*part)[i].pdgId(),tp_genpart,reachedEE,fromBeamPipe));
 	}
-	agpc->push_back(AGenPart((*part)[i].eta(),(*part)[i].phi(),(*part)[i].pt(),(*part)[i].energy(),dvx,dvy,dvz,(*part)[i].pdgId()));
-      }
     }
   } else
     {
@@ -337,7 +367,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    myPropag.propagate();
 	    vtx=myPropag.vertex();
 
-	    for(unsigned il=0;il<28;++il) {
+	    for(unsigned il=0;il<40;++il) {
 	      myPropag.setPropagationConditions(140,layerPositions[il],false);
 	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
 		myPropag.setID(22);
@@ -640,16 +670,85 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   }
 
   // loop over tracks
-  for (std::vector<reco::Track>::const_iterator it_track = tracks.begin(); it_track != tracks.end(); ++it_track) {
 
-      if (it_track->quality(reco::Track::highPurity)) {
-          ++ntracks;
-          double energy = it_track->pt() * cosh(it_track->eta());
-          atrc->push_back(ATrack(it_track->pt(),
-                          it_track->eta(),
-                          it_track->phi(),
-                          energy));
-      }
+  //  random = new RandomEngineAndDistribution(iEvent.streamID());
+
+  // prepare for RK propagation
+  defaultRKPropagator::Product  prod( aField, alongMomentum, 5.e-5); 
+  auto & RKProp = prod.propagator;
+          
+
+  for (std::vector<reco::Track>::const_iterator it_track = tracks.begin(); it_track != tracks.end(); ++it_track) {
+    
+    if (! it_track->quality(reco::Track::highPurity)) continue;
+
+    ++ntracks;
+    double energy = it_track->pt() * cosh(it_track->eta());
+    
+    //    atrc->push_back(ATrack(it_track->pt(),
+    //			     it_track->eta(),
+    //			     it_track->phi(),
+    //			     energy));
+    
+
+    //save info about reconstructed tracks propoagation to hgcal layers (ony for pt>propagationPtThreshold tracks)
+    std::vector<float> xp,yp,zp;
+    
+    if (it_track->pt()>= propagationPtThreshold) {
+    
+      // Define error matrix
+      ROOT::Math::SMatrixIdentity id;
+      AlgebraicSymMatrix55 C(id);
+      C *= 0.01;
+      CurvilinearTrajectoryError err(C); 
+      typedef TrajectoryStateOnSurface TSOS;
+      
+      GlobalPoint startingPosition(it_track->vx(),it_track->vy(),it_track->vz());
+      GlobalVector startingMomentum(it_track->px(),it_track->py(),it_track->pz());
+
+      Plane::PlanePointer startingPlane = Plane::build( Plane::PositionType (it_track->vx(),it_track->vy(),it_track->vz()), Plane::RotationType () );
+
+      TSOS startingStateP(GlobalTrajectoryParameters(startingPosition,startingMomentum, 1, aField), err, *startingPlane);
+      
+      for(unsigned il=0;il<layerPositions.size();++il) {
+	float xp_curr=0;
+	float yp_curr=0;
+	float zp_curr=0;
+	
+	for (int zside = -1; zside <=1; zside+=2)
+	  {
+	    // clearly try both sides
+	    Plane::PlanePointer endPlane = Plane::build( Plane::PositionType (0,0,zside*layerPositions[il]), Plane::RotationType());
+	    try{
+	      /*
+	      std::cout << "Trying from " << 
+		" layer " << il <<
+		" starting point " << startingStateP.globalPosition() << 
+		std::endl;
+	      */
+	      TSOS trackStateP = RKProp.propagate( startingStateP, *endPlane);
+	      if (trackStateP.isValid()) {
+		xp_curr=trackStateP.globalPosition().x();
+		yp_curr=trackStateP.globalPosition().y();
+		zp_curr=trackStateP.globalPosition().z();
+	      
+		// std::cout << "Succesfully finished Positive track propagation  -------------- with RK: " << trackStateP.globalPosition() << std::endl;
+	      }
+	    }
+	    catch (...){
+	      std::cout << "MagVolumeOutsideValidity not properly caught!! Lost this track " << std::endl;
+	    }
+	  }
+	xp.push_back(xp_curr);
+	yp.push_back(yp_curr);
+	zp.push_back(zp_curr);
+      } // closes loop on layers
+    } // closes conditions pt>3
+
+    // save info in tree
+    ATrack thistrack(it_track->pt(),it_track->eta(),it_track->phi(),energy);
+    thistrack.setExtrapolations(xp,yp,zp);
+    atrc->push_back(thistrack);
 
   } // end loop over tracks
 
@@ -660,19 +759,17 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 }
 
 void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) {
+
     edm::ESHandle < HepPDT::ParticleDataTable > pdt;
     es.getData(pdt);
     mySimEvent->initializePdt(&(*pdt));
 
-    edm::ESHandle<HGCalGeometry> geom;
-    es.get<IdealGeometryRecord>().get("HGCalEESensitive",geom);
+    retrieveLayerPositions(es,52);
 
-    edm::ESHandle<HGCalTopology> topo;
-    es.get<IdealGeometryRecord>().get("HGCalEESensitive",topo);
+    edm::ESHandle<MagneticField> magfield;
+    es.get<IdealMagneticFieldRecord>().get(magfield);
 
-    if (geom.isValid() && topo.isValid())
-      retrieveLayerPositions(*geom,*topo);
-
+    aField=&(*magfield);
 
 }
 
@@ -692,26 +789,28 @@ HGCalAnalysis::endJob()
 
 // ------------ method to be called once --------------------------------------------------
 
-void HGCalAnalysis::retrieveLayerPositions(const HGCalGeometry& geom, const HGCalTopology & topo)
-{
-  int sector=1;
-  int type=geom.topology().dddConstants().waferTypeT(sector);
-  for(unsigned ilayer=0;ilayer<29;++ilayer) {
-    DetId id=(HGCEEDetId(HGCEE,1,ilayer,sector,type,1));
-    if (topo.valid(id))
-      {
-	//	const CaloCellGeometry* icell = geom.getGeometry(id);
-	GlobalPoint pos = geom.getPosition(id);
-	//	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
-	layerPositions.push_back(pos.z());
-      }
-  }
 
+void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup& es, unsigned layers)
+{
+  recHitTools.getEventSetup(es);
+  
+  DetId id;
+  for(unsigned ilayer=1;ilayer<=layers;++ilayer) {
+    if (ilayer<=28) id=HGCalDetId(ForwardSubdetector::HGCEE,1,ilayer,1,2,1);
+    if (ilayer>28 && ilayer<=40) id=HGCalDetId(ForwardSubdetector::HGCHEF,1,ilayer-28,1,2,1);
+    if (ilayer>40) id=HcalDetId(HcalSubdetector::HcalEndcap, 50, 100, ilayer-40);
+    const GlobalPoint pos = recHitTools.getPosition(id);
+    // std::cout << "GEOM " ;
+    // std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
+    layerPositions.push_back(pos.z());
+  }
 }
 
 
 
+
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
+
 void
 HGCalAnalysis::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   //The following says we do not know what parameters are allowed so do no validation
@@ -720,6 +819,16 @@ HGCalAnalysis::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   desc.setUnknown();
   descriptions.addDefault(desc);
 }
+
+/*
+Surface::RotationType HGCalAnalysis::rotation( const GlobalVector& zDir) const
+{
+  GlobalVector zAxis = zDir.unit();
+  GlobalVector yAxis( zAxis.y(), -zAxis.x(), 0); 
+  GlobalVector xAxis = yAxis.cross( zAxis);
+  return Surface::RotationType( xAxis, yAxis, zAxis);
+}
+*/
 
 //define this as a plug-in
 DEFINE_FWK_MODULE(HGCalAnalysis);
