@@ -4,11 +4,16 @@
 <use   name="DataFormats/CaloRecHit"/>
 <use   name="DataFormats/ParticleFlowReco"/>
 <use   name="DataFormats/TrackReco"/>
+<use   name="DataFormats/GeometrySurface"/>
 <use   name="RecoNtuples/HGCalAnalysis"/>
 <use   name="Geometry/Records"/>
 <use   name="SimDataFormats/CaloAnalysis"/>
+<use   name="SimDataFormats/TrackingAnalysis"/>
 <use   name="CommonTools/UtilAlgos"/>
 <use   name="FastSimulation/Event"/>
+<use   name="TrackPropagation/RungeKutta"/>
+<use   name="MagneticField/Engine"/>
+<use   name="TrackingTools/Records"/>
 <use   name="hepmc"/>
 <use   name="heppdt"/>
 <library   file="*.cc" name="RecoNtuplesHGCalAnalysisPlugins">
