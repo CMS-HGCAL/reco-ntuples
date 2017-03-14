@@ -708,7 +708,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
       Plane::PlanePointer startingPlane = Plane::build( Plane::PositionType (it_track->vx(),it_track->vy(),it_track->vz()), Plane::RotationType () );
 
-      TSOS startingStateP(GlobalTrajectoryParameters(startingPosition,startingMomentum, 1, aField), err, *startingPlane);
+      TSOS startingStateP(GlobalTrajectoryParameters(startingPosition,startingMomentum, it_track->charge(), aField), err, *startingPlane);
       
       for(unsigned il=0;il<layerPositions.size();++il) {
 	float xp_curr=0;
@@ -746,7 +746,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     } // closes conditions pt>3
 
     // save info in tree
-    ATrack thistrack(it_track->pt(),it_track->eta(),it_track->phi(),energy);
+    ATrack thistrack(it_track->pt(),it_track->eta(),it_track->phi(),energy,it_track->charge());
     thistrack.setExtrapolations(xp,yp,zp);
     atrc->push_back(thistrack);
 
