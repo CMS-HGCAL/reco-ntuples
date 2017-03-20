@@ -161,12 +161,12 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   }
   _clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
   _simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
+  _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
   if(!readOfficialReco) {
     _vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
     _part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
   }
   else {
-    _hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
     _simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
     _simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));
   }
@@ -251,21 +251,21 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(_clusters,clusterHandle);
   Handle<std::vector<TrackingVertex> > vtxHandle;
   Handle<std::vector<TrackingParticle> > partHandle;
-  const std::vector<TrackingVertex>* vtxs;
+  //  const std::vector<TrackingVertex>* vtxs;
   const std::vector<TrackingParticle> * part;
 
   Handle<edm::HepMCProduct> hevH;
   Handle<std::vector<SimTrack> >simTracksHandle;
   Handle<std::vector<SimVertex> >simVerticesHandle;
 
+  iEvent.getByToken(_hev,hevH);
   if(!readOfficialReco) {
     iEvent.getByToken(_vtx,vtxHandle);
     iEvent.getByToken(_part,partHandle);
-    vtxs = &(*vtxHandle);
+    //    vtxs = &(*vtxHandle);
     part = &(*partHandle);
   } else  // use SimTracks and HepMCProduct
     {
-      iEvent.getByToken(_hev,hevH);
       iEvent.getByToken(_simTracks,simTracksHandle);
       iEvent.getByToken(_simVertices,simVerticesHandle);
       //      std::cout << " Filling FSimEvent " << simTracksHandle->size() << " " << simVerticesHandle->size() << std::endl;
@@ -300,23 +300,11 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   Handle<std::vector<reco::HGCalMultiCluster> > multiClusterHandle;
   iEvent.getByToken(_multiClusters, multiClusterHandle);
   const std::vector<reco::HGCalMultiCluster>& multiClusters = *multiClusterHandle;
+  HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
+  float vx = primaryVertex->position().x()/10.; // to put in official units
+  float vy = primaryVertex->position().y()/10.;
+  float vz = primaryVertex->position().z()/10.;
 
-  float vx = 0.;
-  float vy = 0.;
-  float vz = 0.;
-
-  if(!readOfficialReco && vtxs->size()!=0){
-    vx = (*vtxs)[0].position().x();
-    vy = (*vtxs)[0].position().y();
-    vz = (*vtxs)[0].position().z();
-  } else {
-    HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
-    vx = primaryVertex->position().x()/10.; // to put in official units
-    vy = primaryVertex->position().y()/10.;
-    vz = primaryVertex->position().z()/10.;
-  }
-  // TODO: should fall back to beam spot if no vertex
-  // Comment from FB: in principe no need, the HepMCProduct should always contain the primary vertex and could be used in all cases
   if( !readOfficialReco) {
     npart = part->size();
     for(unsigned int i=0;i<npart;++i){
@@ -359,22 +347,33 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
 	if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
 	  {
-	    // went up to calorimeter: propagate it
-	    reachedEE=1;
+
 	    RawParticle part(myTrack.momentum(),myTrack.vertex().position());
 	    part.setID(myTrack.id());
-	    BaseParticlePropagator myPropag(part,140,layerPositions[0],3.8);
+	    BaseParticlePropagator myPropag(part,160,layerPositions[0],3.8);
 	    myPropag.propagate();
-	    vtx=myPropag.vertex();
+	    unsigned result=myPropag.getSuccess();
+	    vtx=myPropag.propagated().vertex();
+	    unsigned nlayers=40;
 
-	    for(unsigned il=0;il<40;++il) {
+	    if (myTrack.noEndVertex()) {
+	      if (result==2 && vtx.Rho()> 25) {
+		reachedEE=2;
+	      }
+	      if (result==1) reachedEE=1;
+	    }
+	    else  // in that case we propagate only to the first layers
+	      nlayers=1;
+	    
+	    for(unsigned il=0;il<nlayers;++il) {
 	      myPropag.setPropagationConditions(140,layerPositions[il],false);
 	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
 		myPropag.setID(22);
 	      myPropag.propagate();
-	      xp.push_back(myPropag.vertex().x());
-	      yp.push_back(myPropag.vertex().y());
-	      zp.push_back(myPropag.vertex().z());
+	      RawParticle propParticle=myPropag.propagated();
+	      xp.push_back(propParticle.vertex().x());
+	      yp.push_back(propParticle.vertex().y());
+	      zp.push_back(propParticle.vertex().z());
 	    }
 	  }
 	else
