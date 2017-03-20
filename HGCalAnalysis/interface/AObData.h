@@ -263,10 +263,10 @@ public:
 class ATrack : public TObject
 {
 public:
-  ATrack() :  pt(0), eta(0), phi(0), energy(0)
+ ATrack() :  pt(0), eta(0), phi(0), energy(0), charge(0)
   {}
- ATrack(float i_pt, float i_eta, float i_phi, float i_energy):
-    pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy)
+ ATrack(float i_pt, float i_eta, float i_phi, float i_energy, int i_charge):
+  pt(i_pt), eta(i_eta), phi(i_phi), energy(i_energy), charge(i_charge)
     {}
 
 
@@ -280,6 +280,7 @@ public:
   }
 
   float pt, eta, phi, energy;
+  int charge;
   std::vector<float> posx;
   std::vector<float> posy;
   std::vector<float> posz;
