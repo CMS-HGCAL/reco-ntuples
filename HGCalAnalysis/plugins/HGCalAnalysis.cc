@@ -52,13 +52,12 @@
 #include "RecoLocalCalo/HGCalRecAlgos/interface/HGCalDepthPreClusterer.h"
 #include "RecoLocalCalo/HGCalRecAlgos/interface/RecHitTools.h"
 
-#include "RecoNtuples/HGCalAnalysis/interface/AEvent.h"
-#include "RecoNtuples/HGCalAnalysis/interface/AObData.h"
-
 #include <string>
 #include <map>
 #include <vector>
 #include <set>
+
+#include "TTree.h"
 
 class HGCalAnalysis : public  edm::one::EDAnalyzer<edm::one::WatchRuns,edm::one::SharedResources>  {
 public:
@@ -78,17 +77,17 @@ private:
   virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
   virtual void endJob() override;
 
+  void clearVariables();
+
   void retrieveLayerPositions(const edm::EventSetup&, unsigned layers) ;
 
-  //  Surface::RotationType rotation( const GlobalVector& zDir) const;
-  
   // ---------parameters ----------------------------
   bool readOfficialReco;
   bool readCaloParticles;
   double layerClusterPtThreshold;
   double propagationPtThreshold;
-  std::string                detector;
-  bool                       rawRecHits;
+  std::string detector;
+  bool rawRecHits;
 
  // ----------member data ---------------------------
 
@@ -107,17 +106,156 @@ private:
   edm::EDGetTokenT<edm::HepMCProduct> _hev;
   edm::EDGetTokenT<std::vector<reco::Track> > _tracks;
 
-  TTree                     *tree;
-  AEvent                    *event;
-  AGenPartCollection        *agpc;
-  ARecHitCollection         *arhc;
-  ARecHitCollection         *arhc_raw;
-  ACluster2dCollection      *acdc;
-  AMultiClusterCollection   *amcc;
-  ASimClusterCollection     *ascc;
-  APFClusterCollection      *apfcc;
-  ACaloParticleCollection   *acpc;
-  ATrackCollection          *atrc;
+  TTree                     *t;
+
+  ////////////////////
+  // event
+  //
+  edm::RunNumber_t ev_run;
+  edm::LuminosityBlockNumber_t ev_lumi;
+  edm::EventNumber_t ev_event;
+  float vtx_x;
+  float vtx_y;
+  float vtx_z;
+
+  ////////////////////
+  // GenParticles
+  //
+  std::vector<float> genpart_eta;
+  std::vector<float> genpart_phi;
+  std::vector<float> genpart_pt;
+  std::vector<float> genpart_energy;
+  std::vector<float> genpart_dvx;
+  std::vector<float> genpart_dvy;
+  std::vector<float> genpart_dvz;
+  std::vector<int> genpart_pid;
+  std::vector<int> genpart_gen;
+  std::vector<bool> genpart_reachedEE;
+  std::vector<bool> genpart_fromBeamPipe;
+  std::vector<std::vector<float>> genpart_posx;
+  std::vector<std::vector<float>> genpart_posy;
+  std::vector<std::vector<float>> genpart_posz;
+
+  ////////////////////
+  // RecHits
+  // associated to layer clusters
+  std::vector<float> rechit_eta;
+  std::vector<float> rechit_phi;
+  std::vector<float> rechit_pt;
+  std::vector<float> rechit_energy;
+  std::vector<float> rechit_x;
+  std::vector<float> rechit_y;
+  std::vector<float> rechit_z;
+  std::vector<float> rechit_time;
+  std::vector<float> rechit_thickness;
+  std::vector<int> rechit_layer;
+  std::vector<int> rechit_wafer;
+  std::vector<int> rechit_cell;
+  std::vector<unsigned int> rechit_detid;
+  std::vector<bool> rechit_isHalf;
+  std::vector<int> rechit_flags;
+  std::vector<int> rechit_cluster2d;
+
+  ////////////////////
+  // RecHits
+  // raw collection without any cuts
+  std::vector<float> rechit_raw_eta;
+  std::vector<float> rechit_raw_phi;
+  std::vector<float> rechit_raw_pt;
+  std::vector<float> rechit_raw_energy;
+  std::vector<float> rechit_raw_x;
+  std::vector<float> rechit_raw_y;
+  std::vector<float> rechit_raw_z;
+  std::vector<float> rechit_raw_time;
+  std::vector<float> rechit_raw_thickness;
+  std::vector<int> rechit_raw_layer;
+  std::vector<int> rechit_raw_wafer;
+  std::vector<int> rechit_raw_cell;
+  std::vector<unsigned int> rechit_raw_detid;
+  std::vector<bool> rechit_raw_isHalf;
+  std::vector<int> rechit_raw_flags;
+  std::vector<int> rechit_raw_cluster2d;
+
+
+  ////////////////////
+  // layer clusters
+  //
+  std::vector<float> cluster2d_eta;
+  std::vector<float> cluster2d_phi;
+  std::vector<float> cluster2d_pt;
+  std::vector<float> cluster2d_energy;
+  std::vector<float> cluster2d_x;
+  std::vector<float> cluster2d_y;
+  std::vector<float> cluster2d_z;
+  std::vector<int> cluster2d_layer;
+  std::vector<int> cluster2d_nhitCore;
+  std::vector<int> cluster2d_nhitAll;
+  std::vector<int> cluster2d_multicluster;
+  std::vector<int> cluster2d_rechitSeed;
+
+  ////////////////////
+  // multi clusters
+  //
+  std::vector<float> multiclus_eta;
+  std::vector<float> multiclus_phi;
+  std::vector<float> multiclus_pt;
+  std::vector<float> multiclus_energy;
+  std::vector<float> multiclus_z;
+  std::vector<float> multiclus_slopeX;
+  std::vector<float> multiclus_slopeY;
+  std::vector<int> multiclus_nclus;
+  std::vector<int> multiclus_cl2dSeed;
+
+  ////////////////////
+  // sim clusters
+  //
+  std::vector<float> simcluster_eta;
+  std::vector<float> simcluster_phi;
+  std::vector<float> simcluster_pt;
+  std::vector<float> simcluster_energy;
+  std::vector<float> simcluster_simEnergy;
+  std::vector<std::vector<uint32_t>> simcluster_hits;
+  std::vector<std::vector<float>> simcluster_fractions;
+  std::vector<std::vector<unsigned int>> simcluster_layers;
+  std::vector<std::vector<unsigned int>> simcluster_wafers;
+  std::vector<std::vector<unsigned int>> simcluster_cells;
+
+
+  ////////////////////
+  // PF clusters
+  //
+  std::vector<float> pfcluster_eta;
+  std::vector<float> pfcluster_phi;
+  std::vector<float> pfcluster_pt;
+  std::vector<float> pfcluster_energy;
+
+
+  ////////////////////
+  // calo particles
+  //
+  std::vector<float> calopart_eta;
+  std::vector<float> calopart_phi;
+  std::vector<float> calopart_pt;
+  std::vector<float> calopart_energy;
+  std::vector<float> calopart_simEnergy;
+  std::vector<std::vector<uint32_t>> calopart_simClusterIndex;
+
+
+  ////////////////////
+  // high purity tracks
+  //
+  std::vector<float> track_eta;
+  std::vector<float> track_phi;
+  std::vector<float> track_pt;
+  std::vector<float> track_energy;
+  std::vector<int> track_charge;
+  std::vector<std::vector<float>> track_posx;
+  std::vector<std::vector<float>> track_posy;
+  std::vector<std::vector<float>> track_posz;
+
+  ////////////////////
+  // helper classes
+  //
   int                        algo;
   HGCalDepthPreClusterer     pre;
   hgcal::RecHitTools         recHitTools;
@@ -142,8 +280,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   rawRecHits(iConfig.getParameter<bool>("rawRecHits")),
   particleFilter(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter"))
 {
-  //now do what ever initialization is needed
-  usesResource("TFileService");
+  // now do what ever initialization is needed
   mySimEvent = new FSimEvent(particleFilter);
 
   if(detector=="all") {
@@ -172,40 +309,159 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   }
   if (readCaloParticles) {
     _caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
-  } 
+  }
   _pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
   _multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
   _tracks = consumes<std::vector<reco::Track> >(edm::InputTag("generalTracks"));
 
 
-
+  usesResource(TFileService::kSharedResource);
   edm::Service<TFileService> fs;
   fs->make<TH1F>("total", "total", 100, 0, 5.);
-  tree = new TTree("hgc","Analysis");
-  agpc = new AGenPartCollection();
-  arhc = new ARecHitCollection();
-  if (rawRecHits)
-    arhc_raw = new ARecHitCollection();
-  acdc = new ACluster2dCollection();
-  amcc = new AMultiClusterCollection();
-  ascc = new ASimClusterCollection();
-  apfcc = new APFClusterCollection();
-  acpc = new ACaloParticleCollection();
-  atrc = new ATrackCollection();
-  event = new AEvent();
-  tree->Branch("event","AEvent",&event,16000,99);
-  tree->Branch("particles","AGenPartCollection",&agpc,16000,0);
-  tree->Branch("rechits","ARecHitCollection",&arhc,16000,0);
-  if (rawRecHits)
-    tree->Branch("rechits_raw","ARecHitCollection",&arhc_raw,16000,0);
-  tree->Branch("cluster2d","ACluster2dCollection",&acdc,16000,0);
-  tree->Branch("multicluster","AMultiClusterCollection",&amcc,16000,0);
-  tree->Branch("simcluster","ASimClusterCollection",&ascc,16000,0);
-  tree->Branch("pfcluster","APFClusterCollection",&apfcc,16000,0);
-  tree->Branch("caloparticles","ACaloParticleCollection",&acpc,16000,0);
-  tree->Branch("tracks","ATrackCollection", &atrc, 16000, 0);
 
-  
+  t = fs->make<TTree>("hgc","hgc");
+
+  // event info
+  t->Branch("event"      , &ev_event);
+  t->Branch("lumi"       , &ev_lumi);
+  t->Branch("run"        , &ev_run);
+  t->Branch("vtx_x"      , &vtx_x);
+  t->Branch("vtx_y"      , &vtx_y);
+  t->Branch("vtx_z"      , &vtx_z);
+
+  t->Branch("genpart_eta", &genpart_eta);
+  t->Branch("genpart_phi", &genpart_phi);
+  t->Branch("genpart_pt", &genpart_pt);
+  t->Branch("genpart_energy", &genpart_energy);
+  t->Branch("genpart_dvx", &genpart_dvx);
+  t->Branch("genpart_dvy", &genpart_dvy);
+  t->Branch("genpart_dvz", &genpart_dvz);
+  t->Branch("genpart_pid", &genpart_pid);
+  t->Branch("genpart_gen", &genpart_gen);
+  t->Branch("genpart_reachedEE", &genpart_reachedEE);
+  t->Branch("genpart_fromBeamPipe", &genpart_fromBeamPipe);
+  t->Branch("genpart_posx", &genpart_posx);
+  t->Branch("genpart_posy", &genpart_posy);
+  t->Branch("genpart_posz", &genpart_posz);
+
+  ////////////////////
+  // RecHits
+  // associated to layer clusters
+  t->Branch("rechit_eta", &rechit_eta);
+  t->Branch("rechit_phi", &rechit_phi);
+  t->Branch("rechit_pt", &rechit_pt);
+  t->Branch("rechit_energy", &rechit_energy);
+  t->Branch("rechit_x", &rechit_x);
+  t->Branch("rechit_y", &rechit_y);
+  t->Branch("rechit_z", &rechit_z);
+  t->Branch("rechit_time", &rechit_time);
+  t->Branch("rechit_thickness", &rechit_thickness);
+  t->Branch("rechit_layer", &rechit_layer);
+  t->Branch("rechit_wafer", &rechit_wafer);
+  t->Branch("rechit_cell", &rechit_cell);
+  t->Branch("rechit_detid", &rechit_detid);
+  t->Branch("rechit_isHalf", &rechit_isHalf);
+  t->Branch("rechit_flags", &rechit_flags);
+  t->Branch("rechit_cluster2d", &rechit_cluster2d);
+
+  ////////////////////
+  // RecHits
+  // raw collection without any cuts
+  if (rawRecHits) {
+      t->Branch("rechit_raw_eta", &rechit_raw_eta);
+      t->Branch("rechit_raw_phi", &rechit_raw_phi);
+      t->Branch("rechit_raw_pt", &rechit_raw_pt);
+      t->Branch("rechit_raw_energy", &rechit_raw_energy);
+      t->Branch("rechit_raw_x", &rechit_raw_x);
+      t->Branch("rechit_raw_y", &rechit_raw_y);
+      t->Branch("rechit_raw_z", &rechit_raw_z);
+      t->Branch("rechit_raw_time", &rechit_raw_time);
+      t->Branch("rechit_raw_thickness", &rechit_raw_thickness);
+      t->Branch("rechit_raw_layer", &rechit_raw_layer);
+      t->Branch("rechit_raw_wafer", &rechit_raw_wafer);
+      t->Branch("rechit_raw_cell", &rechit_raw_cell);
+      t->Branch("rechit_raw_detid", &rechit_raw_detid);
+      t->Branch("rechit_raw_isHalf", &rechit_raw_isHalf);
+      t->Branch("rechit_raw_flags", &rechit_raw_flags);
+      t->Branch("rechit_raw_cluster2d", &rechit_raw_cluster2d);
+  }
+
+  ////////////////////
+  // layer clusters
+  //
+  t->Branch("cluster2d_eta", &cluster2d_eta);
+  t->Branch("cluster2d_phi", &cluster2d_phi);
+  t->Branch("cluster2d_pt", &cluster2d_pt);
+  t->Branch("cluster2d_energy", &cluster2d_energy);
+  t->Branch("cluster2d_x", &cluster2d_x);
+  t->Branch("cluster2d_y", &cluster2d_y);
+  t->Branch("cluster2d_z", &cluster2d_z);
+  t->Branch("cluster2d_layer", &cluster2d_layer);
+  t->Branch("cluster2d_nhitCore", &cluster2d_nhitCore);
+  t->Branch("cluster2d_nhitAll", &cluster2d_nhitAll);
+  t->Branch("cluster2d_multicluster", &cluster2d_multicluster);
+  t->Branch("cluster2d_rechitSeed", &cluster2d_rechitSeed);
+
+  ////////////////////
+  // multi clusters
+  //
+  t->Branch("multiclus_eta", &multiclus_eta);
+  t->Branch("multiclus_phi", &multiclus_phi);
+  t->Branch("multiclus_pt", &multiclus_pt);
+  t->Branch("multiclus_energy", &multiclus_energy);
+  t->Branch("multiclus_z", &multiclus_z);
+  t->Branch("multiclus_slopeX", &multiclus_slopeX);
+  t->Branch("multiclus_slopeY", &multiclus_slopeY);
+  t->Branch("multiclus_nclus", &multiclus_nclus);
+  t->Branch("multiclus_cl2dSeed", &multiclus_cl2dSeed);
+
+  ////////////////////
+  // sim clusters
+  //
+  t->Branch("simcluster_eta", &simcluster_eta);
+  t->Branch("simcluster_phi", &simcluster_phi);
+  t->Branch("simcluster_pt", &simcluster_pt);
+  t->Branch("simcluster_energy", &simcluster_energy);
+  t->Branch("simcluster_simEnergy", &simcluster_simEnergy);
+  t->Branch("simcluster_hits", &simcluster_hits);
+  t->Branch("simcluster_fractions", &simcluster_fractions);
+  t->Branch("simcluster_layers", &simcluster_layers);
+  t->Branch("simcluster_wafers", &simcluster_wafers);
+  t->Branch("simcluster_cells", &simcluster_cells);
+
+
+  ////////////////////
+  // PF clusters
+  //
+  t->Branch("pfcluster_eta", &pfcluster_eta);
+  t->Branch("pfcluster_phi", &pfcluster_phi);
+  t->Branch("pfcluster_pt", &pfcluster_pt);
+  t->Branch("pfcluster_energy", &pfcluster_energy);
+
+
+  ////////////////////
+  // calo particles
+  //
+  t->Branch("calopart_eta", &calopart_eta);
+  t->Branch("calopart_phi", &calopart_phi);
+  t->Branch("calopart_pt", &calopart_pt);
+  t->Branch("calopart_energy", &calopart_energy);
+  t->Branch("calopart_simEnergy", &calopart_simEnergy);
+  t->Branch("calopart_simClusterIndex", &calopart_simClusterIndex);
+
+
+  ////////////////////
+  // high purity tracks
+  //
+  t->Branch("track_eta", &track_eta);
+  t->Branch("track_phi", &track_phi);
+  t->Branch("track_pt", &track_pt);
+  t->Branch("track_energy", &track_energy);
+  t->Branch("track_charge", &track_charge);
+  t->Branch("track_posx", &track_posx);
+  t->Branch("track_posy", &track_posy);
+  t->Branch("track_posz", &track_posz);
+
 }
 HGCalAnalysis::~HGCalAnalysis()
 {
@@ -215,33 +471,165 @@ HGCalAnalysis::~HGCalAnalysis()
 
 }
 
-void
+//
+// member functions
+//
+void HGCalAnalysis::clearVariables() {
 
+  ev_run = 0;
+  ev_lumi = 0;
+  ev_event = 0;
+  vtx_x = 0;
+  vtx_y = 0;
+  vtx_z = 0;
+
+  ////////////////////
+  // GenParticles
+  //
+  genpart_eta.clear();
+  genpart_phi.clear();
+  genpart_pt.clear();
+  genpart_energy.clear();
+  genpart_dvx.clear();
+  genpart_dvy.clear();
+  genpart_dvz.clear();
+  genpart_pid.clear();
+  genpart_gen.clear();
+  genpart_reachedEE.clear();
+  genpart_fromBeamPipe.clear();
+  genpart_posx.clear();
+  genpart_posy.clear();
+  genpart_posz.clear();
+
+  ////////////////////
+  // RecHits
+  // associated to layer clusters
+  rechit_eta.clear();
+  rechit_phi.clear();
+  rechit_pt.clear();
+  rechit_energy.clear();
+  rechit_x.clear();
+  rechit_y.clear();
+  rechit_z.clear();
+  rechit_time.clear();
+  rechit_thickness.clear();
+  rechit_layer.clear();
+  rechit_wafer.clear();
+  rechit_cell.clear();
+  rechit_detid.clear();
+  rechit_isHalf.clear();
+  rechit_flags.clear();
+  rechit_cluster2d.clear();
+
+  ////////////////////
+  // RecHits
+  // raw collection without any cuts
+  rechit_raw_eta.clear();
+  rechit_raw_phi.clear();
+  rechit_raw_pt.clear();
+  rechit_raw_energy.clear();
+  rechit_raw_x.clear();
+  rechit_raw_y.clear();
+  rechit_raw_z.clear();
+  rechit_raw_time.clear();
+  rechit_raw_thickness.clear();
+  rechit_raw_layer.clear();
+  rechit_raw_wafer.clear();
+  rechit_raw_cell.clear();
+  rechit_raw_detid.clear();
+  rechit_raw_isHalf.clear();
+  rechit_raw_flags.clear();
+  rechit_raw_cluster2d.clear();
+
+
+  ////////////////////
+  // layer clusters
+  //
+  cluster2d_eta.clear();
+  cluster2d_phi.clear();
+  cluster2d_pt.clear();
+  cluster2d_energy.clear();
+  cluster2d_x.clear();
+  cluster2d_y.clear();
+  cluster2d_z.clear();
+  cluster2d_layer.clear();
+  cluster2d_nhitCore.clear();
+  cluster2d_nhitAll.clear();
+  cluster2d_multicluster.clear();
+  cluster2d_rechitSeed.clear();
+
+  ////////////////////
+  // multi clusters
+  //
+  multiclus_eta.clear();
+  multiclus_phi.clear();
+  multiclus_pt.clear();
+  multiclus_energy.clear();
+  multiclus_z.clear();
+  multiclus_slopeX.clear();
+  multiclus_slopeY.clear();
+  multiclus_nclus.clear();
+  multiclus_cl2dSeed.clear();
+
+  ////////////////////
+  // sim clusters
+  //
+  simcluster_eta.clear();
+  simcluster_phi.clear();
+  simcluster_pt.clear();
+  simcluster_energy.clear();
+  simcluster_simEnergy.clear();
+  simcluster_hits.clear();
+  simcluster_fractions.clear();
+  simcluster_layers.clear();
+  simcluster_wafers.clear();
+  simcluster_cells.clear();
+
+
+  ////////////////////
+  // PF clusters
+  //
+  pfcluster_eta.clear();
+  pfcluster_phi.clear();
+  pfcluster_pt.clear();
+  pfcluster_energy.clear();
+
+
+  ////////////////////
+  // calo particles
+  //
+  calopart_eta.clear();
+  calopart_phi.clear();
+  calopart_pt.clear();
+  calopart_energy.clear();
+  calopart_simEnergy.clear();
+  calopart_simClusterIndex.clear();
+
+
+  ////////////////////
+  // high purity tracks
+  //
+  track_eta.clear();
+  track_phi.clear();
+  track_pt.clear();
+  track_energy.clear();
+  track_charge.clear();
+  track_posx.clear();
+  track_posy.clear();
+  track_posz.clear();
+
+}
+
+
+void
 HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
   using namespace edm;
-  agpc->clear();
-  arhc->clear();
-  arhc_raw->clear();
-  acdc->clear();
-  amcc->clear();
-  ascc->clear();
-  apfcc->clear();
-  acpc->clear();
-  atrc->clear();
+
+  clearVariables();
 
   ParticleTable::Sentry ptable(mySimEvent->theTable());
   recHitTools.getEventSetup(iSetup);
-
-  unsigned int npart = 0;
-  unsigned int nhit  = 0;
-  unsigned int nhit_raw = 0;
-  unsigned int nclus = 0;
-  unsigned int nmclus = 0;
-  unsigned int nsimclus = 0;
-  unsigned int npfclus = 0;
-  unsigned int ncalopart = 0;
-  unsigned int ntracks = 0;
 
   Handle<HGCRecHitCollection> recHitHandleEE;
   Handle<HGCRecHitCollection> recHitHandleFH;
@@ -251,7 +639,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   iEvent.getByToken(_clusters,clusterHandle);
   Handle<std::vector<TrackingVertex> > vtxHandle;
   Handle<std::vector<TrackingParticle> > partHandle;
-  //  const std::vector<TrackingVertex>* vtxs;
   const std::vector<TrackingParticle> * part;
 
   Handle<edm::HepMCProduct> hevH;
@@ -262,15 +649,11 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   if(!readOfficialReco) {
     iEvent.getByToken(_vtx,vtxHandle);
     iEvent.getByToken(_part,partHandle);
-    //    vtxs = &(*vtxHandle);
     part = &(*partHandle);
   } else  // use SimTracks and HepMCProduct
     {
       iEvent.getByToken(_simTracks,simTracksHandle);
       iEvent.getByToken(_simVertices,simVerticesHandle);
-      //      std::cout << " Filling FSimEvent " << simTracksHandle->size() << " " << simVerticesHandle->size() << std::endl;
-      //      for(unsigned i=0; i<simTracksHandle->size();++i)
-      //	std::cout << "i " << (*simTracksHandle)[i].type() << std::endl;
       mySimEvent->fill(*simTracksHandle,*simVerticesHandle);
 
     }
@@ -306,18 +689,18 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   float vz = primaryVertex->position().z()/10.;
 
   if( !readOfficialReco) {
-    npart = part->size();
+    unsigned int npart = part->size();
     for(unsigned int i=0;i<npart;++i){
 
 	// event=0 is the hard scattering (all PU have event()>=1)
 	// bunchCrossing == 0 intime, buncCrossing!=0 offtime, standard generation has [-12,+3]
         if((*part)[i].eventId().event() ==0 and (*part)[i].eventId().bunchCrossing()==0){
 
-	  //look for the generator particle, set to -1 for Geant produced paticles
+	  // look for the generator particle, set to -1 for Geant produced paticles
 	  int tp_genpart=-1;
 	  if (! (*part)[i].genParticles().empty()) tp_genpart=(*part)[i].genParticle_begin().key();
 
-	  // default values for decay position is outside detector, i.e. ~stable 
+	  // default values for decay position is outside detector, i.e. ~stable
 	  int reachedEE=1;
 	  float dvx=999.;
 	  float dvy=999.;
@@ -328,17 +711,27 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    dvz=(*part)[i].decayVertices()[0]->position().z();
 	    if ((*part)[i].decayVertices()[0]->inVolume()) reachedEE=0; //if it decays inside the tracker volume
 	  }
-	  
-	  //look for origin of particle inside the beampipe so that we can assess if a track can potentially give a reco::Track
+
+	  // look for origin of particle inside the beampipe so that we can assess if a track can potentially give a reco::Track
 	  float r_origin=(*part)[i].parentVertex()->position().Pt();
 	  bool fromBeamPipe=true;
 	  if (r_origin>2.0) fromBeamPipe=false;
-	  agpc->push_back(AGenPart((*part)[i].eta(),(*part)[i].phi(),(*part)[i].pt(),(*part)[i].energy(),dvx,dvy,dvz,(*part)[i].pdgId(),tp_genpart,reachedEE,fromBeamPipe));
+      genpart_eta.push_back((*part)[i].eta());
+      genpart_phi.push_back((*part)[i].phi());
+      genpart_pt.push_back((*part)[i].pt());
+      genpart_energy.push_back((*part)[i].energy());
+      genpart_dvx.push_back(dvx);
+      genpart_dvy.push_back(dvy);
+      genpart_dvz.push_back(dvz);
+      genpart_pid.push_back((*part)[i].pdgId());
+      genpart_gen.push_back(tp_genpart);
+      genpart_reachedEE.push_back(reachedEE);
+      genpart_fromBeamPipe.push_back(fromBeamPipe);
 	}
     }
   } else
     {
-      npart = mySimEvent->nTracks();
+      unsigned int npart = mySimEvent->nTracks();
       for (unsigned int i=0;i<npart ; ++i) {
 	std::vector<float> xp,yp,zp;
 	FSimTrack &myTrack(mySimEvent->track(i));
@@ -364,7 +757,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    }
 	    else  // in that case we propagate only to the first layers
 	      nlayers=1;
-	    
+
 	    for(unsigned il=0;il<nlayers;++il) {
 	      myPropag.setPropagationConditions(140,layerPositions[il],false);
 	      if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
@@ -381,9 +774,18 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    vtx = myTrack.endVertex().position();
 	  }
 
-	AGenPart part(myTrack.momentum().eta(),myTrack.momentum().phi(),myTrack.momentum().pt(),myTrack.momentum().energy(),vtx.x(),vtx.y(),vtx.z(),myTrack.type(),myTrack.genpartIndex(),reachedEE);
-	part.setExtrapolations(xp,yp,zp);
-	agpc->push_back(part);
+      // fill branches
+      genpart_eta.push_back(myTrack.momentum().eta());
+      genpart_phi.push_back(myTrack.momentum().phi());
+      genpart_pt.push_back(myTrack.momentum().pt());
+      genpart_energy.push_back(myTrack.momentum().energy());
+      genpart_dvx.push_back(vtx.x());
+      genpart_dvy.push_back(vtx.y());
+      genpart_dvz.push_back(vtx.z());
+      genpart_pid.push_back(myTrack.type());
+      genpart_gen.push_back(myTrack.genpartIndex());
+      genpart_reachedEE.push_back(reachedEE);
+      genpart_fromBeamPipe.push_back(true);
       }
     }
   //make a map detid-rechit
@@ -437,6 +839,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
   // dump raw RecHits
   if (rawRecHits) {
+      unsigned int nhit_raw = 0;
      if (algo < 3) {
         const HGCRecHitCollection& rechitsEE = *recHitHandleEE;
         // loop over EE RecHits
@@ -457,11 +860,22 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
         	++nhit_raw;
 
-            arhc_raw->push_back(ARecHit(layer, wafer, cell, detid,
-                        position.x(), position.y(), position.z(),
-                        eta,phi,pt,
-                        it_hit->energy(), it_hit->time(), cellThickness,
-                        isHalfCell, flags, clusterIndex));
+            rechit_raw_eta.push_back(eta);
+            rechit_raw_phi.push_back(phi);
+            rechit_raw_pt.push_back(pt);
+            rechit_raw_energy.push_back(it_hit->energy());
+            rechit_raw_layer.push_back(layer);
+            rechit_raw_wafer.push_back(wafer);
+            rechit_raw_cell.push_back(cell);
+            rechit_raw_detid.push_back(detid);
+            rechit_raw_x.push_back(position.x());
+            rechit_raw_y.push_back(position.y());
+            rechit_raw_z.push_back(position.z());
+            rechit_raw_time.push_back(it_hit->time());
+            rechit_raw_thickness.push_back(cellThickness);
+            rechit_raw_isHalf.push_back(isHalfCell);
+            rechit_raw_flags.push_back(flags);
+            rechit_raw_cluster2d.push_back(clusterIndex);
 
         }
      }
@@ -485,11 +899,22 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
          	++nhit_raw;
 
-             arhc_raw->push_back(ARecHit(layer, wafer, cell, detid,
-                         position.x(), position.y(), position.z(),
-                         eta,phi,pt,
-                         it_hit->energy(), it_hit->time(), cellThickness,
-                         isHalfCell, flags, clusterIndex));
+            rechit_raw_eta.push_back(eta);
+            rechit_raw_phi.push_back(phi);
+            rechit_raw_pt.push_back(pt);
+            rechit_raw_energy.push_back(it_hit->energy());
+            rechit_raw_layer.push_back(layer);
+            rechit_raw_wafer.push_back(wafer);
+            rechit_raw_cell.push_back(cell);
+            rechit_raw_detid.push_back(detid);
+            rechit_raw_x.push_back(position.x());
+            rechit_raw_y.push_back(position.y());
+            rechit_raw_z.push_back(position.z());
+            rechit_raw_time.push_back(it_hit->time());
+            rechit_raw_thickness.push_back(cellThickness);
+            rechit_raw_isHalf.push_back(isHalfCell);
+            rechit_raw_flags.push_back(flags);
+            rechit_raw_cluster2d.push_back(clusterIndex);
 
          }
 	 const HGCRecHitCollection& rechitsBH = *recHitHandleBH;
@@ -511,19 +936,29 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
          	++nhit_raw;
 
-             arhc_raw->push_back(ARecHit(layer, wafer, cell, detid,
-                         position.x(), position.y(), position.z(),
-                         eta,phi,pt,
-                         it_hit->energy(), it_hit->time(), cellThickness,
-                         isHalfCell, flags, clusterIndex));
+            rechit_raw_eta.push_back(eta);
+            rechit_raw_phi.push_back(phi);
+            rechit_raw_pt.push_back(pt);
+            rechit_raw_energy.push_back(it_hit->energy());
+            rechit_raw_layer.push_back(layer);
+            rechit_raw_wafer.push_back(wafer);
+            rechit_raw_cell.push_back(cell);
+            rechit_raw_detid.push_back(detid);
+            rechit_raw_x.push_back(position.x());
+            rechit_raw_y.push_back(position.y());
+            rechit_raw_z.push_back(position.z());
+            rechit_raw_time.push_back(it_hit->time());
+            rechit_raw_thickness.push_back(cellThickness);
+            rechit_raw_isHalf.push_back(isHalfCell);
+            rechit_raw_flags.push_back(flags);
+            rechit_raw_cluster2d.push_back(clusterIndex);
 
          }
      }
   }
 
   const reco::CaloClusterCollection &clusters = *clusterHandle;
-  nclus = clusters.size();
-  nmclus = multiClusters.size();
+  unsigned int nclus = clusters.size();
   unsigned int cluster_index = 0;
   // to keep track of the 2d clusters stored within the loop on multiclusters
   std::set<edm::Ptr<reco::BasicCluster> > storedLayerClusters;
@@ -562,33 +997,55 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	const double pt = recHitTools.getPt(position, hit->energy(), vz);
 
 	if(hit->energy() > hitmap[hf[rhSeed].first]->energy()) rhSeed = j;
-	++nhit;
 
-	arhc->push_back(ARecHit(layer, wafer, cell, detid,
-				position.x(), position.y(), position.z(),
-				eta,phi,pt,
-				hit->energy(), hit->time(), cellThickness,
-				isHalfCell, flags, cluster_index));
+    rechit_eta.push_back(eta);
+    rechit_phi.push_back(phi);
+    rechit_pt.push_back(pt);
+    rechit_energy.push_back(hit->energy());
+    rechit_layer.push_back(layer);
+    rechit_wafer.push_back(wafer);
+    rechit_cell.push_back(cell);
+    rechit_detid.push_back(detid);
+    rechit_x.push_back(position.x());
+    rechit_y.push_back(position.y());
+    rechit_z.push_back(position.z());
+    rechit_time.push_back(hit->time());
+    rechit_thickness.push_back(cellThickness);
+    rechit_isHalf.push_back(isHalfCell);
+    rechit_flags.push_back(flags);
+    rechit_cluster2d.push_back(cluster_index);
 
       }
       double pt = (*it)->energy() / cosh((*it)->eta());
-      acdc->push_back(ACluster2d((*it)->x(),(*it)->y(),(*it)->z(),
-				 (*it)->eta(),(*it)->phi(),pt,(*it)->energy(),
-				 layer, ncoreHit,hf.size(),i, rhSeed));
+
+      cluster2d_eta.push_back((*it)->eta());
+      cluster2d_phi.push_back((*it)->phi());
+      cluster2d_pt.push_back(pt);
+      cluster2d_energy.push_back((*it)->energy());
+      cluster2d_x.push_back((*it)->x());
+      cluster2d_y.push_back((*it)->y());
+      cluster2d_z.push_back((*it)->z());
+      cluster2d_layer.push_back(layer);
+      cluster2d_nhitCore.push_back(ncoreHit);
+      cluster2d_nhitAll.push_back(hf.size());
+      cluster2d_multicluster.push_back(i);
+      cluster2d_rechitSeed.push_back(rhSeed);
+
       storedLayerClusters.insert((*it));
       cluster_index++;
     }
 
     double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
-    amcc->push_back(AMultiCluster(multiClusters[i].eta(),
-				  multiClusters[i].phi(),
-                                  pt,
-				  multiClusters[i].z(),
-				  multiClusters[i].x(),
-				  multiClusters[i].y(),
-                                  multiClusters[i].energy(),
-				  multiClusters[i].size(),
-				  cl2dSeed));
+
+    multiclus_eta.push_back(multiClusters[i].eta());
+    multiclus_phi.push_back(multiClusters[i].phi());
+    multiclus_pt.push_back(pt);
+    multiclus_energy.push_back(multiClusters[i].energy());
+    multiclus_z.push_back(multiClusters[i].z());
+    multiclus_slopeX.push_back(multiClusters[i].x());
+    multiclus_slopeY.push_back(multiClusters[i].y());
+    multiclus_nclus.push_back(multiClusters[i].size());
+    multiclus_cl2dSeed.push_back(cl2dSeed);
 
   }
 
@@ -599,16 +1056,26 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       double pt = clusterPtr->energy() / cosh(clusterPtr->eta());
       if(pt>layerClusterPtThreshold) {
 	int layer = recHitTools.getLayerWithOffset(clusterPtr->hitsAndFractions()[0].first);
-	acdc->push_back(ACluster2d(clusterPtr->x(),clusterPtr->y(),clusterPtr->z(),
-				   clusterPtr->eta(),clusterPtr->phi(),pt,clusterPtr->energy(),
-				   layer, 0, (int)clusterPtr->hitsAndFractions().size(),-1, -1));
+
+    cluster2d_eta.push_back(clusterPtr->eta());
+    cluster2d_phi.push_back(clusterPtr->phi());
+    cluster2d_pt.push_back(pt);
+    cluster2d_energy.push_back(clusterPtr->energy());
+    cluster2d_x.push_back(clusterPtr->x());
+    cluster2d_y.push_back(clusterPtr->y());
+    cluster2d_z.push_back(clusterPtr->z());
+    cluster2d_layer.push_back(layer);
+    cluster2d_nhitCore.push_back(0);
+    cluster2d_nhitAll.push_back((int)clusterPtr->hitsAndFractions().size());
+    cluster2d_multicluster.push_back(-1);
+    cluster2d_rechitSeed.push_back(-1);
+
       }
     }
   }
 
   // loop over simClusters
   for (std::vector<SimCluster>::const_iterator it_simClus = simClusters->begin(); it_simClus != simClusters->end(); ++it_simClus) {
-    ++nsimclus;
     const std::vector<std::pair<uint32_t,float> > hits_and_fractions = it_simClus->hits_and_fractions();
     std::vector<uint32_t> hits;
     std::vector<float> fractions;
@@ -627,43 +1094,45 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         cells.push_back(std::numeric_limits<unsigned int>::max());
       }
     }
-    ascc->push_back(ASimCluster(it_simClus->pt(),
-  			  it_simClus->eta(),
-  			  it_simClus->phi(),
-  			  it_simClus->energy(),
-  			  it_simClus->simEnergy(),
-  			  hits,
-  			  fractions,
-  			  layers,
-  			  wafers,
-  			  cells));
+
+    simcluster_eta.push_back(it_simClus->eta());
+    simcluster_phi.push_back(it_simClus->phi());
+    simcluster_pt.push_back(it_simClus->pt());
+    simcluster_energy.push_back(it_simClus->energy());
+    simcluster_simEnergy.push_back(it_simClus->simEnergy());
+    simcluster_hits.push_back(hits);
+    simcluster_fractions.push_back(fractions);
+    simcluster_layers.push_back(layers);
+    simcluster_wafers.push_back(wafers);
+    simcluster_cells.push_back(cells);
+
   } // end loop over simClusters
 
   // loop over pfClusters
   for (std::vector<reco::PFCluster>::const_iterator it_pfClus = pfClusters.begin(); it_pfClus != pfClusters.end(); ++it_pfClus) {
-    ++npfclus;
-    apfcc->push_back(APFCluster(it_pfClus->pt(),
-                  it_pfClus->eta(),
-                  it_pfClus->phi(),
-                  it_pfClus->energy()));
+
+    pfcluster_eta.push_back(it_pfClus->eta());
+    pfcluster_phi.push_back(it_pfClus->phi());
+    pfcluster_pt.push_back(it_pfClus->pt());
+    pfcluster_energy.push_back(it_pfClus->energy());
 
   } // end loop over pfClusters
 
   // loop over caloParticles
   if (readCaloParticles) {
     for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles->begin(); it_caloPart != caloParticles->end(); ++it_caloPart) {
-      ++ncalopart;
       const SimClusterRefVector simClusterRefVector = it_caloPart->simClusters();
       std::vector<uint32_t> simClusterIndex;
       for (CaloParticle::sc_iterator it_sc = simClusterRefVector.begin(); it_sc != simClusterRefVector.end(); ++it_sc) {
         simClusterIndex.push_back((*it_sc).key());
       }
-      acpc->push_back(ACaloParticle(it_caloPart->pt(),
-				    it_caloPart->eta(),
-				    it_caloPart->phi(),
-				    it_caloPart->energy(),
-				    it_caloPart->simEnergy(),
-				    simClusterIndex));
+
+      calopart_eta.push_back(it_caloPart->eta());
+      calopart_phi.push_back(it_caloPart->phi());
+      calopart_pt.push_back(it_caloPart->pt());
+      calopart_energy.push_back(it_caloPart->energy());
+      calopart_simEnergy.push_back(it_caloPart->simEnergy());
+      calopart_simClusterIndex.push_back(simClusterIndex);
 
     } // end loop over caloParticles
   }
@@ -673,56 +1142,49 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
   //  random = new RandomEngineAndDistribution(iEvent.streamID());
 
   // prepare for RK propagation
-  defaultRKPropagator::Product  prod( aField, alongMomentum, 5.e-5); 
+  defaultRKPropagator::Product  prod( aField, alongMomentum, 5.e-5);
   auto & RKProp = prod.propagator;
-          
+
 
   for (std::vector<reco::Track>::const_iterator it_track = tracks.begin(); it_track != tracks.end(); ++it_track) {
-    
+
     if (! it_track->quality(reco::Track::highPurity)) continue;
 
-    ++ntracks;
     double energy = it_track->pt() * cosh(it_track->eta());
-    
-    //    atrc->push_back(ATrack(it_track->pt(),
-    //			     it_track->eta(),
-    //			     it_track->phi(),
-    //			     energy));
-    
 
     //save info about reconstructed tracks propoagation to hgcal layers (ony for pt>propagationPtThreshold tracks)
     std::vector<float> xp,yp,zp;
-    
+
     if (it_track->pt()>= propagationPtThreshold) {
-    
+
       // Define error matrix
       ROOT::Math::SMatrixIdentity id;
       AlgebraicSymMatrix55 C(id);
       C *= 0.01;
-      CurvilinearTrajectoryError err(C); 
+      CurvilinearTrajectoryError err(C);
       typedef TrajectoryStateOnSurface TSOS;
-      
+
       GlobalPoint startingPosition(it_track->vx(),it_track->vy(),it_track->vz());
       GlobalVector startingMomentum(it_track->px(),it_track->py(),it_track->pz());
 
       Plane::PlanePointer startingPlane = Plane::build( Plane::PositionType (it_track->vx(),it_track->vy(),it_track->vz()), Plane::RotationType () );
 
       TSOS startingStateP(GlobalTrajectoryParameters(startingPosition,startingMomentum, it_track->charge(), aField), err, *startingPlane);
-      
+
       for(unsigned il=0;il<layerPositions.size();++il) {
 	float xp_curr=0;
 	float yp_curr=0;
 	float zp_curr=0;
-	
+
 	for (int zside = -1; zside <=1; zside+=2)
 	  {
 	    // clearly try both sides
 	    Plane::PlanePointer endPlane = Plane::build( Plane::PositionType (0,0,zside*layerPositions[il]), Plane::RotationType());
 	    try{
 	      /*
-	      std::cout << "Trying from " << 
+	      std::cout << "Trying from " <<
 		" layer " << il <<
-		" starting point " << startingStateP.globalPosition() << 
+		" starting point " << startingStateP.globalPosition() <<
 		std::endl;
 	      */
 	      TSOS trackStateP = RKProp.propagate( startingStateP, *endPlane);
@@ -730,7 +1192,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		xp_curr=trackStateP.globalPosition().x();
 		yp_curr=trackStateP.globalPosition().y();
 		zp_curr=trackStateP.globalPosition().z();
-	      
+
 		// std::cout << "Succesfully finished Positive track propagation  -------------- with RK: " << trackStateP.globalPosition() << std::endl;
 	      }
 	    }
@@ -745,16 +1207,26 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     } // closes conditions pt>3
 
     // save info in tree
-    ATrack thistrack(it_track->pt(),it_track->eta(),it_track->phi(),energy,it_track->charge());
-    thistrack.setExtrapolations(xp,yp,zp);
-    atrc->push_back(thistrack);
+    track_pt.push_back(it_track->pt());
+    track_pt.push_back(it_track->eta());
+    track_pt.push_back(it_track->phi());
+    track_pt.push_back(energy);
+    track_pt.push_back(it_track->charge());
+    track_posx.push_back(xp);
+    track_posy.push_back(yp);
+    track_posz.push_back(zp);
 
   } // end loop over tracks
 
-  event->set(iEvent.run(),iEvent.id().event(),npart,nhit,nhit_raw,nclus,nmclus,
-         nsimclus, npfclus, ncalopart, ntracks,
-	     vx,vy,vz);
-  tree->Fill();
+  ev_event = iEvent.id().event();
+  ev_lumi = iEvent.id().luminosityBlock();
+  ev_run = iEvent.id().run();
+
+  vtx_x = vx;
+  vtx_y = vy;
+  vtx_z = vz;
+
+  t->Fill();
 }
 
 void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) {
@@ -792,7 +1264,7 @@ HGCalAnalysis::endJob()
 void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup& es, unsigned layers)
 {
   recHitTools.getEventSetup(es);
-  
+
   DetId id;
   for(unsigned ilayer=1;ilayer<=layers;++ilayer) {
     if (ilayer<=28) id=HGCalDetId(ForwardSubdetector::HGCEE,1,ilayer,1,2,1);
@@ -823,7 +1295,7 @@ HGCalAnalysis::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
 Surface::RotationType HGCalAnalysis::rotation( const GlobalVector& zDir) const
 {
   GlobalVector zAxis = zDir.unit();
-  GlobalVector yAxis( zAxis.y(), -zAxis.x(), 0); 
+  GlobalVector yAxis( zAxis.y(), -zAxis.x(), 0);
   GlobalVector xAxis = yAxis.cross( zAxis);
   return Surface::RotationType( xAxis, yAxis, zAxis);
 }
