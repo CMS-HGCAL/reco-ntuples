@@ -12,7 +12,7 @@ cmsenv
 git cms-merge-topic CMS-HGCAL:CMSSW_9_0_0_pre2
 # for latest additions for multiclustering with kdtree, also merge:
 git cms-merge-topic edjtscott:hgcal_multiclustering_sensordependent_piondev
-git clone git@github.com:CMS-HGCAL/reco-ntuples.git RecoNtuples
+git clone git@github.com:NWUHEP/reco-ntuples.git RecoNtuples
 cd RecoNtuples
 git checkout -b topic_${USER}
 cd ../
