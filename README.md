@@ -7,7 +7,7 @@ This version is based on CMSSW_9_0_X.
 
 ```
 cmsrel CMSSW_9_0_0_pre2
-cd CMSSW_9_0_pre2/src
+cd CMSSW_9_0_0_pre2/src
 cmsenv
 git cms-merge-topic CMS-HGCAL:CMSSW_9_0_pre2
 # for latest additions for multiclustering with kdtree, also merge:
