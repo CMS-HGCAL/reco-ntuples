@@ -1,5 +1,6 @@
 #include "RecoNtuples/HGCalAnalysis/interface/AEvent.h"
 #include "RecoNtuples/HGCalAnalysis/interface/AObData.h"
+#include "RecoNtuples/HGCalAnalysis/interface/HGCalSelector.h"
 
 ARecHit ae;
 

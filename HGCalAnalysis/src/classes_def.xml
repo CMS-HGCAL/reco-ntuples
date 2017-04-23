@@ -16,4 +16,5 @@
    <class name="ACaloParticleCollection" />
    <class name="ATrack" />
    <class name="ATrackCollection" />
+   <class name="HGCalSelector" />
 </lcgdict>
