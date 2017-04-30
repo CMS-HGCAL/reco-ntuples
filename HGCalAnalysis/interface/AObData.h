@@ -8,12 +8,13 @@ class AGenPart : public TObject
 {
 public:
 
- AGenPart(): eta(-1000.),phi(-1000.),pt(-1000.),energy(-1000.),dvx(0.),dvy(0.),dvz(0.),pid(0),gen(-1),reachedEE(-1)
+ AGenPart(): eta(-1000.),phi(-1000.),pt(-1000.),energy(-1000.),dvx(0.),dvy(0.),dvz(0.),fbrem(-1.),pid(0),gen(-1),reachedEE(-1)
   {
   }
   AGenPart(float i_eta, float i_phi, float i_pt, float i_energy,
-	   float i_dvx, float i_dvy,float i_dvz, int i_pid,int i_gen=-1,int i_reachedEE=-1, bool i_fromBeamPipe=true) :
-  eta(i_eta),phi(i_phi),pt(i_pt),energy(i_energy),dvx(i_dvx),dvy(i_dvy),dvz(i_dvz),pid(i_pid),gen(i_gen),reachedEE(i_reachedEE),fromBeamPipe(i_fromBeamPipe)
+	   float i_dvx, float i_dvy,float i_dvz, float i_fbrem, int i_pid,int i_gen=-1,int i_reachedEE=-1, bool i_fromBeamPipe=true) :
+  eta(i_eta),phi(i_phi),pt(i_pt),energy(i_energy),dvx(i_dvx),dvy(i_dvy),dvz(i_dvz),fbrem(i_fbrem), pid(i_pid),gen(i_gen),reachedEE(i_reachedEE),
+fromBeamPipe(i_fromBeamPipe)
   {
   }
 
@@ -30,6 +31,7 @@ public:
   float dvx;
   float dvy;
   float dvz;
+  float fbrem;
   int pid;
   int gen;
   int reachedEE;
