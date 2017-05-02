@@ -21,6 +21,14 @@
 
 using namespace std;
 
+string get_file_extension(const string& filename) 
+{
+    if (filename.find_last_of(".") != string::npos) {
+        return filename.substr(filename.find_last_of(".")+1);
+    }
+    return "";
+}
+
 int main(int argc, char **argv) 
 {
     int showTiming = 1;
@@ -40,8 +48,8 @@ int main(int argc, char **argv)
     string option      = "";
     
     // Handle input files
-    TChain* myChain = new TChain("Events");
-    string inputFileExt = "root"; //get_file_extension(inputFiles);
+    TChain* myChain = new TChain("ana/hgc");
+    string inputFileExt = get_file_extension(inputFiles);
     if (inputFileExt == "root") {
         if (myChain->AddFile(inputFiles.c_str())) {
             cout << "Trying to open " << inputFiles << "." << endl;
@@ -62,7 +70,7 @@ int main(int argc, char **argv)
         throw runtime_error("bad input");
     }
 
-    cout << "Successfully openned input file; loading tree..." << endl;
+    cout << "Successfully openned input file. Loading tree..." << endl;
     if (myChain->LoadTree(0) < 0) {  // needed because TChain =/= TTree
         cout << "Failed to load the entries in the file." << endl;
         throw runtime_error("bad input");

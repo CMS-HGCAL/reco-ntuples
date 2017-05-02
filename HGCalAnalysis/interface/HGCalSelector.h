@@ -8,6 +8,10 @@
 #ifndef HGCalSelector_h
 #define HGCalSelector_h
 
+#include <iostream>
+#include <fstream>
+#include <vector>
+
 #include <TROOT.h>
 #include <TChain.h>
 #include <TFile.h>
@@ -25,12 +29,18 @@
 #include "RecoNtuples/HGCalAnalysis/interface/AEvent.h"
 #include "RecoNtuples/HGCalAnalysis/interface/AObData.h"
 
-#include <vector>
+using namespace std;
 
 class HGCalSelector : public TSelector {
     public :
         //TTreeReader     fReader;  //!the tree reader
         TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
+
+        // output
+        TFile *outFile;
+        TTree *outTree;
+
+        ofstream testFile;
 
         HGCalSelector(TTree * /*tree*/ =0) { }
         virtual ~HGCalSelector() { }
@@ -50,22 +60,21 @@ class HGCalSelector : public TSelector {
         int main();
 
         AEvent                    *event; // not working, don't know why
-        AGenPartCollection        *genParticles;
-        ARecHitCollection         *recHits;
-        ACluster2dCollection      *clusters2D;
-        AMultiClusterCollection   *multiClusters;
-        ASimClusterCollection     *simClusters;
-        APFClusterCollection      *pfClusters;
-        ACaloParticleCollection   *caloParticles;
+        AGenPartCollection        *particles;
+        ARecHitCollection         *rechits;
+        ACluster2dCollection      *cluster2d;
+        AMultiClusterCollection   *multicluster;
+        ASimClusterCollection     *simcluster;
+        APFClusterCollection      *pfcluster;
+        ACaloParticleCollection   *caloparticles;
 
         TBranch *b_event; // not
-        TBranch *b_genParticles;
-        TBranch *b_recHits;
-        TBranch *b_clusters2D;
-        TBranch *b_multiClusters;
-        TBranch *b_simClusters;
-        TBranch *b_pfClusters;
-        TBranch *b_caloParticles;
+        TBranch *b_particles; TBranch *b_rechits;
+        TBranch *b_cluster2d;
+        TBranch *b_multicluster;
+        TBranch *b_simcluster;
+        TBranch *b_pfcluster;
+        TBranch *b_caloparticles;
 
         ClassDef(HGCalSelector,0);
 };
@@ -86,22 +95,22 @@ void HGCalSelector::Init(TTree *tree)
     fChain = tree;
 
     event         = 0;
-    genParticles  = 0;
-    recHits       = 0;
-    clusters2D    = 0;
-    multiClusters = 0;
-    simClusters   = 0;
-    pfClusters    = 0;
-    caloParticles = 0;
+    particles     = 0;
+    rechits       = 0;
+    cluster2d     = 0;
+    multicluster  = 0;
+    simcluster    = 0;
+    pfcluster     = 0;
+    caloparticles = 0;
 
     fChain->SetBranchAddress("event", &event, &b_event);
-    fChain->SetBranchAddress("genParticles", &genParticles, &b_genParticles);
-    fChain->SetBranchAddress("recHits", &recHits, &b_recHits);
-    fChain->SetBranchAddress("clusters2D", &clusters2D, &b_clusters2D);
-    fChain->SetBranchAddress("multiClusters", &multiClusters, &b_multiClusters);
-    fChain->SetBranchAddress("simClusters", &simClusters, &b_simClusters);
-    fChain->SetBranchAddress("pfClusters", &pfClusters, &b_pfClusters);
-    fChain->SetBranchAddress("caloParticles", &caloParticles, &b_caloParticles);
+    fChain->SetBranchAddress("particles", &particles, &b_particles);
+    fChain->SetBranchAddress("rechits_raw", &rechits, &b_rechits);
+    fChain->SetBranchAddress("cluster2d", &cluster2d, &b_cluster2d);
+    fChain->SetBranchAddress("multicluster", &multicluster, &b_multicluster);
+    fChain->SetBranchAddress("simcluster", &simcluster, &b_simcluster);
+    fChain->SetBranchAddress("pfcluster", &pfcluster, &b_pfcluster);
+    fChain->SetBranchAddress("caloparticles", &caloparticles, &b_caloparticles);
 
 }
 
