@@ -1,0 +1,10 @@
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_1.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_10.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_2.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_3.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_4.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_5.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_6.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_7.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_8.root
+/eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_puSE3_20170405/NTUP/partGun_PDGid14_x1_Pt10.0To10.0_NTUP_9.root
