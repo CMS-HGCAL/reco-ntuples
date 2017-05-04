@@ -128,6 +128,7 @@ private:
   std::vector<float> genpart_dvx;
   std::vector<float> genpart_dvy;
   std::vector<float> genpart_dvz;
+  std::vector<float> genpart_fbrem;
   std::vector<int> genpart_pid;
   std::vector<int> genpart_gen;
   std::vector<bool> genpart_reachedEE;
@@ -336,6 +337,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
   t->Branch("genpart_dvx", &genpart_dvx);
   t->Branch("genpart_dvy", &genpart_dvy);
   t->Branch("genpart_dvz", &genpart_dvz);
+  t->Branch("genpart_fbrem", &genpart_fbrem);
   t->Branch("genpart_pid", &genpart_pid);
   t->Branch("genpart_gen", &genpart_gen);
   t->Branch("genpart_reachedEE", &genpart_reachedEE);
@@ -493,6 +495,7 @@ void HGCalAnalysis::clearVariables() {
   genpart_dvx.clear();
   genpart_dvy.clear();
   genpart_dvz.clear();
+  genpart_fbrem.clear();
   genpart_pid.clear();
   genpart_gen.clear();
   genpart_reachedEE.clear();
@@ -702,6 +705,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 	  // default values for decay position is outside detector, i.e. ~stable
 	  int reachedEE=1;
+      double fbrem=0;
 	  float dvx=999.;
 	  float dvy=999.;
 	  float dvz=999.;
@@ -723,6 +727,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       genpart_dvx.push_back(dvx);
       genpart_dvy.push_back(dvy);
       genpart_dvz.push_back(dvz);
+      genpart_fbrem.push_back(fbrem);
       genpart_pid.push_back((*part)[i].pdgId());
       genpart_gen.push_back(tp_genpart);
       genpart_reachedEE.push_back(reachedEE);
@@ -738,11 +743,12 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	math::XYZTLorentzVectorD vtx(0,0,0,0);
 
 	int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
+	double fbrem=0;
 	if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
 	  {
 
 	    RawParticle part(myTrack.momentum(),myTrack.vertex().position());
-	    part.setID(myTrack.id());
+	    part.setID(myTrack.type());
 	    BaseParticlePropagator myPropag(part,160,layerPositions[0],3.8);
 	    myPropag.propagate();
 	    unsigned result=myPropag.getSuccess();
@@ -752,6 +758,12 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	    if (myTrack.noEndVertex()) {
 	      if (result==2 && vtx.Rho()> 25) {
 		reachedEE=2;
+		double dpt=0;
+
+		for(int i=0;i<myTrack.nDaughters();++i)
+		  dpt+=myTrack.daughter(i).momentum().pt();
+		if(abs(myTrack.type())==11)
+		  fbrem = dpt/myTrack.momentum().pt();
 	      }
 	      if (result==1) reachedEE=1;
 	    }
@@ -782,6 +794,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
       genpart_dvx.push_back(vtx.x());
       genpart_dvy.push_back(vtx.y());
       genpart_dvz.push_back(vtx.z());
+      genpart_fbrem.push_back(fbrem);
       genpart_pid.push_back(myTrack.type());
       genpart_gen.push_back(myTrack.genpartIndex());
       genpart_reachedEE.push_back(reachedEE);
