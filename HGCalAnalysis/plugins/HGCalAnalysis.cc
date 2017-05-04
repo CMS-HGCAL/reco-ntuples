@@ -333,7 +333,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  float r_origin=(*part)[i].parentVertex()->position().Pt();
 	  bool fromBeamPipe=true;
 	  if (r_origin>2.0) fromBeamPipe=false;
-	  agpc->push_back(AGenPart((*part)[i].eta(),(*part)[i].phi(),(*part)[i].pt(),(*part)[i].energy(),dvx,dvy,dvz,(*part)[i].pdgId(),tp_genpart,reachedEE,fromBeamPipe));
+	  agpc->push_back(AGenPart((*part)[i].eta(),(*part)[i].phi(),(*part)[i].pt(),(*part)[i].energy(),dvx,dvy,dvz,-1.,(*part)[i].pdgId(),tp_genpart,reachedEE,fromBeamPipe));
 	}
     }
   } else
