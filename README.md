@@ -3,15 +3,14 @@ Home of the Ntuplizer for the HGCAL reconstruction software studies
 
 Ntuple content definitions can be found at [Definitions.md](Definitions.md).
 
-This version is based on CMSSW_9_0_X.
+This version is based on CMSSW_9_1_X.
 
 ```
-cmsrel CMSSW_9_0_0_pre2
-cd CMSSW_9_0_pre2/src
+cmsrel CMSSW_9_1_0_pre3
+cd CMSSW_9_1_0_pre3/src
 cmsenv
-git cms-merge-topic CMS-HGCAL:CMSSW_9_0_pre2
-# for latest additions for multiclustering with kdtree, also merge:
-git cms-merge-topic edjtscott:hgcal_multiclustering_sensordependent_piondev
+# the following PR is currently under review: https://github.com/cms-sw/cmssw/pull/18236
+git cms-merge-topic CMS-HGCAL:91X
 git clone git@github.com:CMS-HGCAL/reco-ntuples.git RecoNtuples
 cd RecoNtuples
 git checkout -b topic_${USER}
