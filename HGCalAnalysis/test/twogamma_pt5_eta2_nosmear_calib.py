@@ -13,12 +13,12 @@ process.load('RecoLocalCalo.HGCalRecProducers.HGCalLocalRecoSequence_cff')
 
 from FastSimulation.Event.ParticleFilter_cfi import *
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(5) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-        'root://eoscms.cern.ch//eos/cms/store/cmst3/group/hgcal/CMG_studies/Production/partGun_mabeguin_PGDid11_E20_20170306/RECO/partGun_PDGid11_x500_E20.0To35.0_RECO_1.root'
+        '/store/relval/CMSSW_9_1_0_pre1/RelValTTbar_14TeV/GEN-SIM-RECO/PU25ns_90X_upgrade2023_realistic_v9_D4TPU200r3-v1/00000/02E3478F-3D22-E711-80C4-0CC47A4D7654.root'
     ),
     duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
 )
@@ -26,9 +26,9 @@ process.source = cms.Source("PoolSource",
 process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              detector = cms.string("all"),
                              rawRecHits = cms.bool(True),
-                             readOfficialReco = cms.bool(False),
+                             readOfficialReco = cms.bool(True),
                              readCaloParticles = cms.bool(False),
-                             layerClusterPtThreshold = cms.double(0.01),  # All LayerCluster belonging to a multicluster are saved; this Pt threshold applied to the others
+                             layerClusterPtThreshold = cms.double(-1),  # All LayerCluster belonging to a multicluster are saved; this Pt threshold applied to the others
                              TestParticleFilter = ParticleFilterBlock.ParticleFilter
 )
 

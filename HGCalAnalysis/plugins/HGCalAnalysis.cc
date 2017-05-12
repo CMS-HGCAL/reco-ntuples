@@ -75,6 +75,8 @@ private:
 virtual void beginJob() override;
 virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
 virtual void endJob() override;
+virtual void fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerCluster, const bool& fillRecHits, const unsigned int& multiClusterIndex = -1);
+virtual void fillRecHit(const DetId& detid, const float& fraction, const unsigned int& layer, const unsigned int& cluster_index = -1);
 
 void clearVariables();
 
@@ -173,7 +175,7 @@ std::vector<int> rechit_raw_wafer;
 std::vector<int> rechit_raw_cell;
 std::vector<unsigned int> rechit_raw_detid;
 std::vector<bool> rechit_raw_isHalf;
-std::vector<int> rechit_raw_flags;
+std::vector<float> rechit_raw_flags;
 std::vector<int> rechit_raw_cluster2d;
 
 
@@ -191,6 +193,7 @@ std::vector<int> cluster2d_layer;
 std::vector<int> cluster2d_nhitCore;
 std::vector<int> cluster2d_nhitAll;
 std::vector<int> cluster2d_multicluster;
+std::vector<std::vector<unsigned int> > cluster2d_rechits;
 std::vector<int> cluster2d_rechitSeed;
 
 ////////////////////
@@ -256,6 +259,14 @@ std::vector<std::vector<float> > track_posz;
 ////////////////////
 // helper classes
 //
+unsigned int cluster_index;
+unsigned int rechit_index;
+std::map<DetId,const HGCRecHit*> hitmap;
+float vz; // primary vertex z position
+// to keep track of the 2d clusters stored within the loop on multiclusters
+std::set<edm::Ptr<reco::BasicCluster> > storedLayerClusters;
+// to keep track of the RecHits stored within the cluster loops
+std::set<DetId> storedRecHits;
 int algo;
 HGCalDepthPreClusterer pre;
 hgcal::RecHitTools recHitTools;
@@ -403,6 +414,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("cluster2d_nhitCore", &cluster2d_nhitCore);
 	t->Branch("cluster2d_nhitAll", &cluster2d_nhitAll);
 	t->Branch("cluster2d_multicluster", &cluster2d_multicluster);
+	t->Branch("cluster2d_rechits", &cluster2d_rechits);
 	t->Branch("cluster2d_rechitSeed", &cluster2d_rechitSeed);
 
 	////////////////////
@@ -560,8 +572,8 @@ void HGCalAnalysis::clearVariables() {
 	cluster2d_nhitCore.clear();
 	cluster2d_nhitAll.clear();
 	cluster2d_multicluster.clear();
-	cluster2d_rechitSeed.clear();
 	cluster2d_rechits.clear();
+	cluster2d_rechitSeed.clear();
 
 	////////////////////
 	// multi clusters
@@ -632,6 +644,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	using namespace edm;
 
 	clearVariables();
+	// std::cout << "after clearVariables" << std::endl;
 
 	ParticleTable::Sentry ptable(mySimEvent->theTable());
 	recHitTools.getEventSetup(iSetup);
@@ -691,7 +704,9 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	HepMC::GenVertex * primaryVertex = *(hevH)->GetEvent()->vertices_begin();
 	float vx = primaryVertex->position().x()/10.; // to put in official units
 	float vy = primaryVertex->position().y()/10.;
-	float vz = primaryVertex->position().z()/10.;
+	vz = primaryVertex->position().z()/10.;
+
+	// std::cout << "start the fun" << std::endl;
 
 	if( !readOfficialReco) {
 		unsigned int npart = part->size();
@@ -804,7 +819,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		}
 	}
 	//make a map detid-rechit
-	std::map<DetId,const HGCRecHit*> hitmap;
+	hitmap.clear();
 	switch(algo) {
 	case 1:
 	{
@@ -851,6 +866,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	default:
 		break;
 	}
+
+	// std::cout << "dump raw" << std::endl;
 
 	// dump raw RecHits
 	if (rawRecHits) {
@@ -974,86 +991,23 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 	const reco::CaloClusterCollection &clusters = *clusterHandle;
 	unsigned int nclus = clusters.size();
-	unsigned int cluster_index = 0;
-	unsigned int rechit_index = 0;
-	// to keep track of the 2d clusters stored within the loop on multiclusters
-	std::set<edm::Ptr<reco::BasicCluster> > storedLayerClusters;
-	// to keep track of the RecHits stored within the cluster loops
-	std::set<edm::Ptr<HGCRecHit> > storedRecHits;
+	cluster_index = 0;
+	rechit_index = 0;
+	storedLayerClusters.clear();
+	storedRecHits.clear();
 	for(unsigned int i = 0; i < multiClusters.size(); i++) {
+
 		int cl2dSeed = 0;
+		std::vector<unsigned int> cl2dIndices;
+
 		for(reco::HGCalMultiCluster::component_iterator it = multiClusters[i].begin();
 		    it!=multiClusters[i].end(); it++) {
+
 			if((*it)->energy() > (*(it+cl2dSeed))->energy()) cl2dSeed = it - multiClusters[i].begin();
+			cl2dIndices.push_back(cluster_index);
 
-			const std::vector< std::pair<DetId, float> > &hf = (*it)->hitsAndFractions();
-			int ncoreHit = 0;
-			int layer = 0;
-			int rhSeed = 0;
+			fillLayerCluster(*it, true, i);
 
-			for(unsigned int j = 0; j < hf.size(); j++) {
-				//here we loop over detid/fraction pairs
-				ncoreHit += int(hf[j].second);
-				int flags = 0x0;
-				if (hf[j].second>0. && hf[j].second<1.)
-					flags = 0x1;
-				else if(hf[j].second<0.)
-					flags = 0x3;
-				else if(hf[j].second==0.)
-					flags = 0x2;
-				const HGCRecHit *hit = hitmap[hf[j].first];
-				layer = recHitTools.getLayerWithOffset(hf[j].first);
-
-				const GlobalPoint position = recHitTools.getPosition(hf[j].first);
-				const unsigned int detid = hf[j].first;
-				const unsigned int wafer = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getWafer(hf[j].first) : std::numeric_limits<unsigned int>::max() );
-				const unsigned int cell  = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getCell(hf[j].first) :  std::numeric_limits<unsigned int>::max() );
-				const double cellThickness = ( DetId::Forward == DetId(hf[j].first).det() ? recHitTools.getSiThickness(hf[j].first) : std::numeric_limits<std::float_t>::max() );
-				const bool isHalfCell = recHitTools.isHalfCell(hf[j].first);
-				const double eta = recHitTools.getEta(position, vz);
-				const double phi = recHitTools.getPhi(position);
-				const double pt = recHitTools.getPt(position, hit->energy(), vz);
-
-				if(hit->energy() > hitmap[hf[rhSeed].first]->energy()) rhSeed = rechit_index;
-
-				rechit_eta.push_back(eta);
-				rechit_phi.push_back(phi);
-				rechit_pt.push_back(pt);
-				rechit_energy.push_back(hit->energy());
-				rechit_layer.push_back(layer);
-				rechit_wafer.push_back(wafer);
-				rechit_cell.push_back(cell);
-				rechit_detid.push_back(detid);
-				rechit_x.push_back(position.x());
-				rechit_y.push_back(position.y());
-				rechit_z.push_back(position.z());
-				rechit_time.push_back(hit->time());
-				rechit_thickness.push_back(cellThickness);
-				rechit_isHalf.push_back(isHalfCell);
-				rechit_flags.push_back(flags);
-				rechit_cluster2d.push_back(cluster_index);
-
-				storedRecHits.insert(*hit);
-				++rechit_index;
-
-			}
-			double pt = (*it)->energy() / cosh((*it)->eta());
-
-			cluster2d_eta.push_back((*it)->eta());
-			cluster2d_phi.push_back((*it)->phi());
-			cluster2d_pt.push_back(pt);
-			cluster2d_energy.push_back((*it)->energy());
-			cluster2d_x.push_back((*it)->x());
-			cluster2d_y.push_back((*it)->y());
-			cluster2d_z.push_back((*it)->z());
-			cluster2d_layer.push_back(layer);
-			cluster2d_nhitCore.push_back(ncoreHit);
-			cluster2d_nhitAll.push_back(hf.size());
-			cluster2d_multicluster.push_back(i);
-			cluster2d_rechitSeed.push_back(rhSeed);
-
-			storedLayerClusters.insert((*it));
-			cluster_index++;
 		}
 
 		double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
@@ -1074,22 +1028,55 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	for(unsigned ic=0; ic < nclus; ++ic )  {
 		edm::Ptr<reco::BasicCluster> clusterPtr(clusterHandle,ic);
 		if(storedLayerClusters.find(clusterPtr)==storedLayerClusters.end() ) {
+
 			double pt = clusterPtr->energy() / cosh(clusterPtr->eta());
 			if(pt>layerClusterPtThreshold) {
-				int layer = recHitTools.getLayerWithOffset(clusterPtr->hitsAndFractions()[0].first);
 
-				cluster2d_eta.push_back(clusterPtr->eta());
-				cluster2d_phi.push_back(clusterPtr->phi());
-				cluster2d_pt.push_back(pt);
-				cluster2d_energy.push_back(clusterPtr->energy());
-				cluster2d_x.push_back(clusterPtr->x());
-				cluster2d_y.push_back(clusterPtr->y());
-				cluster2d_z.push_back(clusterPtr->z());
-				cluster2d_layer.push_back(layer);
-				cluster2d_nhitCore.push_back(0);
-				cluster2d_nhitAll.push_back((int)clusterPtr->hitsAndFractions().size());
-				cluster2d_multicluster.push_back(-1);
-				cluster2d_rechitSeed.push_back(-1);
+				fillLayerCluster(clusterPtr, rawRecHits);
+
+			}
+		}
+	}
+
+	// Fill remaining RecHits
+	if (rawRecHits) {
+		if (algo < 3) {
+			const HGCRecHitCollection& rechitsEE = *recHitHandleEE;
+			// loop over EE RecHits
+			for (HGCRecHitCollection::const_iterator it_hit = rechitsEE.begin(); it_hit < rechitsEE.end(); ++it_hit) {
+
+				const HGCalDetId detid = it_hit->detid();
+				unsigned int layer = recHitTools.getLayerWithOffset(detid);
+
+				if(storedRecHits.find(detid)==storedRecHits.end() ) {
+					fillRecHit(detid, -1, layer);
+				}
+
+			}
+		}
+		if (algo != 2) {
+			const HGCRecHitCollection& rechitsFH = *recHitHandleFH;
+			// loop over FH RecHits
+			for (HGCRecHitCollection::const_iterator it_hit = rechitsFH.begin(); it_hit < rechitsFH.end(); ++it_hit) {
+
+				const HGCalDetId detid = it_hit->detid();
+				unsigned int layer = recHitTools.getLayerWithOffset(detid);
+
+				if(storedRecHits.find(detid)==storedRecHits.end() ) {
+					fillRecHit(detid, -1, layer);
+				}
+
+			}
+			const HGCRecHitCollection& rechitsBH = *recHitHandleBH;
+			// loop over BH RecHits
+			for (HGCRecHitCollection::const_iterator it_hit = rechitsBH.begin(); it_hit < rechitsBH.end(); ++it_hit) {
+
+				const HGCalDetId detid = it_hit->detid();
+				unsigned int layer = recHitTools.getLayerWithOffset(detid);
+
+				if(storedRecHits.find(detid)==storedRecHits.end() ) {
+					fillRecHit(detid, -1, layer);
+				}
 
 			}
 		}
@@ -1300,6 +1287,112 @@ void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup& es, unsigned l
 }
 
 
+void HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerCluster, const bool& fillRecHits, const unsigned int& multiClusterIndex) {
+
+	// std::cout << "in fillLayerCluster" << std::endl;
+	const std::vector< std::pair<DetId, float> > &hf = layerCluster->hitsAndFractions();
+	std::vector<unsigned int> rhIndices;
+	int ncoreHit = 0;
+	int layer = 0;
+	int rhSeed = 0;
+	if (!fillRecHits) {
+		rhSeed = -1;
+	}
+	float maxEnergy = -1.;
+
+	for(unsigned int j = 0; j < hf.size(); j++) {
+		//here we loop over detid/fraction pairs
+		float fraction = hf[j].second;
+		const DetId rh_detid = hf[j].first;
+		layer = recHitTools.getLayerWithOffset(rh_detid);
+		const HGCRecHit *hit = hitmap[rh_detid];
+		ncoreHit += int(fraction);
+
+		if (fillRecHits) {
+			if(storedRecHits.find(rh_detid)==storedRecHits.end() ) {
+				// std::cout << "in fillLayerCluster: RecHit not yet filled" << std::endl;
+				// std::cout << "in fillLayerCluster: hit energy: " << hit->energy() << std::endl;
+				// std::cout << "in fillLayerCluster: first hit energy: " << maxEnergy << std::endl;
+				if(hit->energy() > maxEnergy) {
+					rhSeed = rechit_index;
+					maxEnergy = hit->energy();
+				}
+				rhIndices.push_back(rechit_index);
+				fillRecHit(rh_detid, fraction, layer, cluster_index);
+			}
+			else {
+				// need to see what to do about existing rechits in case of sharing
+				std::cout << "RecHit already filled for different layer cluster: " << int(rh_detid) << std::endl;
+			}
+		}
+	}
+
+	double pt = layerCluster->energy() / cosh(layerCluster->eta());
+
+	cluster2d_eta.push_back(layerCluster->eta());
+	cluster2d_phi.push_back(layerCluster->phi());
+	cluster2d_pt.push_back(pt);
+	cluster2d_energy.push_back(layerCluster->energy());
+	cluster2d_x.push_back(layerCluster->x());
+	cluster2d_y.push_back(layerCluster->y());
+	cluster2d_z.push_back(layerCluster->z());
+	cluster2d_layer.push_back(layer);
+	cluster2d_nhitCore.push_back(ncoreHit);
+	cluster2d_nhitAll.push_back(hf.size());
+	cluster2d_multicluster.push_back(multiClusterIndex);
+	cluster2d_rechitSeed.push_back(rhSeed);
+	cluster2d_rechits.push_back(rhIndices);
+
+	storedLayerClusters.insert(layerCluster);
+	++cluster_index;
+
+}
+
+
+void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const unsigned int& layer, const unsigned int& cluster_index) {
+
+	// std::cout << "in fillRecHit" << std::endl;
+	int flags = 0x0;
+	if (fraction>0. && fraction<1.)
+		flags = 0x1;
+	else if(fraction<0.)
+		flags = 0x3;
+	else if(fraction==0.)
+		flags = 0x2;
+	const HGCRecHit *hit = hitmap[detid];
+
+	const GlobalPoint position = recHitTools.getPosition(detid);
+	const unsigned int wafer = ( DetId::Forward == DetId(detid).det() ? recHitTools.getWafer(detid) : std::numeric_limits<unsigned int>::max() );
+	const unsigned int cell  = ( DetId::Forward == DetId(detid).det() ? recHitTools.getCell(detid) :  std::numeric_limits<unsigned int>::max() );
+	const double cellThickness = ( DetId::Forward == DetId(detid).det() ? recHitTools.getSiThickness(detid) : std::numeric_limits<std::float_t>::max() );
+	const bool isHalfCell = recHitTools.isHalfCell(detid);
+	const double eta = recHitTools.getEta(position, vz);
+	const double phi = recHitTools.getPhi(position);
+	const double pt = recHitTools.getPt(position, hit->energy(), vz);
+
+
+	// fill the vectors
+	rechit_eta.push_back(eta);
+	rechit_phi.push_back(phi);
+	rechit_pt.push_back(pt);
+	rechit_energy.push_back(hit->energy());
+	rechit_layer.push_back(layer);
+	rechit_wafer.push_back(wafer);
+	rechit_cell.push_back(cell);
+	rechit_detid.push_back(detid);
+	rechit_x.push_back(position.x());
+	rechit_y.push_back(position.y());
+	rechit_z.push_back(position.z());
+	rechit_time.push_back(hit->time());
+	rechit_thickness.push_back(cellThickness);
+	rechit_isHalf.push_back(isHalfCell);
+	rechit_flags.push_back(flags);
+	rechit_cluster2d.push_back(cluster_index);
+
+	storedRecHits.insert(detid);
+	++rechit_index;
+
+}
 
 
 // ------------ method fills 'descriptions' with the allowed parameters for the module  ------------
