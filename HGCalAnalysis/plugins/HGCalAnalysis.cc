@@ -722,7 +722,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 				// default values for decay position is outside detector, i.e. ~stable
 				int reachedEE=1;
-				double fbrem=0;
+				double fbrem=-1;
 				float dvx=999.;
 				float dvy=999.;
 				float dvz=999.;
@@ -760,7 +760,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			math::XYZTLorentzVectorD vtx(0,0,0,0);
 
 			int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
-			double fbrem=0;
+			double fbrem=-1;
 			if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
 			{
 

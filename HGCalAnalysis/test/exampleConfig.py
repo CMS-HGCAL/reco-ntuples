@@ -36,7 +36,7 @@ process.ana.TestParticleFilter.protonEMin = cms.double(100000)
 process.ana.TestParticleFilter.etaMax = cms.double(3.1)
 
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("twogamma_pt5_eta2_nosmear_calib_ntuple.root")
+                                   fileName = cms.string("hgcalNtuple.root")
 
                                    )
 
