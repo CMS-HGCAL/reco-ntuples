@@ -159,27 +159,6 @@ std::vector<int> rechit_flags;
 std::vector<int> rechit_cluster2d;
 
 ////////////////////
-// RecHits
-// raw collection without any cuts
-std::vector<float> rechit_raw_eta;
-std::vector<float> rechit_raw_phi;
-std::vector<float> rechit_raw_pt;
-std::vector<float> rechit_raw_energy;
-std::vector<float> rechit_raw_x;
-std::vector<float> rechit_raw_y;
-std::vector<float> rechit_raw_z;
-std::vector<float> rechit_raw_time;
-std::vector<float> rechit_raw_thickness;
-std::vector<int> rechit_raw_layer;
-std::vector<int> rechit_raw_wafer;
-std::vector<int> rechit_raw_cell;
-std::vector<unsigned int> rechit_raw_detid;
-std::vector<bool> rechit_raw_isHalf;
-std::vector<float> rechit_raw_flags;
-std::vector<int> rechit_raw_cluster2d;
-
-
-////////////////////
 // layer clusters
 //
 std::vector<float> cluster2d_eta;
@@ -379,28 +358,6 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("rechit_cluster2d", &rechit_cluster2d);
 
 	////////////////////
-	// RecHits
-	// raw collection without any cuts
-	if (rawRecHits) {
-		t->Branch("rechit_raw_eta", &rechit_raw_eta);
-		t->Branch("rechit_raw_phi", &rechit_raw_phi);
-		t->Branch("rechit_raw_pt", &rechit_raw_pt);
-		t->Branch("rechit_raw_energy", &rechit_raw_energy);
-		t->Branch("rechit_raw_x", &rechit_raw_x);
-		t->Branch("rechit_raw_y", &rechit_raw_y);
-		t->Branch("rechit_raw_z", &rechit_raw_z);
-		t->Branch("rechit_raw_time", &rechit_raw_time);
-		t->Branch("rechit_raw_thickness", &rechit_raw_thickness);
-		t->Branch("rechit_raw_layer", &rechit_raw_layer);
-		t->Branch("rechit_raw_wafer", &rechit_raw_wafer);
-		t->Branch("rechit_raw_cell", &rechit_raw_cell);
-		t->Branch("rechit_raw_detid", &rechit_raw_detid);
-		t->Branch("rechit_raw_isHalf", &rechit_raw_isHalf);
-		t->Branch("rechit_raw_flags", &rechit_raw_flags);
-		t->Branch("rechit_raw_cluster2d", &rechit_raw_cluster2d);
-	}
-
-	////////////////////
 	// layer clusters
 	//
 	t->Branch("cluster2d_eta", &cluster2d_eta);
@@ -536,27 +493,6 @@ void HGCalAnalysis::clearVariables() {
 	rechit_isHalf.clear();
 	rechit_flags.clear();
 	rechit_cluster2d.clear();
-
-	////////////////////
-	// RecHits
-	// raw collection without any cuts
-	rechit_raw_eta.clear();
-	rechit_raw_phi.clear();
-	rechit_raw_pt.clear();
-	rechit_raw_energy.clear();
-	rechit_raw_x.clear();
-	rechit_raw_y.clear();
-	rechit_raw_z.clear();
-	rechit_raw_time.clear();
-	rechit_raw_thickness.clear();
-	rechit_raw_layer.clear();
-	rechit_raw_wafer.clear();
-	rechit_raw_cell.clear();
-	rechit_raw_detid.clear();
-	rechit_raw_isHalf.clear();
-	rechit_raw_flags.clear();
-	rechit_raw_cluster2d.clear();
-
 
 	////////////////////
 	// layer clusters
@@ -867,127 +803,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		break;
 	}
 
-	// std::cout << "dump raw" << std::endl;
-
-	// dump raw RecHits
-	if (rawRecHits) {
-		unsigned int nhit_raw = 0;
-		if (algo < 3) {
-			const HGCRecHitCollection& rechitsEE = *recHitHandleEE;
-			// loop over EE RecHits
-			for (HGCRecHitCollection::const_iterator it_hit = rechitsEE.begin(); it_hit < rechitsEE.end(); ++it_hit) {
-				int clusterIndex = -1;
-				int flags = 0x0;
-
-				const HGCalDetId detid = it_hit->detid();
-				unsigned int layer = recHitTools.getLayerWithOffset(detid);
-				const GlobalPoint position = recHitTools.getPosition(it_hit->detid());
-				const unsigned int wafer = recHitTools.getWafer(detid);
-				const unsigned int cell  = recHitTools.getCell(detid);
-				const double cellThickness = recHitTools.getSiThickness(detid);
-				const bool isHalfCell = recHitTools.isHalfCell(detid);
-				const double eta = recHitTools.getEta(position, vz);
-				const double phi = recHitTools.getPhi(position);
-				const double pt = recHitTools.getPt(position, it_hit->energy(), vz);
-
-				++nhit_raw;
-
-				rechit_raw_eta.push_back(eta);
-				rechit_raw_phi.push_back(phi);
-				rechit_raw_pt.push_back(pt);
-				rechit_raw_energy.push_back(it_hit->energy());
-				rechit_raw_layer.push_back(layer);
-				rechit_raw_wafer.push_back(wafer);
-				rechit_raw_cell.push_back(cell);
-				rechit_raw_detid.push_back(detid);
-				rechit_raw_x.push_back(position.x());
-				rechit_raw_y.push_back(position.y());
-				rechit_raw_z.push_back(position.z());
-				rechit_raw_time.push_back(it_hit->time());
-				rechit_raw_thickness.push_back(cellThickness);
-				rechit_raw_isHalf.push_back(isHalfCell);
-				rechit_raw_flags.push_back(flags);
-				rechit_raw_cluster2d.push_back(clusterIndex);
-
-			}
-		}
-		if (algo != 2) {
-			const HGCRecHitCollection& rechitsFH = *recHitHandleFH;
-			// loop over EE RecHits
-			for (HGCRecHitCollection::const_iterator it_hit = rechitsFH.begin(); it_hit < rechitsFH.end(); ++it_hit) {
-				int clusterIndex = -1;
-				int flags = 0x0;
-
-				const HGCalDetId detid = it_hit->detid();
-				unsigned int layer = recHitTools.getLayerWithOffset(detid);
-				const GlobalPoint position = recHitTools.getPosition(it_hit->detid());
-				const unsigned int wafer = recHitTools.getWafer(detid);
-				const unsigned int cell  = recHitTools.getCell(detid);
-				const double cellThickness = recHitTools.getSiThickness(detid);
-				const bool isHalfCell = recHitTools.isHalfCell(detid);
-				const double eta = recHitTools.getEta(position, vz);
-				const double phi = recHitTools.getPhi(position);
-				const double pt = recHitTools.getPt(position, it_hit->energy(), vz);
-
-				++nhit_raw;
-
-				rechit_raw_eta.push_back(eta);
-				rechit_raw_phi.push_back(phi);
-				rechit_raw_pt.push_back(pt);
-				rechit_raw_energy.push_back(it_hit->energy());
-				rechit_raw_layer.push_back(layer);
-				rechit_raw_wafer.push_back(wafer);
-				rechit_raw_cell.push_back(cell);
-				rechit_raw_detid.push_back(detid);
-				rechit_raw_x.push_back(position.x());
-				rechit_raw_y.push_back(position.y());
-				rechit_raw_z.push_back(position.z());
-				rechit_raw_time.push_back(it_hit->time());
-				rechit_raw_thickness.push_back(cellThickness);
-				rechit_raw_isHalf.push_back(isHalfCell);
-				rechit_raw_flags.push_back(flags);
-				rechit_raw_cluster2d.push_back(clusterIndex);
-
-			}
-			const HGCRecHitCollection& rechitsBH = *recHitHandleBH;
-			// loop over EE RecHits
-			for (HGCRecHitCollection::const_iterator it_hit = rechitsBH.begin(); it_hit < rechitsBH.end(); ++it_hit) {
-				int clusterIndex = -1;
-				int flags = 0x0;
-
-				const HcalDetId detid = it_hit->detid();
-				unsigned int layer = recHitTools.getLayerWithOffset(detid);
-				const GlobalPoint position = recHitTools.getPosition(it_hit->detid());
-				const unsigned int wafer = std::numeric_limits<unsigned int>::max();//recHitTools.getWafer(detid);
-				const unsigned int cell  = std::numeric_limits<unsigned int>::max();//recHitTools.getCell(detid);
-				const double cellThickness = std::numeric_limits<std::float_t>::max();//recHitTools.getSiThickness(detid);
-				const bool isHalfCell = recHitTools.isHalfCell(detid);
-				const double eta = recHitTools.getEta(position, vz);
-				const double phi = recHitTools.getPhi(position);
-				const double pt = recHitTools.getPt(position, it_hit->energy(), vz);
-
-				++nhit_raw;
-
-				rechit_raw_eta.push_back(eta);
-				rechit_raw_phi.push_back(phi);
-				rechit_raw_pt.push_back(pt);
-				rechit_raw_energy.push_back(it_hit->energy());
-				rechit_raw_layer.push_back(layer);
-				rechit_raw_wafer.push_back(wafer);
-				rechit_raw_cell.push_back(cell);
-				rechit_raw_detid.push_back(detid);
-				rechit_raw_x.push_back(position.x());
-				rechit_raw_y.push_back(position.y());
-				rechit_raw_z.push_back(position.z());
-				rechit_raw_time.push_back(it_hit->time());
-				rechit_raw_thickness.push_back(cellThickness);
-				rechit_raw_isHalf.push_back(isHalfCell);
-				rechit_raw_flags.push_back(flags);
-				rechit_raw_cluster2d.push_back(clusterIndex);
-
-			}
-		}
-	}
 
 	const reco::CaloClusterCollection &clusters = *clusterHandle;
 	unsigned int nclus = clusters.size();
