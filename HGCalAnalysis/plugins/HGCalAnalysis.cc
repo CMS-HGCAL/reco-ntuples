@@ -75,8 +75,8 @@ private:
 virtual void beginJob() override;
 virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
 virtual void endJob() override;
-virtual void fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerCluster, const bool& fillRecHits, const unsigned int& multiClusterIndex = -1);
-virtual void fillRecHit(const DetId& detid, const float& fraction, const unsigned int& layer, const unsigned int& cluster_index = -1);
+virtual void fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerCluster, const bool& fillRecHits, const int& multiClusterIndex = -1);
+virtual void fillRecHit(const DetId& detid, const float& fraction, const unsigned int& layer, const int& cluster_index = -1);
 
 void clearVariables();
 
@@ -1102,7 +1102,7 @@ void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup& es, unsigned l
 }
 
 
-void HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerCluster, const bool& fillRecHits, const unsigned int& multiClusterIndex) {
+void HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerCluster, const bool& fillRecHits, const int& multiClusterIndex) {
 
 	// std::cout << "in fillLayerCluster" << std::endl;
 	const std::vector< std::pair<DetId, float> > &hf = layerCluster->hitsAndFractions();
@@ -1164,7 +1164,7 @@ void HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerClu
 }
 
 
-void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const unsigned int& layer, const unsigned int& cluster_index) {
+void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const unsigned int& layer, const int& cluster_index) {
 
 	// std::cout << "in fillRecHit" << std::endl;
 	int flags = 0x0;
