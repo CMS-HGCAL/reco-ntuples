@@ -4,12 +4,15 @@ from Configuration.StandardSequences.Eras import eras
 process = cms.Process("Demo")
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
-process.load('Configuration.Geometry.GeometryExtended2023D4Reco_cff')
-process.load('Configuration.StandardSequences.MagneticField_38T_PostLS1_cff')
+process.load('Configuration.Geometry.GeometryExtended2023D13Reco_cff')
+process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('RecoLocalCalo.HGCalRecProducers.HGCalLocalRecoSequence_cff')
+
+from Configuration.AlCa.GlobalTag import GlobalTag
+process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 
 from FastSimulation.Event.ParticleFilter_cfi import *
 
@@ -18,7 +21,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-        '/store/relval/CMSSW_9_1_0_pre1/RelValTTbar_14TeV/GEN-SIM-RECO/PU25ns_90X_upgrade2023_realistic_v9_D4TPU200r3-v1/00000/02E3478F-3D22-E711-80C4-0CC47A4D7654.root'
+        '/store/relval/CMSSW_9_1_0_pre3/RelValTTbar_14TeV/GEN-SIM-RECO/PU25ns_91X_upgrade2023_realistic_v1_D13PU200-v2/10000/04A22787-5E31-E711-A724-0025905A6090.root'
     ),
     duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
 )
@@ -40,15 +43,15 @@ process.TFileService = cms.Service("TFileService",
 
                                    )
 
-reRunClustering = False
+reRunClustering = True
 
 if reRunClustering:
-    process.hgcalLayerClusters.minClusters = cms.uint32(0)
-    process.hgcalLayerClusters.realSpaceCone = cms.bool(True)
-    process.hgcalLayerClusters.multiclusterRadius = cms.double(2.)  # in cm if realSpaceCone is true
-    process.hgcalLayerClusters.dependSensor = cms.bool(True)
-    process.hgcalLayerClusters.ecut = cms.double(3.)  # multiple of sigma noise if dependSensor is true
-    process.hgcalLayerClusters.kappa = cms.double(9.)  # multiple of sigma noise if dependSensor is true
+    # process.hgcalLayerClusters.minClusters = cms.uint32(0)
+    # process.hgcalLayerClusters.realSpaceCone = cms.bool(True)
+    # process.hgcalLayerClusters.multiclusterRadius = cms.double(2.)  # in cm if realSpaceCone is true
+    # process.hgcalLayerClusters.dependSensor = cms.bool(True)
+    # process.hgcalLayerClusters.ecut = cms.double(3.)  # multiple of sigma noise if dependSensor is true
+    # process.hgcalLayerClusters.kappa = cms.double(9.)  # multiple of sigma noise if dependSensor is true
     #process.hgcalLayerClusters.deltac = cms.vdouble(2.,3.,5.) #specify delta c for each subdetector separately
     process.p = cms.Path(process.hgcalLayerClusters+process.ana)
 else:
