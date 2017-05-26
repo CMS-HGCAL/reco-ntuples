@@ -41,6 +41,8 @@ class HGCalSelector : public TSelector {
         TTree *outTree;
 
         ofstream testFile;
+        ofstream testFile2;
+        ofstream testFile3;
 
         HGCalSelector(TTree * /*tree*/ =0) { }
         virtual ~HGCalSelector() { }
@@ -61,7 +63,8 @@ class HGCalSelector : public TSelector {
 
         AEvent                    *event; // not working, don't know why
         AGenPartCollection        *particles;
-        ARecHitCollection         *rechits;
+        AGenPartCollection        *genparticles;
+	ARecHitCollection         *rechits;
         ACluster2dCollection      *cluster2d;
         AMultiClusterCollection   *multicluster;
         ASimClusterCollection     *simcluster;
@@ -69,7 +72,9 @@ class HGCalSelector : public TSelector {
         ACaloParticleCollection   *caloparticles;
 
         TBranch *b_event; // not
-        TBranch *b_particles; TBranch *b_rechits;
+        TBranch *b_particles; 
+	TBranch *b_genparticles;
+	TBranch *b_rechits;
         TBranch *b_cluster2d;
         TBranch *b_multicluster;
         TBranch *b_simcluster;
@@ -96,6 +101,7 @@ void HGCalSelector::Init(TTree *tree)
 
     event         = 0;
     particles     = 0;
+    genparticles  = 0;
     rechits       = 0;
     cluster2d     = 0;
     multicluster  = 0;
@@ -105,7 +111,8 @@ void HGCalSelector::Init(TTree *tree)
 
     fChain->SetBranchAddress("event", &event, &b_event);
     fChain->SetBranchAddress("particles", &particles, &b_particles);
-    fChain->SetBranchAddress("rechits_raw", &rechits, &b_rechits);
+    fChain->SetBranchAddress("genparticles", &genparticles, &b_genparticles);
+    fChain->SetBranchAddress("rechits", &rechits, &b_rechits);
     fChain->SetBranchAddress("cluster2d", &cluster2d, &b_cluster2d);
     fChain->SetBranchAddress("multicluster", &multicluster, &b_multicluster);
     fChain->SetBranchAddress("simcluster", &simcluster, &b_simcluster);
