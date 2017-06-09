@@ -41,36 +41,40 @@ Bool_t HGCalSelector::Process(Long64_t entry)
    
 
    // rechits
-   cout << "...Filling the event rechits, count of rechits is  " << rechits->size() << endl;
+   //cout << "...Filling the event rechits, count of rechits is  " << rechits->size() << endl;
    for (unsigned i = 0; i < rechits->size(); ++i) {
        testFile << event->evn << ","
-		<< rechits->at(i).x << "," 
+		        << rechits->at(i).x << "," 
                 << rechits->at(i).y << "," 
                 << rechits->at(i).z  << "," 
+                << rechits->at(i).time  << "," 
                 << rechits->at(i).energy 
                 << "\n"; 
+                
+       cout << rechits->at(i).time << endl;
+
    }
    
-   cout << "...Filling the event genparticles, count of genparticles is  " << genparticles->size() << endl;
+   //cout << "...Filling the event genparticles, count of genparticles is  " << genparticles->size() << endl;
    for (unsigned i = 0; i < genparticles->size(); ++i) {
-       testFile2<< event->evn << ","
-		<< genparticles->at(i).pid << ","
-		<< genparticles->at(i).eta << ","
-                << genparticles->at(i).phi << ","
-                << genparticles->at(i).pt  << ","
-                << genparticles->at(i).energy
-                << "\n";
+       testFile2 << event->evn << ","
+		         << genparticles->at(i).pid << ","
+		         << genparticles->at(i).eta << ","
+                 << genparticles->at(i).phi << ","
+                 << genparticles->at(i).pt  << ","
+                 << genparticles->at(i).energy
+                 << "\n";
    }
 
-   cout << "...Filling the event multicluster, count of multicluster is  " << multicluster->size() << endl;
+   //cout << "...Filling the event multicluster, count of multicluster is  " << multicluster->size() << endl;
    for (unsigned i = 0; i < multicluster->size(); ++i) {
-       testFile3<< event->evn << "," 
-		<< multicluster->at(i).eta << ","
-                << multicluster->at(i).phi << ","
-                << multicluster->at(i).z   << ","
-		<< multicluster->at(i).pt  << ","
-                << multicluster->at(i).energy
-                << "\n";
+       testFile3 << event->evn << "," 
+		         << multicluster->at(i).eta << ","
+                 << multicluster->at(i).phi << ","
+                 << multicluster->at(i).z   << ","
+		         << multicluster->at(i).pt  << ","
+                 << multicluster->at(i).energy
+                 << "\n";
    }
   // testFile.close();
 

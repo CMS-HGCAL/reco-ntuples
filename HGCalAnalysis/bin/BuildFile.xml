@@ -1,5 +1,0 @@
-<use name="RecoNtuples/HGCalAnalysis"/>
-<use name="root"/>
-<flags CXXFLAGS="-g -Wall"/>
-<bin file="HGCalSelect.cc" name="HGCalSelect"></bin>
-
