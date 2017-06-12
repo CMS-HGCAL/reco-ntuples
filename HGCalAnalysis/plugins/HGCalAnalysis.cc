@@ -1091,8 +1091,8 @@ void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup& es, unsigned l
 
 	DetId id;
 	for(unsigned ilayer=1; ilayer<=layers; ++ilayer) {
-		if (ilayer<=28) id=HGCalDetId(ForwardSubdetector::HGCEE,1,ilayer,1,2,1);
-		if (ilayer>28 && ilayer<=40) id=HGCalDetId(ForwardSubdetector::HGCHEF,1,ilayer-28,1,2,1);
+		if (ilayer<=28) id=HGCalDetId(ForwardSubdetector::HGCEE,1,ilayer,1,50,1);
+		if (ilayer>28 && ilayer<=40) id=HGCalDetId(ForwardSubdetector::HGCHEF,1,ilayer-28,1,50,1);
 		if (ilayer>40) id=HcalDetId(HcalSubdetector::HcalEndcap, 50, 100, ilayer-40);
 		const GlobalPoint pos = recHitTools.getPosition(id);
 		// std::cout << "GEOM " ;
