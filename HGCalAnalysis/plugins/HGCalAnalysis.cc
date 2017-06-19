@@ -107,7 +107,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns,edm::one::
         edm::EDGetTokenT<edm::HepMCProduct> _hev;
         edm::EDGetTokenT<std::vector<reco::Track> > _tracks;
 
-        TTree                     *t;
+        TTree *t;
 
         ////////////////////
         // event
@@ -122,6 +122,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns,edm::one::
         ////////////////////
         // GenParticles
         //
+        
         std::vector<float> genpart_eta;
         std::vector<float> genpart_phi;
         std::vector<float> genpart_pt;
@@ -312,9 +313,9 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
     fs->make<TH1F>("total", "total", 100, 0, 5.);
 
     t = fs->make<TTree>("hgc","hgc");
-
     // event info
     t->Branch("event", &ev_event);
+
     t->Branch("lumi", &ev_lumi);
     t->Branch("run", &ev_run);
     t->Branch("vtx_x", &vtx_x);
@@ -574,8 +575,7 @@ void HGCalAnalysis::clearVariables() {
 }
 
 
-    void
-HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
+void HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 {
     using namespace edm;
 
@@ -596,8 +596,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     const std::vector<TrackingParticle> * part;
 
     Handle<edm::HepMCProduct> hevH;
-    Handle<std::vector<SimTrack> >simTracksHandle;
-    Handle<std::vector<SimVertex> >simVerticesHandle;
+    Handle<std::vector<SimTrack> > simTracksHandle;
+    Handle<std::vector<SimVertex> > simVerticesHandle;
 
     iEvent.getByToken(_hev,hevH);
     if(!readOfficialReco) {
@@ -642,37 +642,44 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     float vy = primaryVertex->position().y()/10.;
     vz = primaryVertex->position().z()/10.;
 
-    // std::cout << "start the fun" << std::endl;
 
     if( !readOfficialReco) {
         unsigned int npart = part->size();
+        std::cout << npart << std::endl;
         for(unsigned int i=0; i<npart; ++i) {
 
             // event=0 is the hard scattering (all PU have event()>=1)
             // bunchCrossing == 0 intime, buncCrossing!=0 offtime, standard generation has [-12,+3]
-            if((*part)[i].eventId().event() ==0 and (*part)[i].eventId().bunchCrossing()==0) {
+            if((*part)[i].eventId().event() == 0 and (*part)[i].eventId().bunchCrossing() == 0) {
 
                 // look for the generator particle, set to -1 for Geant produced paticles
                 int tp_genpart=-1;
-                if (!(*part)[i].genParticles().empty()) tp_genpart=(*part)[i].genParticle_begin().key();
+                if (!(*part)[i].genParticles().empty()) {
+                    tp_genpart = (*part)[i].genParticle_begin().key();
+                } else {
+                    std::cout << (*part)[i].genParticle_begin().key() << std::endl;
+                }
+                std::cout << (*part)[i].genParticle_begin().key() << std::endl;
 
                 // default values for decay position is outside detector, i.e. ~stable
-                int reachedEE=1;
-                double fbrem=-1;
-                float dvx=999.;
-                float dvy=999.;
-                float dvz=999.;
-                if((*part)[i].decayVertices().size()>=1) { //they can be delta rays, in this case you have multiple decay verices
-                    dvx=(*part)[i].decayVertices()[0]->position().x();
-                    dvy=(*part)[i].decayVertices()[0]->position().y();
-                    dvz=(*part)[i].decayVertices()[0]->position().z();
-                    if ((*part)[i].decayVertices()[0]->inVolume()) reachedEE=0; //if it decays inside the tracker volume
+                int reachedEE = 1;
+                double fbrem  = -1;
+                float dvx     = 999.;
+                float dvy     = 999.;
+                float dvz     = 999.;
+                if((*part)[i].decayVertices().size() >= 1) { //they can be delta rays, in this case you have multiple decay verices
+                    dvx = (*part)[i].decayVertices()[0]->position().x();
+                    dvy = (*part)[i].decayVertices()[0]->position().y();
+                    dvz = (*part)[i].decayVertices()[0]->position().z();
+                    if ((*part)[i].decayVertices()[0]->inVolume()) reachedEE = 0; //if it decays inside the tracker volume
                 }
 
                 // look for origin of particle inside the beampipe so that we can assess if a track can potentially give a reco::Track
-                float r_origin=(*part)[i].parentVertex()->position().Pt();
+                float r_origin = (*part)[i].parentVertex()->position().Pt();
                 bool fromBeamPipe=true;
-                if (r_origin>2.0) fromBeamPipe=false;
+                if (r_origin > 2.0) 
+                    fromBeamPipe=false;
+
                 genpart_eta.push_back((*part)[i].eta());
                 genpart_phi.push_back((*part)[i].phi());
                 genpart_pt.push_back((*part)[i].pt());
@@ -687,8 +694,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
                 genpart_fromBeamPipe.push_back(fromBeamPipe);
             }
         }
-    } else
-    {
+    } else {
         unsigned int npart = mySimEvent->nTracks();
         for (unsigned int i=0; i<npart; ++i) {
             std::vector<float> xp,yp,zp;
@@ -697,8 +703,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
             int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
             double fbrem=-1;
-            if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
-            {
+            if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0) {
 
                 RawParticle part(myTrack.momentum(),myTrack.vertex().position());
                 part.setID(myTrack.type());
@@ -1031,10 +1036,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
         // save info in tree
         track_pt.push_back(it_track->pt());
-        track_pt.push_back(it_track->eta());
-        track_pt.push_back(it_track->phi());
-        track_pt.push_back(energy);
-        track_pt.push_back(it_track->charge());
+        track_eta.push_back(it_track->eta());
+        track_phi.push_back(it_track->phi());
+        track_energy.push_back(energy);
+        track_charge.push_back(it_track->charge());
         track_posx.push_back(xp);
         track_posy.push_back(yp);
         track_posz.push_back(zp);

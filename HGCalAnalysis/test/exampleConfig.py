@@ -4,7 +4,7 @@ from Configuration.StandardSequences.Eras import eras
 process = cms.Process("Demo")
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
-process.load('Configuration.Geometry.GeometryExtended2023D13Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2023D17Reco_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load("FWCore.MessageService.MessageLogger_cfi")
@@ -16,7 +16,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 
 from FastSimulation.Event.ParticleFilter_cfi import *
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(5) )
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
@@ -27,12 +27,12 @@ process.source = cms.Source("PoolSource",
 )
 
 process.ana = cms.EDAnalyzer('HGCalAnalysis',
-                             detector = cms.string("all"),
-                             rawRecHits = cms.bool(True),
-                             readOfficialReco = cms.bool(True),
-                             readCaloParticles = cms.bool(False),
+                             detector                = cms.string("all"),
+                             rawRecHits              = cms.bool(True),
+                             readOfficialReco        = cms.bool(True),
+                             readCaloParticles       = cms.bool(False),
                              layerClusterPtThreshold = cms.double(-1),  # All LayerCluster belonging to a multicluster are saved; this Pt threshold applied to the others
-                             TestParticleFilter = ParticleFilterBlock.ParticleFilter
+                             TestParticleFilter      = ParticleFilterBlock.ParticleFilter
 )
 
 process.ana.TestParticleFilter.protonEMin = cms.double(100000)
@@ -40,8 +40,8 @@ process.ana.TestParticleFilter.etaMax = cms.double(3.1)
 
 process.TFileService = cms.Service("TFileService",
                                    fileName = cms.string("hgcalNtuple.root")
-
                                    )
+
 
 reRunClustering = True
 
