@@ -132,7 +132,7 @@ std::vector<float> genpart_dvz;
 std::vector<float> genpart_fbrem;
 std::vector<int> genpart_pid;
 std::vector<int> genpart_gen;
-std::vector<bool> genpart_reachedEE;
+std::vector<int> genpart_reachedEE;
 std::vector<bool> genpart_fromBeamPipe;
 std::vector<std::vector<float> > genpart_posx;
 std::vector<std::vector<float> > genpart_posy;
