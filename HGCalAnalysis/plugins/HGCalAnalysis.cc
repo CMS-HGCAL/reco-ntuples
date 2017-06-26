@@ -1031,10 +1031,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 		// save info in tree
 		track_pt.push_back(it_track->pt());
-		track_pt.push_back(it_track->eta());
-		track_pt.push_back(it_track->phi());
-		track_pt.push_back(energy);
-		track_pt.push_back(it_track->charge());
+		track_eta.push_back(it_track->eta());
+		track_phi.push_back(it_track->phi());
+		track_energy.push_back(energy);
+		track_charge.push_back(it_track->charge());
 		track_posx.push_back(xp);
 		track_posy.push_back(yp);
 		track_posz.push_back(zp);
