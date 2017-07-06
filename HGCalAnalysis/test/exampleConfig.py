@@ -35,7 +35,7 @@ process.source = cms.Source("PoolSource",
 
 process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              detector = cms.string("all"),
-                             rawRecHits = cms.bool(True),
+                             rawRecHits = cms.bool(False),
                              readOfficialReco = cms.bool(True),
                              readCaloParticles = cms.bool(False),
                              dEdXWeights = dEdX,
@@ -47,7 +47,7 @@ process.ana.TestParticleFilter.protonEMin = cms.double(100000)
 process.ana.TestParticleFilter.etaMax = cms.double(3.1)
 
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("hgcalNtuple-pca.root")
+                                   fileName = cms.string("hgcalNtuple-pca-clusteringFix-test.root")
 
                                    )
 
