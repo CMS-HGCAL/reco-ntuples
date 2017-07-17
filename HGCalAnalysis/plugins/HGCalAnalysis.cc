@@ -74,7 +74,7 @@ explicit HGCalAnalysis(const edm::ParameterSet&);
 ~HGCalAnalysis();
 
 static void fillDescriptions(edm::ConfigurationDescriptions& descriptions);
-virtual void beginRun(edm::Run const& iEvent, edm::EventSetup const&) override;
+ virtual void beginRun(edm::Run const& iEvent, edm::EventSetup const&) override;
 virtual void endRun(edm::Run const& iEvent, edm::EventSetup const&) override;
 
 private:
@@ -299,18 +299,18 @@ HGCalAnalysis::HGCalAnalysis() {
 }
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
-        readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
-        readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
-        layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
-        propagationPtThreshold(iConfig.getUntrackedParameter<double>("propagationPtThreshold",3.0)),
-        detector(iConfig.getParameter<std::string >("detector")),
-        rawRecHits(iConfig.getParameter<bool>("rawRecHits")),
-        particleFilter(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
-        dEdXWeights(iConfig.getParameter<std::vector<double> >("dEdXWeights")),
-        invThicknessCorrection({1./1.132,1./1.092,1./1.084}),
-        pca_(new TPrincipal(3,"D"))
+       readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
+       readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
+       layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
+       propagationPtThreshold(iConfig.getUntrackedParameter<double>("propagationPtThreshold",3.0)),
+       detector(iConfig.getParameter<std::string >("detector")),
+       rawRecHits(iConfig.getParameter<bool>("rawRecHits")),
+       particleFilter(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
+       dEdXWeights(iConfig.getParameter<std::vector<double> >("dEdXWeights")),
+       invThicknessCorrection({1./1.132,1./1.092,1./1.084}),
+       pca_(new TPrincipal(3,"D"))
 {
-        // now do what ever initialization is needed
+       // now do what ever initialization is needed
         mySimEvent = new FSimEvent(particleFilter);
   
         if(detector=="all") {
@@ -1132,8 +1132,8 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	  
 	  if (it_track->pt()>= propagationPtThreshold) {
 	    
-	    // Define error matrix
-	    ROOT::Math::SMatrixIdentity id;
+	      // Define error matrix
+	      ROOT::Math::SMatrixIdentity id;
 	    AlgebraicSymMatrix55 C(id);
 	    C *= 0.01;
 	    CurvilinearTrajectoryError err(C);
