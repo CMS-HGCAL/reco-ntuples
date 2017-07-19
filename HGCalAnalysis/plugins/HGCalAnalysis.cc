@@ -88,7 +88,7 @@ void clearVariables();
 
 void retrieveLayerPositions(const edm::EventSetup&, unsigned layers);
 
-void computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar, 
+void computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
 				  math::XYZVector& axis, float & sigu, float & sigv,float radius=5);
 
 
@@ -211,9 +211,9 @@ std::vector<float> multiclus_eigenSig2;
 std::vector<float> multiclus_eigenSig3;
 std::vector<float> multiclus_siguu;
 std::vector<float> multiclus_sigvv;
-std::vector<std::vector<float> >multiclus_sigrad;
-std::vector<std::vector<float> >multiclus_radsiguu;
-std::vector<std::vector<float> >multiclus_radsigvv;
+// std::vector<std::vector<float> >multiclus_sigrad;
+// std::vector<std::vector<float> >multiclus_radsiguu;
+// std::vector<std::vector<float> >multiclus_radsigvv;
 std::vector<int> multiclus_firstLay;
 std::vector<int> multiclus_lastLay;
 std::vector<int> multiclus_NLay;
@@ -312,7 +312,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 {
 	// now do what ever initialization is needed
 	mySimEvent = new FSimEvent(particleFilter);
-  
+
 	if(detector=="all") {
 		_recHitsEE = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCEERecHits"));
 		_recHitsFH = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit","HGCHEFRecHits"));
@@ -343,12 +343,12 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	_pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
 	_multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
 	_tracks = consumes<std::vector<reco::Track> >(edm::InputTag("generalTracks"));
-  
-  
+
+
 	usesResource(TFileService::kSharedResource);
 	edm::Service<TFileService> fs;
 	fs->make<TH1F>("total", "total", 100, 0, 5.);
-	
+
 	t = fs->make<TTree>("hgc","hgc");
 
 	// event info
@@ -358,7 +358,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("vtx_x", &vtx_x);
 	t->Branch("vtx_y", &vtx_y);
 	t->Branch("vtx_z", &vtx_z);
-	
+
 	t->Branch("genpart_eta", &genpart_eta);
 	t->Branch("genpart_phi", &genpart_phi);
 	t->Branch("genpart_pt", &genpart_pt);
@@ -374,7 +374,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("genpart_posx", &genpart_posx);
 	t->Branch("genpart_posy", &genpart_posy);
 	t->Branch("genpart_posz", &genpart_posz);
-	
+
 	////////////////////
 	// RecHits
 	// associated to layer clusters
@@ -424,12 +424,12 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("multiclus_slopeY", &multiclus_slopeY);
 	t->Branch("multiclus_cluster2d", &multiclus_cluster2d);
 	t->Branch("multiclus_cl2dSeed", &multiclus_cl2dSeed);
-	t->Branch("multiclus_pcaAxisX", &multiclus_pcaAxisX); 
-	t->Branch("multiclus_pcaAxisY", &multiclus_pcaAxisY); 
+	t->Branch("multiclus_pcaAxisX", &multiclus_pcaAxisX);
+	t->Branch("multiclus_pcaAxisY", &multiclus_pcaAxisY);
 	t->Branch("multiclus_pcaAxisZ", &multiclus_pcaAxisZ);
-	t->Branch("multiclus_pcaPosX", &multiclus_pcaPosX);  
-	t->Branch("multiclus_pcaPosY", &multiclus_pcaPosY);  
-	t->Branch("multiclus_pcaPosZ", &multiclus_pcaPosZ);  
+	t->Branch("multiclus_pcaPosX", &multiclus_pcaPosX);
+	t->Branch("multiclus_pcaPosY", &multiclus_pcaPosY);
+	t->Branch("multiclus_pcaPosZ", &multiclus_pcaPosZ);
 	t->Branch("multiclus_eigenVal1", &multiclus_eigenVal1);
 	t->Branch("multiclus_eigenVal2", &multiclus_eigenVal2);
 	t->Branch("multiclus_eigenVal3", &multiclus_eigenVal3);
@@ -438,14 +438,14 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("multiclus_eigenSig3", &multiclus_eigenSig3);
 	t->Branch("multiclus_siguu", &multiclus_siguu);
 	t->Branch("multiclus_sigvv", &multiclus_sigvv);
-	t->Branch("multiclus_sigrad", &multiclus_sigrad);
-	t->Branch("multiclus_radsiguu", &multiclus_radsiguu);
-	t->Branch("multiclus_radsigvv", &multiclus_radsigvv);
+	// t->Branch("multiclus_sigrad", &multiclus_sigrad);
+	// t->Branch("multiclus_radsiguu", &multiclus_radsiguu);
+	// t->Branch("multiclus_radsigvv", &multiclus_radsigvv);
 	t->Branch("multiclus_firstLay",&multiclus_firstLay);
 	t->Branch("multiclus_lastLay",&multiclus_lastLay);
 	t->Branch("multiclus_NLay",&multiclus_NLay);
-	
-	
+
+
 	////////////////////
 	// sim clusters
 	//
@@ -459,8 +459,8 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("simcluster_layers", &simcluster_layers);
 	t->Branch("simcluster_wafers", &simcluster_wafers);
 	t->Branch("simcluster_cells", &simcluster_cells);
-	
-	
+
+
 	////////////////////
 	// PF clusters
 	//
@@ -468,8 +468,8 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("pfcluster_phi", &pfcluster_phi);
 	t->Branch("pfcluster_pt", &pfcluster_pt);
 	t->Branch("pfcluster_energy", &pfcluster_energy);
-	
-	
+
+
 	////////////////////
 	// calo particles
 	//
@@ -492,11 +492,11 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("track_posx", &track_posx);
 	t->Branch("track_posy", &track_posy);
 	t->Branch("track_posz", &track_posz);
-		
+
 }
 HGCalAnalysis::~HGCalAnalysis()
 {
-  
+
 		// do anything here that needs to be done at desctruction time
 	// (e.g. close files, deallocate resources etc.)
 
@@ -582,12 +582,12 @@ void HGCalAnalysis::clearVariables() {
 	multiclus_slopeY.clear();
 	multiclus_cluster2d.clear();
 	multiclus_cl2dSeed.clear();
-	multiclus_pcaAxisX.clear(); 	
-	multiclus_pcaAxisY.clear(); 
-	multiclus_pcaAxisZ.clear(); 
-	multiclus_pcaPosX.clear();  
-	multiclus_pcaPosY.clear();  
-	multiclus_pcaPosZ.clear();  
+	multiclus_pcaAxisX.clear();
+	multiclus_pcaAxisY.clear();
+	multiclus_pcaAxisZ.clear();
+	multiclus_pcaPosX.clear();
+	multiclus_pcaPosY.clear();
+	multiclus_pcaPosZ.clear();
 	multiclus_eigenVal1.clear();
 	multiclus_eigenVal2.clear();
 	multiclus_eigenVal3.clear();
@@ -596,9 +596,9 @@ void HGCalAnalysis::clearVariables() {
 	multiclus_eigenSig3.clear();
 	multiclus_siguu.clear();
 	multiclus_sigvv.clear();
-	multiclus_sigrad.clear();
-	multiclus_radsiguu.clear();
-	multiclus_radsigvv.clear();
+	// multiclus_sigrad.clear();
+	// multiclus_radsiguu.clear();
+	// multiclus_radsigvv.clear();
 	multiclus_firstLay.clear();
 	multiclus_lastLay.clear();
 	multiclus_NLay.clear();
@@ -768,7 +768,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			}
 		}
 	} else
-	{	
+	{
 		unsigned int npart = mySimEvent->nTracks();
 		for (unsigned int i=0; i<npart; ++i) {
 			std::vector<float> xp,yp,zp;
@@ -792,7 +792,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 					if (result==2 && vtx.Rho()> 25) {
 						reachedEE=2;
 						double dpt=0;
-						
+
 						for(int i=0; i<myTrack.nDaughters(); ++i)
 						  	dpt+=myTrack.daughter(i).momentum().pt();
 						if(abs(myTrack.type())==11)
@@ -802,7 +802,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				}
 				else // in that case we propagate only to the first layers
 				  	nlayers=1;
-				
+
 				for(unsigned il=0; il<nlayers; ++il) {
 					myPropag.setPropagationConditions(140,layerPositions[il],false);
 					if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
@@ -815,10 +815,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				}
 			}
 			else
-		  	{	
+		  	{
 				vtx = myTrack.endVertex().position();
 			}
-			
+
 			// fill branches
 			genpart_eta.push_back(myTrack.momentum().eta());
 			genpart_phi.push_back(myTrack.momentum().phi());
@@ -907,7 +907,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			if((*it)->energy() > (*(it+cl2dSeed))->energy()) cl2dSeed = it - multiClusters[i].begin();
 			cl2dIndices.push_back(cluster_index);
 			int layer = fillLayerCluster(*it, true, i);
-			layers.insert(layer);			
+			layers.insert(layer);
 		}
 
 		double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
@@ -940,10 +940,10 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			multiclus_eigenSig3.push_back(-2.);
 			multiclus_siguu.push_back(-2.);
 			multiclus_sigvv.push_back(-2.);
-			std::vector<float> dummy;
-			multiclus_sigrad.push_back(dummy);
-			multiclus_radsiguu.push_back(dummy);
-			multiclus_radsigvv.push_back(dummy);
+			// std::vector<float> dummy;
+			// multiclus_sigrad.push_back(dummy);
+			// multiclus_radsiguu.push_back(dummy);
+			// multiclus_radsigvv.push_back(dummy);
 			continue;
 		  }
 		pca_->MakePrincipals();
@@ -957,17 +957,17 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		  	axis = math::XYZVector(-eigens(0,0),-eigens(1,0),-eigens(2,0));
 		}
 		float sigu,sigv;
-		std::vector<float> radsiguu;
-		std::vector<float> radsigvv;
-		std::vector<float> sigrad;
+		// std::vector<float> radsiguu;
+		// std::vector<float> radsigvv;
+		// std::vector<float> sigrad;
 
 				//		for(float radius=1.;  radius<=10.; radius+=1.) {
 		float radius=5.;
-		
+
 		computeWidth(multiClusters[i],barycenter,axis,sigu,sigv,radius);
-		sigrad.push_back(radius);
-		radsiguu.push_back(sigu);
-		radsigvv.push_back(sigv);
+		// sigrad.push_back(radius);
+		// radsiguu.push_back(sigu);
+		// radsigvv.push_back(sigv);
 		// not elegant, but keep it because of the commented loop above
 		if (radius>4.9 && radius < 5.1) {
 		 	multiclus_siguu.push_back(sigu);
@@ -987,9 +987,9 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		multiclus_eigenSig1.push_back(sigmas(0));
 		multiclus_eigenSig2.push_back(sigmas(1));
 		multiclus_eigenSig3.push_back(sigmas(2));
-		multiclus_sigrad.push_back(sigrad);
-		multiclus_radsiguu.push_back(radsiguu);
-		multiclus_radsigvv.push_back(radsigvv);
+		// multiclus_sigrad.push_back(sigrad);
+		// multiclus_radsiguu.push_back(radsiguu);
+		// multiclus_radsigvv.push_back(radsigvv);
 	}
 
 	// Fills the additional 2d layers
@@ -1083,17 +1083,17 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		simcluster_cells.push_back(cells);
 
 	} // end loop over simClusters
-	
+
 	// loop over pfClusters
 	for (std::vector<reco::PFCluster>::const_iterator it_pfClus = pfClusters.begin(); it_pfClus != pfClusters.end(); ++it_pfClus) {
-	  
+
 	  	pfcluster_eta.push_back(it_pfClus->eta());
 	  	pfcluster_phi.push_back(it_pfClus->phi());
 	  	pfcluster_pt.push_back(it_pfClus->pt());
 	  	pfcluster_energy.push_back(it_pfClus->energy());
-	  
+
 	} // end loop over pfClusters
-	
+
 	// loop over caloParticles
 	if (readCaloParticles) {
 	  	for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles->begin(); it_caloPart != caloParticles->end(); ++it_caloPart) {
@@ -1102,58 +1102,58 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			for (CaloParticle::sc_iterator it_sc = simClusterRefVector.begin(); it_sc != simClusterRefVector.end(); ++it_sc) {
 		  		simClusterIndex.push_back((*it_sc).key());
 			}
-		
+
 			calopart_eta.push_back(it_caloPart->eta());
 			calopart_phi.push_back(it_caloPart->phi());
 			calopart_pt.push_back(it_caloPart->pt());
 			calopart_energy.push_back(it_caloPart->energy());
 			calopart_simEnergy.push_back(it_caloPart->simEnergy());
 			calopart_simClusterIndex.push_back(simClusterIndex);
-		
+
 	  	} // end loop over caloParticles
 	}
-	
+
 	// loop over tracks
-	
+
 	//  random = new RandomEngineAndDistribution(iEvent.streamID());
-	
+
 	// prepare for RK propagation
 	defaultRKPropagator::Product prod( aField, alongMomentum, 5.e-5);
 	auto & RKProp = prod.propagator;
-	
-	
+
+
 	for (std::vector<reco::Track>::const_iterator it_track = tracks.begin(); it_track != tracks.end(); ++it_track) {
-	  
+
 	  	if (!it_track->quality(reco::Track::highPurity)) continue;
-	  
+
 	 	double energy = it_track->pt() * cosh(it_track->eta());
-	  
+
 	  	//save info about reconstructed tracks propoagation to hgcal layers (ony for pt>propagationPtThreshold tracks)
 	  	std::vector<float> xp,yp,zp;
-	  
+
 	  	if (it_track->pt()>= propagationPtThreshold) {
-		
+
 			 // Define error matrix
 			ROOT::Math::SMatrixIdentity id;
 			AlgebraicSymMatrix55 C(id);
 			C *= 0.01;
 			CurvilinearTrajectoryError err(C);
 			typedef TrajectoryStateOnSurface TSOS;
-			
+
 			GlobalPoint startingPosition(it_track->vx(),it_track->vy(),it_track->vz());
 			GlobalVector startingMomentum(it_track->px(),it_track->py(),it_track->pz());
-			
+
 			Plane::PlanePointer startingPlane = Plane::build( Plane::PositionType (it_track->vx(),it_track->vy(),it_track->vz()), Plane::RotationType () );
-			
+
 			TSOS startingStateP(GlobalTrajectoryParameters(startingPosition,startingMomentum, it_track->charge(), aField), err, *startingPlane);
-			
+
 			for(unsigned il=0; il<layerPositions.size(); ++il) {
 			  	float xp_curr=0;
 			  	float yp_curr=0;
 			  	float zp_curr=0;
-			  
+
 			  	for (int zside = -1; zside <=1; zside+=2) {
-				// clearly try both sides	
+				// clearly try both sides
 			  		Plane::PlanePointer endPlane = Plane::build( Plane::PositionType (0,0,zside*layerPositions[il]), Plane::RotationType());
 			  		try{
 					/*
@@ -1167,20 +1167,20 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 				  			xp_curr=trackStateP.globalPosition().x();
 				  			yp_curr=trackStateP.globalPosition().y();
 				  			zp_curr=trackStateP.globalPosition().z();
-				  
+
 				  			// std::cout << "Succesfully finished Positive track propagation  -------------- with RK: " << trackStateP.globalPosition() << std::endl;
 						}
-		     		}		
+		     		}
 			  		catch (...) {
 						std::cout << "MagVolumeOutsideValidity not properly caught!! Lost this track " << std::endl;
 			  		}
-				}	
+				}
 				xp.push_back(xp_curr);
 				yp.push_back(yp_curr);
 				zp.push_back(zp_curr);
 			} // closes loop on layers
 		} // closes conditions pt>3
-	  
+
 		// save info in tree
 		track_pt.push_back(it_track->pt());
 		track_pt.push_back(it_track->eta());
@@ -1190,33 +1190,33 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		track_posx.push_back(xp);
 		track_posy.push_back(yp);
 		track_posz.push_back(zp);
-	  
+
 	} // end loop over tracks
-	
+
 	ev_event = iEvent.id().event();
 	ev_lumi = iEvent.id().luminosityBlock();
 	ev_run = iEvent.id().run();
-	
+
 	vtx_x = vx;
 	vtx_y = vy;
 	vtx_z = vz;
-	
+
 	t->Fill();
 }
 
 void HGCalAnalysis::beginRun(edm::Run const& iEvent, edm::EventSetup const& es) {
-  
+
 		edm::ESHandle < HepPDT::ParticleDataTable > pdt;
 		es.getData(pdt);
 		mySimEvent->initializePdt(&(*pdt));
-  
+
 		retrieveLayerPositions(es,52);
-  
+
 		edm::ESHandle<MagneticField> magfield;
 		es.get<IdealMagneticFieldRecord>().get(magfield);
-  
+
 		aField=&(*magfield);
-  
+
 }
 
 void HGCalAnalysis::endRun(edm::Run const& iEvent, edm::EventSetup const&) {
@@ -1240,7 +1240,7 @@ HGCalAnalysis::endJob()
 void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup& es, unsigned layers)
 {
   	recHitTools.getEventSetup(es);
-  
+
   	DetId id;
   	for(unsigned ilayer=1; ilayer<=layers; ++ilayer) {
 		if (ilayer<=28) id=HGCalDetId(ForwardSubdetector::HGCEE,1,ilayer,1,50,1);
@@ -1249,14 +1249,14 @@ void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup& es, unsigned l
 		const GlobalPoint pos = recHitTools.getPosition(id);
 		//  std::cout << "GEOM " ;
 		//	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
-	
+
 		layerPositions.push_back(pos.z());
   }
 }
 
 
 int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerCluster, const bool& fillRecHits, const int& multiClusterIndex) {
-  
+
 	// std::cout << "in fillLayerCluster" << std::endl;
 	const std::vector< std::pair<DetId, float> > &hf = layerCluster->hitsAndFractions();
 	std::vector<unsigned int> rhIndices;
@@ -1280,7 +1280,7 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerClus
 
 	  	double thickness = (DetId::Forward == DetId(rh_detid).det()) ? recHitTools.getSiThickness(rh_detid) : -1 ;
 	  	double mip=dEdXWeights[layer]*0.001; // convert in GeV
-	  	if (thickness > 99. && thickness < 101) 
+	  	if (thickness > 99. && thickness < 101)
 			mip *= invThicknessCorrection[0];
 	  	else if (thickness > 199 && thickness <201)
 			mip *= invThicknessCorrection[1];
@@ -1297,8 +1297,8 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerClus
 		if(pcavars[2]!=0)
 		  	for (int i=0; i<int(hit->energy()/mip); ++i)
 				pca_->AddRow(pcavars);
-	}	
-	  
+	}
+
 
 	 if (fillRecHits) {
 		if(storedRecHits.find(rh_detid)==storedRecHits.end() ) {
@@ -1308,14 +1308,14 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerClus
 		  	if(hit->energy() > maxEnergy) {
 				rhSeed = rechit_index;
 				maxEnergy = hit->energy();
-		  	}	
+		  	}
 		  	rhIndices.push_back(rechit_index);
 		  	fillRecHit(rh_detid, fraction, layer, cluster_index);
-		}	
+		}
 		else {
 		  // need to see what to do about existing rechits in case of sharing
 		 std::cout << "RecHit already filled for different layer cluster: " << int(rh_detid) << std::endl;
-		}	
+		}
 	  }
 	}
 
@@ -1342,7 +1342,7 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerClus
 
 
 void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const unsigned int& layer, const int& cluster_index) {
-  
+
 		// std::cout << "in fillRecHit" << std::endl;
 	int flags = 0x0;
 	if (fraction>0. && fraction<1.)
@@ -1352,7 +1352,7 @@ void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const 
 	else if(fraction==0.)
 			flags = 0x2;
 	const HGCRecHit *hit = hitmap[detid];
-		
+
 	const GlobalPoint position = recHitTools.getPosition(detid);
 	const unsigned int wafer = ( DetId::Forward == DetId(detid).det() ? recHitTools.getWafer(detid) : std::numeric_limits<unsigned int>::max() );
 	const unsigned int cell  = ( DetId::Forward == DetId(detid).det() ? recHitTools.getCell(detid) :  std::numeric_limits<unsigned int>::max() );
@@ -1361,7 +1361,7 @@ void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const 
 	const double eta = recHitTools.getEta(position, vz);
 	const double phi = recHitTools.getPhi(position);
 	const double pt = recHitTools.getPt(position, hit->energy(), vz);
-	
+
 
 	// fill the vectors
 	rechit_eta.push_back(eta);
@@ -1380,13 +1380,13 @@ void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const 
 	rechit_isHalf.push_back(isHalfCell);
 	rechit_flags.push_back(flags);
 	rechit_cluster2d.push_back(cluster_index);
-	
+
 	storedRecHits.insert(detid);
 	++rechit_index;
-		
+
 }
 
-void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar, 
+void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
 								 math::XYZVector& axis, float & sigu, float &sigv, float radius)  {
 		bool recomputePCA=false;
 		sigu = 0.;
@@ -1402,10 +1402,16 @@ void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::X
 		mainAxis.unit();
 		math::XYZVector phiAxis(bar.x(),bar.y(),0);
 		math::XYZVector udir(mainAxis.Cross(phiAxis));
-		udir.unit();
+		udir = udir.unit();
+    // std::cout << " udir "<< udir.unit() << std::endl;
 		Transform3D trans(Point(bar),Point(bar+mainAxis),Point(bar+udir),
 						  Point(0,0,0), Point(0.,0.,1.), Point(1.,0.,0.));
-
+    // Point testPoint(bar+udir);
+    // Point localTestPoint=trans(testPoint);
+    // std::cout << " bar " << bar << std::endl;
+    // std::cout << " udir "<< udir << std::endl;
+    // std::cout << "TestPoint g " << testPoint << std::endl;
+    // std::cout << "TestPoint l " << localTestPoint << std::endl;
 		//  unsigned nhit=0;
 		float etot=0;
 		for(reco::HGCalMultiCluster::component_iterator it = cluster.begin();
@@ -1424,10 +1430,10 @@ void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::X
 				if(fraction>0)
 				  {
 					math::XYZPoint local = trans(Point(recHitTools.getPosition(rh_detid)));
-		  
 					if(local.Perp2() > 25) continue;
-		  
+
 					if(local.Perp2() < radius2 ) {
+
 					  sigu += local.x()*local.x()*hit->energy();
 					  sigv += local.y()*local.y()*hit->energy();
 					  etot += hit->energy();
@@ -1436,15 +1442,15 @@ void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::X
 					if (!recomputePCA) continue;
 					double thickness = (DetId::Forward == DetId(rh_detid).det()) ? recHitTools.getSiThickness(rh_detid) : -1 ;
 					double mip=dEdXWeights[layer]*0.001; // convert in GeV
-					if (thickness > 99. && thickness < 101) 
+					if (thickness > 99. && thickness < 101)
 						mip *= invThicknessCorrection[0];
 					else if (thickness > 199 && thickness <201)
 						mip *= invThicknessCorrection[1];
 					else if (thickness > 299 && thickness <301)
 						mip *= invThicknessCorrection[2];
 
-					// std::cout << " layer " << layer << " thickness " << thickness << " mip " << mip << std::endl;	    
-	  
+					// std::cout << " layer " << layer << " thickness " << thickness << " mip " << mip << std::endl;
+
 					pcavars[0] = recHitTools.getPosition(rh_detid).x();
 					pcavars[1] = recHitTools.getPosition(rh_detid).y();
 					pcavars[2] = recHitTools.getPosition(rh_detid).z();
@@ -1453,7 +1459,7 @@ void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::X
 							pca_->AddRow(pcavars);
 					}
 				  }
-			}    
+			}
 		}
 		if(etot > 0.) {
 			sigu=sigu/etot;
