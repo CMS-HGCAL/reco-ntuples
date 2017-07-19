@@ -211,9 +211,6 @@ std::vector<float> multiclus_eigenSig2;
 std::vector<float> multiclus_eigenSig3;
 std::vector<float> multiclus_siguu;
 std::vector<float> multiclus_sigvv;
-// std::vector<std::vector<float> >multiclus_sigrad;
-// std::vector<std::vector<float> >multiclus_radsiguu;
-// std::vector<std::vector<float> >multiclus_radsigvv;
 std::vector<int> multiclus_firstLay;
 std::vector<int> multiclus_lastLay;
 std::vector<int> multiclus_NLay;
@@ -438,9 +435,6 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("multiclus_eigenSig3", &multiclus_eigenSig3);
 	t->Branch("multiclus_siguu", &multiclus_siguu);
 	t->Branch("multiclus_sigvv", &multiclus_sigvv);
-	// t->Branch("multiclus_sigrad", &multiclus_sigrad);
-	// t->Branch("multiclus_radsiguu", &multiclus_radsiguu);
-	// t->Branch("multiclus_radsigvv", &multiclus_radsigvv);
 	t->Branch("multiclus_firstLay",&multiclus_firstLay);
 	t->Branch("multiclus_lastLay",&multiclus_lastLay);
 	t->Branch("multiclus_NLay",&multiclus_NLay);
@@ -596,9 +590,6 @@ void HGCalAnalysis::clearVariables() {
 	multiclus_eigenSig3.clear();
 	multiclus_siguu.clear();
 	multiclus_sigvv.clear();
-	// multiclus_sigrad.clear();
-	// multiclus_radsiguu.clear();
-	// multiclus_radsigvv.clear();
 	multiclus_firstLay.clear();
 	multiclus_lastLay.clear();
 	multiclus_NLay.clear();
@@ -940,10 +931,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			multiclus_eigenSig3.push_back(-2.);
 			multiclus_siguu.push_back(-2.);
 			multiclus_sigvv.push_back(-2.);
-			// std::vector<float> dummy;
-			// multiclus_sigrad.push_back(dummy);
-			// multiclus_radsiguu.push_back(dummy);
-			// multiclus_radsigvv.push_back(dummy);
 			continue;
 		  }
 		pca_->MakePrincipals();
@@ -957,24 +944,11 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		  	axis = math::XYZVector(-eigens(0,0),-eigens(1,0),-eigens(2,0));
 		}
 		float sigu,sigv;
-		// std::vector<float> radsiguu;
-		// std::vector<float> radsigvv;
-		// std::vector<float> sigrad;
-
-				//		for(float radius=1.;  radius<=10.; radius+=1.) {
 		float radius=5.;
 
 		computeWidth(multiClusters[i],barycenter,axis,sigu,sigv,radius);
-		// sigrad.push_back(radius);
-		// radsiguu.push_back(sigu);
-		// radsigvv.push_back(sigv);
-		// not elegant, but keep it because of the commented loop above
-		if (radius>4.9 && radius < 5.1) {
-		 	multiclus_siguu.push_back(sigu);
-			multiclus_sigvv.push_back(sigv);
-				  //                }
-		}
-
+		multiclus_siguu.push_back(sigu);
+	  multiclus_sigvv.push_back(sigv);
 		multiclus_pcaAxisX.push_back(axis.x());
 		multiclus_pcaAxisY.push_back(axis.y());
 		multiclus_pcaAxisZ.push_back(axis.z());
@@ -987,9 +961,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		multiclus_eigenSig1.push_back(sigmas(0));
 		multiclus_eigenSig2.push_back(sigmas(1));
 		multiclus_eigenSig3.push_back(sigmas(2));
-		// multiclus_sigrad.push_back(sigrad);
-		// multiclus_radsiguu.push_back(radsiguu);
-		// multiclus_radsigvv.push_back(radsigvv);
 	}
 
 	// Fills the additional 2d layers
