@@ -1399,7 +1399,7 @@ void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::X
 				if(fraction>0)
 				  {
 					math::XYZPoint local = trans(Point(recHitTools.getPosition(rh_detid)));
-					if(local.Perp2() > 25) continue;
+                if(local.Perp2() > radius2) continue;
 
 					if(local.Perp2() < radius2 ) {
 
