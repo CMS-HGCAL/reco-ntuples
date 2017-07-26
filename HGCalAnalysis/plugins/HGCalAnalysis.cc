@@ -908,6 +908,9 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			layers.insert(layer);
 		}
 
+	//if(multiClusters[i].size()<3)  continue;
+	if(layers.size() < 3)  continue;
+
 		double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
 
 		multiclus_eta.push_back(multiClusters[i].eta());
@@ -922,26 +925,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		multiclus_firstLay.push_back(*layers.begin());
 		multiclus_lastLay.push_back(*layers.rbegin());
 		multiclus_NLay.push_back(layers.size());
-		if(multiClusters[i].size()<3)
-		  	{
-			multiclus_pcaAxisX.push_back(-2.);
-			multiclus_pcaAxisY.push_back(-2.);
-			multiclus_pcaAxisZ.push_back(-2.);
-			multiclus_pcaPosX.push_back(-2.);
-			multiclus_pcaPosY.push_back(-2.);
-			multiclus_pcaPosZ.push_back(-2.);
-			multiclus_eigenVal1.push_back(-2.);
-			multiclus_eigenVal2.push_back(-2.);
-			multiclus_eigenVal3.push_back(-2.);
-			multiclus_eigenSig1.push_back(-2.);
-			multiclus_eigenSig2.push_back(-2.);
-			multiclus_eigenSig3.push_back(-2.);
-			multiclus_siguu.push_back(-2.);
-			multiclus_sigvv.push_back(-2.);
-            multiclus_sigpp.push_back(-2.);
-            multiclus_sigee.push_back(-2.);
-			continue;
-		  }
+
 		pca_->MakePrincipals();
 		const TVectorD means = *(pca_->GetMeanValues());
 		const TMatrixD eigens = *(pca_->GetEigenVectors());
