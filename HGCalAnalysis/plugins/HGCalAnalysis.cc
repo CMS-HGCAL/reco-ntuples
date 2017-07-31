@@ -96,6 +96,7 @@ private:
 // ---------parameters ----------------------------
     bool readOfficialReco;
     bool readCaloParticles;
+    bool storePCAvariables;
     double layerClusterPtThreshold;
     double propagationPtThreshold;
     std::string detector;
@@ -301,6 +302,7 @@ HGCalAnalysis::HGCalAnalysis() {
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
     readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
     readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
+    storePCAvariables(iConfig.getParameter<bool>("storePCAvariables")),
     layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
     propagationPtThreshold(iConfig.getUntrackedParameter<double>("propagationPtThreshold",3.0)),
     detector(iConfig.getParameter<std::string >("detector")),
@@ -424,26 +426,28 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
     t->Branch("multiclus_slopeY", &multiclus_slopeY);
     t->Branch("multiclus_cluster2d", &multiclus_cluster2d);
     t->Branch("multiclus_cl2dSeed", &multiclus_cl2dSeed);
-    t->Branch("multiclus_pcaAxisX", &multiclus_pcaAxisX);
-    t->Branch("multiclus_pcaAxisY", &multiclus_pcaAxisY);
-    t->Branch("multiclus_pcaAxisZ", &multiclus_pcaAxisZ);
-    t->Branch("multiclus_pcaPosX", &multiclus_pcaPosX);
-    t->Branch("multiclus_pcaPosY", &multiclus_pcaPosY);
-    t->Branch("multiclus_pcaPosZ", &multiclus_pcaPosZ);
-    t->Branch("multiclus_eigenVal1", &multiclus_eigenVal1);
-    t->Branch("multiclus_eigenVal2", &multiclus_eigenVal2);
-    t->Branch("multiclus_eigenVal3", &multiclus_eigenVal3);
-    t->Branch("multiclus_eigenSig1", &multiclus_eigenSig1);
-    t->Branch("multiclus_eigenSig2", &multiclus_eigenSig2);
-    t->Branch("multiclus_eigenSig3", &multiclus_eigenSig3);
-    t->Branch("multiclus_siguu", &multiclus_siguu);
-    t->Branch("multiclus_sigvv", &multiclus_sigvv);
-    t->Branch("multiclus_sigpp", &multiclus_sigpp);
-    t->Branch("multiclus_sigee", &multiclus_sigee);
     t->Branch("multiclus_firstLay",&multiclus_firstLay);
     t->Branch("multiclus_lastLay",&multiclus_lastLay);
     t->Branch("multiclus_NLay",&multiclus_NLay);
 
+    if(storePCAvariables) {
+	t->Branch("multiclus_pcaAxisX", &multiclus_pcaAxisX);
+	t->Branch("multiclus_pcaAxisY", &multiclus_pcaAxisY);
+	t->Branch("multiclus_pcaAxisZ", &multiclus_pcaAxisZ);
+	t->Branch("multiclus_pcaPosX", &multiclus_pcaPosX);
+	t->Branch("multiclus_pcaPosY", &multiclus_pcaPosY);
+	t->Branch("multiclus_pcaPosZ", &multiclus_pcaPosZ);
+	t->Branch("multiclus_eigenVal1", &multiclus_eigenVal1);
+	t->Branch("multiclus_eigenVal2", &multiclus_eigenVal2);
+	t->Branch("multiclus_eigenVal3", &multiclus_eigenVal3);
+	t->Branch("multiclus_eigenSig1", &multiclus_eigenSig1);
+	t->Branch("multiclus_eigenSig2", &multiclus_eigenSig2);
+	t->Branch("multiclus_eigenSig3", &multiclus_eigenSig3);
+	t->Branch("multiclus_siguu", &multiclus_siguu);
+	t->Branch("multiclus_sigvv", &multiclus_sigvv);
+	t->Branch("multiclus_sigpp", &multiclus_sigpp);
+	t->Branch("multiclus_sigee", &multiclus_sigee);
+    }
 
     ////////////////////
     // sim clusters
@@ -923,37 +927,40 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
         multiclus_lastLay.push_back(*layers.rbegin());
         multiclus_NLay.push_back(layers.size());
 
-        pca_->MakePrincipals();
-        const TVectorD means = *(pca_->GetMeanValues());
-        const TMatrixD eigens = *(pca_->GetEigenVectors());
-        const TVectorD eigenVals = *(pca_->GetEigenValues());
-        const TVectorD sigmas = *(pca_->GetSigmas());
-        math::XYZPoint barycenter(means[0],means[1],means[2]);
-        math::XYZVector axis(eigens(0,0),eigens(1,0),eigens(2,0));
-        if( axis.z()*barycenter.z() < 0.0 ) {
-            axis = math::XYZVector(-eigens(0,0),-eigens(1,0),-eigens(2,0));
-        }
-        float sigu,sigv;
-	float sigp,sige;
-        float radius=5.;
+	if(storePCAvariables){
+	    pca_->MakePrincipals();
+	    const TVectorD means = *(pca_->GetMeanValues());
+	    const TMatrixD eigens = *(pca_->GetEigenVectors());
+	    const TVectorD eigenVals = *(pca_->GetEigenValues());
+	    const TVectorD sigmas = *(pca_->GetSigmas());
+	    math::XYZPoint barycenter(means[0],means[1],means[2]);
+	    math::XYZVector axis(eigens(0,0),eigens(1,0),eigens(2,0));
+	    if( axis.z()*barycenter.z() < 0.0 ) {
+		axis = math::XYZVector(-eigens(0,0),-eigens(1,0),-eigens(2,0));
+	    }
+	    float sigu,sigv;
+	    float sigp,sige;
+	    float radius=5.; // radius of cylinder to select rechits
 
-        computeWidth(multiClusters[i],barycenter,axis,sigu,sigv,sigp,sige,radius);
-        multiclus_siguu.push_back(sigu);
-        multiclus_sigvv.push_back(sigv);
-        multiclus_sigpp.push_back(sigp);
-        multiclus_sigee.push_back(sige);
-        multiclus_pcaAxisX.push_back(axis.x());
-        multiclus_pcaAxisY.push_back(axis.y());
-        multiclus_pcaAxisZ.push_back(axis.z());
-        multiclus_pcaPosX.push_back(barycenter.x());
-        multiclus_pcaPosY.push_back(barycenter.y());
-        multiclus_pcaPosZ.push_back(barycenter.z());
-        multiclus_eigenVal1.push_back(eigenVals(0));
-        multiclus_eigenVal2.push_back(eigenVals(1));
-        multiclus_eigenVal3.push_back(eigenVals(2));
-        multiclus_eigenSig1.push_back(sigmas(0));
-        multiclus_eigenSig2.push_back(sigmas(1));
-        multiclus_eigenSig3.push_back(sigmas(2));
+	    computeWidth(multiClusters[i],barycenter,axis,sigu,sigv,sigp,sige,radius);
+
+	    multiclus_siguu.push_back(sigu);
+	    multiclus_sigvv.push_back(sigv);
+	    multiclus_sigpp.push_back(sigp);
+	    multiclus_sigee.push_back(sige);
+	    multiclus_pcaAxisX.push_back(axis.x());
+	    multiclus_pcaAxisY.push_back(axis.y());
+	    multiclus_pcaAxisZ.push_back(axis.z());
+	    multiclus_pcaPosX.push_back(barycenter.x());
+	    multiclus_pcaPosY.push_back(barycenter.y());
+	    multiclus_pcaPosZ.push_back(barycenter.z());
+	    multiclus_eigenVal1.push_back(eigenVals(0));
+	    multiclus_eigenVal2.push_back(eigenVals(1));
+	    multiclus_eigenVal3.push_back(eigenVals(2));
+	    multiclus_eigenSig1.push_back(sigmas(0));
+	    multiclus_eigenSig2.push_back(sigmas(1));
+	    multiclus_eigenSig3.push_back(sigmas(2));
+	}
     }
 
     // Fills the additional 2d layers
@@ -1242,26 +1249,28 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster>& layerClus
         const HGCRecHit *hit = hitmap[rh_detid];
         ncoreHit += int(fraction);
 
-        double thickness = (DetId::Forward == DetId(rh_detid).det()) ? recHitTools.getSiThickness(rh_detid) : -1 ;
-        double mip=dEdXWeights[layer]*0.001; // convert in GeV
-        if (thickness > 99. && thickness < 101)
-            mip *= invThicknessCorrection[0];
-        else if (thickness > 199 && thickness <201)
-            mip *= invThicknessCorrection[1];
-        else if (thickness > 299 && thickness <301)
-            mip *= invThicknessCorrection[2];
-        //              std::cout << " layer " << layer << " thickness " << thickness << " mip " << mip << std::endl;
+	if(storePCAvariables){
+	    double thickness = (DetId::Forward == DetId(rh_detid).det()) ? recHitTools.getSiThickness(rh_detid) : -1 ;
+	    double mip=dEdXWeights[layer]*0.001; // convert in GeV
+	    if (thickness > 99. && thickness < 101)
+		mip *= invThicknessCorrection[0];
+	    else if (thickness > 199 && thickness <201)
+		mip *= invThicknessCorrection[1];
+	    else if (thickness > 299 && thickness <301)
+		mip *= invThicknessCorrection[2];
+	    //              std::cout << " layer " << layer << " thickness " << thickness << " mip " << mip << std::endl;
 
-        if(multiClusterIndex>=0 and fraction>0 && mip > 0) {
-            pcavars[0] = recHitTools.getPosition(rh_detid).x();
-            pcavars[1] = recHitTools.getPosition(rh_detid).y();
-            pcavars[2] = recHitTools.getPosition(rh_detid).z();
-//                std::cout << pcavars[0] << " " << pcavars[1] << " " << pcavars[2] << std::endl;
-//                std::cout << " Multiplicity " << int(hit->energy()/mip) <<std::endl;
-            if(pcavars[2]!=0)
-                for (int i=0; i<int(hit->energy()/mip); ++i)
-                    pca_->AddRow(pcavars);
-        }
+	    if(multiClusterIndex>=0 and fraction>0 && mip > 0) {
+		pcavars[0] = recHitTools.getPosition(rh_detid).x();
+		pcavars[1] = recHitTools.getPosition(rh_detid).y();
+		pcavars[2] = recHitTools.getPosition(rh_detid).z();
+		//                std::cout << pcavars[0] << " " << pcavars[1] << " " << pcavars[2] << std::endl;
+		//                std::cout << " Multiplicity " << int(hit->energy()/mip) <<std::endl;
+		if(pcavars[2]!=0)
+		    for (int i=0; i<int(hit->energy()/mip); ++i)
+			pca_->AddRow(pcavars);
+	    }
+	}
 
 
         if (fillRecHits) {

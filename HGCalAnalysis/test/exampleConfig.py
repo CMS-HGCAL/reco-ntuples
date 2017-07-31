@@ -30,6 +30,7 @@ process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              rawRecHits = cms.bool(True),
                              readOfficialReco = cms.bool(True),
                              readCaloParticles = cms.bool(False),
+                             storePCAvariables = cms.bool(False),
                              dEdXWeights = dEdX,
                              layerClusterPtThreshold = cms.double(-1),  # All LayerCluster belonging to a multicluster are saved; this Pt threshold applied to the others
                              TestParticleFilter = ParticleFilterBlock.ParticleFilter
