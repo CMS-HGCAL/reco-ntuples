@@ -908,9 +908,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			layers.insert(layer);
 		}
 
-	//if(multiClusters[i].size()<3)  continue;
-	if(layers.size() < 3)  continue;
-
 		double pt = multiClusters[i].energy() / cosh(multiClusters[i].eta());
 
 		multiclus_eta.push_back(multiClusters[i].eta());
