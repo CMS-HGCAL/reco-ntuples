@@ -97,6 +97,7 @@ void computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
 bool readOfficialReco;
 bool readCaloParticles;
 bool storePCAvariables;
+bool recomputePCA;
 double layerClusterPtThreshold;
 double propagationPtThreshold;
 std::string detector;
@@ -302,7 +303,8 @@ HGCalAnalysis::HGCalAnalysis() {
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
 	readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
-    storePCAvariables(iConfig.getParameter<bool>("storePCAvariables")),
+	storePCAvariables(iConfig.getParameter<bool>("storePCAvariables")),
+	recomputePCA(iConfig.getParameter<bool>("recomputePCA")),
 	layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
 	propagationPtThreshold(iConfig.getUntrackedParameter<double>("propagationPtThreshold",3.0)),
 	detector(iConfig.getParameter<std::string >("detector")),
@@ -1361,7 +1363,7 @@ void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const 
 
 void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
                                  math::XYZVector& axis, float & sigu, float &sigv, float & sigp, float &sige, float radius)  {
-		bool recomputePCA=false;
+    //bool recomputePCA=false;
 		sigu = 0.;
 		sigv = 0.;
 		sigp = 0.;
