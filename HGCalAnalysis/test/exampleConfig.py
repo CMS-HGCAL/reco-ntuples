@@ -10,11 +10,10 @@ process.load('Configuration.EventContent.EventContent_cff')
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
 process.load('RecoLocalCalo.HGCalRecProducers.HGCalLocalRecoSequence_cff')
-
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
-
 from FastSimulation.Event.ParticleFilter_cfi import *
+from RecoLocalCalo.HGCalRecProducers.HGCalRecHit_cfi import dEdX_weights as dEdX
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
@@ -31,6 +30,9 @@ process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              rawRecHits = cms.bool(True),
                              readOfficialReco = cms.bool(True),
                              readCaloParticles = cms.bool(False),
+                             storePCAvariables = cms.bool(False),
+                             recomputePCA = cms.bool(False),
+                             dEdXWeights = dEdX,
                              layerClusterPtThreshold = cms.double(-1),  # All LayerCluster belonging to a multicluster are saved; this Pt threshold applied to the others
                              TestParticleFilter = ParticleFilterBlock.ParticleFilter
 )
@@ -46,12 +48,12 @@ process.TFileService = cms.Service("TFileService",
 reRunClustering = True
 
 if reRunClustering:
-    # process.hgcalLayerClusters.minClusters = cms.uint32(0)
-    # process.hgcalLayerClusters.realSpaceCone = cms.bool(True)
-    # process.hgcalLayerClusters.multiclusterRadius = cms.double(2.)  # in cm if realSpaceCone is true
-    # process.hgcalLayerClusters.dependSensor = cms.bool(True)
-    # process.hgcalLayerClusters.ecut = cms.double(3.)  # multiple of sigma noise if dependSensor is true
-    # process.hgcalLayerClusters.kappa = cms.double(9.)  # multiple of sigma noise if dependSensor is true
+    #process.hgcalLayerClusters.minClusters = cms.uint32(0)
+    #process.hgcalLayerClusters.realSpaceCone = cms.bool(True)
+    #process.hgcalLayerClusters.multiclusterRadius = cms.double(2.)  # in cm if realSpaceCone is true
+    #process.hgcalLayerClusters.dependSensor = cms.bool(True)
+    #process.hgcalLayerClusters.ecut = cms.double(3.)  # multiple of sigma noise if dependSensor is true
+    #process.hgcalLayerClusters.kappa = cms.double(9.)  # multiple of sigma noise if dependSensor is true
     #process.hgcalLayerClusters.deltac = cms.vdouble(2.,3.,5.) #specify delta c for each subdetector separately
     process.p = cms.Path(process.hgcalLayerClusters+process.ana)
 else:

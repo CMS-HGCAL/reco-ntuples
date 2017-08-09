@@ -11,6 +11,7 @@
 <use   name="SimDataFormats/TrackingAnalysis"/>
 <use   name="CommonTools/UtilAlgos"/>
 <use   name="FastSimulation/Event"/>
+<use   name="FastSimulation/CaloGeometryTools"/>
 <use   name="TrackPropagation/RungeKutta"/>
 <use   name="MagneticField/Engine"/>
 <use   name="TrackingTools/Records"/>
