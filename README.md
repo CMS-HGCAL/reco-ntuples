@@ -6,8 +6,8 @@ Ntuple content definitions can be found at [Definitions.md](Definitions.md).
 This version is based on >= CMSSW_9_2_1, which contains https://github.com/cms-sw/cmssw/pull/18236
 
 ```
-cmsrel CMSSW_9_2_1
-cd CMSSW_9_2_1/src
+cmsrel CMSSW_9_3_0_pre3
+cd CMSSW_9_3_0_pre3/src
 cmsenv
 git clone git@github.com:CMS-HGCAL/reco-ntuples.git RecoNtuples
 cd RecoNtuples
