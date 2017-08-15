@@ -89,6 +89,7 @@ double layerClusterPtThreshold;
 double propagationPtThreshold;
 std::string detector;
 bool rawRecHits;
+bool readGen;
 
 // ----------member data ---------------------------
 
@@ -106,6 +107,7 @@ edm::EDGetTokenT<std::vector<SimTrack> > _simTracks;
 edm::EDGetTokenT<std::vector<SimVertex> > _simVertices;
 edm::EDGetTokenT<edm::HepMCProduct> _hev;
 edm::EDGetTokenT<std::vector<reco::Track> > _tracks;
+edm::EDGetTokenT<std::vector<reco::GenParticle> > _genParticles;
 
 TTree                     *t;
 
@@ -137,6 +139,17 @@ std::vector<bool> genpart_fromBeamPipe;
 std::vector<std::vector<float> > genpart_posx;
 std::vector<std::vector<float> > genpart_posy;
 std::vector<std::vector<float> > genpart_posz;
+
+////////////////////
+// GenParticles
+//
+std::vector<float> gen_eta;
+std::vector<float> gen_phi;
+std::vector<float> gen_pt;
+std::vector<float> gen_energy;
+std::vector<int> gen_pdgid;
+std::vector<int> gen_status;
+
 
 ////////////////////
 // RecHits
@@ -270,6 +283,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	propagationPtThreshold(iConfig.getUntrackedParameter<double>("propagationPtThreshold",3.0)),
 	detector(iConfig.getParameter<std::string >("detector")),
 	rawRecHits(iConfig.getParameter<bool>("rawRecHits")),
+	readGen(iConfig.getParameter<bool>("readGenParticles")),
 	particleFilter(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter"))
 {
 	// now do what ever initialization is needed
@@ -302,6 +316,9 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	if (readCaloParticles) {
 		_caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
 	}
+  if (readGen) {
+    _genParticles = consumes<std::vector<reco::GenParticle> >(edm::InputTag("genParticles"));
+  }
 	_pfClusters = consumes<std::vector<reco::PFCluster> >(edm::InputTag("particleFlowClusterHGCal"));
 	_multiClusters = consumes<std::vector<reco::HGCalMultiCluster> >(edm::InputTag("hgcalLayerClusters"));
 	_tracks = consumes<std::vector<reco::Track> >(edm::InputTag("generalTracks"));
@@ -337,7 +354,17 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("genpart_posy", &genpart_posy);
 	t->Branch("genpart_posz", &genpart_posz);
 
-	////////////////////
+
+  //////////////////
+	// reco::GenParticles
+	t->Branch("gen_eta", &gen_eta);
+	t->Branch("gen_phi", &gen_phi);
+	t->Branch("gen_pt", &gen_pt);
+	t->Branch("gen_energy", &gen_energy);
+	t->Branch("gen_pdgid", &gen_pdgid);
+	t->Branch("gen_status", &gen_status);
+
+  //////////////////
 	// RecHits
 	// associated to layer clusters
 	t->Branch("rechit_eta", &rechit_eta);
@@ -473,6 +500,16 @@ void HGCalAnalysis::clearVariables() {
 	genpart_posx.clear();
 	genpart_posy.clear();
 	genpart_posz.clear();
+
+	////////////////////
+	// reco::GenParticles
+	//
+  gen_eta.clear();
+	gen_phi.clear();
+	gen_pt.clear();
+	gen_energy.clear();
+	gen_pdgid.clear();
+	gen_status.clear();
 
 	////////////////////
 	// RecHits
@@ -643,6 +680,12 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	vz = primaryVertex->position().z()/10.;
 
 	// std::cout << "start the fun" << std::endl;
+
+  Handle<std::vector<reco::GenParticle>> genParticlesHandle;
+  if (readGen) {
+    iEvent.getByToken(_genParticles, genParticlesHandle);
+  }
+
 
 	if( !readOfficialReco) {
 		unsigned int npart = part->size();
@@ -1040,6 +1083,15 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		track_posz.push_back(zp);
 
 	} // end loop over tracks
+
+  for (std::vector<reco::GenParticle>::const_iterator it_p = genParticlesHandle->begin(); it_p != genParticlesHandle->end(); ++it_p) {
+    gen_eta.push_back(it_p->eta());
+    gen_phi.push_back(it_p->phi());
+    gen_pt.push_back(it_p->pt());
+    gen_energy.push_back(it_p->energy());
+    gen_pdgid.push_back(it_p->pdgId());
+    gen_status.push_back(it_p->status());
+  }
 
 	ev_event = iEvent.id().event();
 	ev_lumi = iEvent.id().luminosityBlock();
