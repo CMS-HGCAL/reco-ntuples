@@ -4,7 +4,7 @@ from Configuration.StandardSequences.Eras import eras
 process = cms.Process("Demo")
 process.load('Configuration.StandardSequences.Services_cff')
 process.load('SimGeneral.HepPDTESSource.pythiapdt_cfi')
-process.load('Configuration.Geometry.GeometryExtended2023D13Reco_cff')
+process.load('Configuration.Geometry.GeometryExtended2023D17Reco_cff')
 process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load("FWCore.MessageService.MessageLogger_cfi")
@@ -20,7 +20,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-        '/store/relval/CMSSW_9_1_0_pre3/RelValTTbar_14TeV/GEN-SIM-RECO/PU25ns_91X_upgrade2023_realistic_v1_D13PU200-v2/10000/04A22787-5E31-E711-A724-0025905A6090.root'
+        '/store/relval/CMSSW_9_3_0_pre3/RelValTTbar_14TeV/GEN-SIM-RECO/PU25ns_92X_upgrade2023_realistic_v2_D17PU200-v2/00000/005D7BA7-A97E-E711-A489-E0071B74AD00.root'
     ),
     duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
 )
