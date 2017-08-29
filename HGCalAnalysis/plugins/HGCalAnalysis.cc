@@ -243,6 +243,10 @@ std::vector<float> pfcluster_eta;
 std::vector<float> pfcluster_phi;
 std::vector<float> pfcluster_pt;
 std::vector<float> pfcluster_energy;
+std::vector<float> pfcluster_correctedEnergy;
+std::vector<std::vector<uint32_t> > pfcluster_hits;
+std::vector<std::vector<float> > pfcluster_fractions;
+
 
 
 ////////////////////
@@ -473,6 +477,9 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("pfcluster_phi", &pfcluster_phi);
 	t->Branch("pfcluster_pt", &pfcluster_pt);
 	t->Branch("pfcluster_energy", &pfcluster_energy);
+	t->Branch("pfcluster_correctedEnergy", &pfcluster_correctedEnergy);
+	t->Branch("pfcluster_hits", &pfcluster_hits);
+	t->Branch("pfcluster_fractions", &pfcluster_fractions);
 
 
 	////////////////////
@@ -630,6 +637,9 @@ void HGCalAnalysis::clearVariables() {
 	pfcluster_phi.clear();
 	pfcluster_pt.clear();
 	pfcluster_energy.clear();
+	pfcluster_correctedEnergy.clear();
+	pfcluster_hits.clear();
+	pfcluster_fractions.clear();
 
 
 	////////////////////
@@ -1059,11 +1069,21 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 	// loop over pfClusters
 	for (std::vector<reco::PFCluster>::const_iterator it_pfClus = pfClusters.begin(); it_pfClus != pfClusters.end(); ++it_pfClus) {
+		const std::vector<std::pair<DetId,float> > hits_and_fractions = it_pfClus->hitsAndFractions();
+		std::vector<uint32_t> hits;
+		std::vector<float> fractions;
+		for (std::vector<std::pair<DetId,float> >::const_iterator it_haf = hits_and_fractions.begin(); it_haf != hits_and_fractions.end(); ++it_haf) {
+			hits.push_back(it_haf->first);
+			fractions.push_back(it_haf->second);
+		}
 
-	  	pfcluster_eta.push_back(it_pfClus->eta());
-	  	pfcluster_phi.push_back(it_pfClus->phi());
-	  	pfcluster_pt.push_back(it_pfClus->pt());
-	  	pfcluster_energy.push_back(it_pfClus->energy());
+		pfcluster_eta.push_back(it_pfClus->eta());
+		pfcluster_phi.push_back(it_pfClus->phi());
+		pfcluster_pt.push_back(it_pfClus->pt());
+		pfcluster_energy.push_back(it_pfClus->energy());
+		pfcluster_correctedEnergy.push_back(it_pfClus->correctedEnergy());
+		pfcluster_hits.push_back(hits);
+		pfcluster_fractions.push_back(fractions);
 
 	} // end loop over pfClusters
 
