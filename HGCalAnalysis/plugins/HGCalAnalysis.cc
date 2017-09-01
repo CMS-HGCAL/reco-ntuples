@@ -96,6 +96,8 @@ void computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
 // ---------parameters ----------------------------
 bool readOfficialReco;
 bool readCaloParticles;
+bool storeGenParticleOrigin;
+bool storeGenParticleExtrapolation;
 bool storePCAvariables;
 bool recomputePCA;
 double layerClusterPtThreshold;
@@ -142,6 +144,12 @@ std::vector<float> genpart_energy;
 std::vector<float> genpart_dvx;
 std::vector<float> genpart_dvy;
 std::vector<float> genpart_dvz;
+std::vector<float> genpart_ovx;
+std::vector<float> genpart_ovy;
+std::vector<float> genpart_ovz;
+std::vector<float> genpart_exx;
+std::vector<float> genpart_exy;
+std::vector<float> genpart_exphi;
 std::vector<float> genpart_fbrem;
 std::vector<int> genpart_pid;
 std::vector<int> genpart_gen;
@@ -307,6 +315,8 @@ HGCalAnalysis::HGCalAnalysis() {
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
 	readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
+    storeGenParticleOrigin(iConfig.getParameter<bool>("storeGenParticleOrigin")),
+    storeGenParticleExtrapolation(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
 	storePCAvariables(iConfig.getParameter<bool>("storePCAvariables")),
 	recomputePCA(iConfig.getParameter<bool>("recomputePCA")),
 	layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
@@ -374,6 +384,18 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("genpart_dvx", &genpart_dvx);
 	t->Branch("genpart_dvy", &genpart_dvy);
 	t->Branch("genpart_dvz", &genpart_dvz);
+
+	if(storeGenParticleOrigin){
+    t->Branch("genpart_ovx", &genpart_ovx);
+    t->Branch("genpart_ovy", &genpart_ovy);
+    t->Branch("genpart_ovz", &genpart_ovz);
+	}
+	if(storeGenParticleExtrapolation){
+	t->Branch("genpart_exphi", &genpart_exphi);
+    t->Branch("genpart_exx", &genpart_exx);
+    t->Branch("genpart_exy", &genpart_exy);
+	}
+
 	t->Branch("genpart_fbrem", &genpart_fbrem);
 	t->Branch("genpart_pid", &genpart_pid);
 	t->Branch("genpart_gen", &genpart_gen);
@@ -536,6 +558,12 @@ void HGCalAnalysis::clearVariables() {
 	genpart_dvx.clear();
 	genpart_dvy.clear();
 	genpart_dvz.clear();
+    genpart_ovx.clear();
+    genpart_ovy.clear();
+    genpart_ovz.clear();
+    genpart_exx.clear();
+    genpart_exy.clear();
+    genpart_exphi.clear();
 	genpart_fbrem.clear();
 	genpart_pid.clear();
 	genpart_gen.clear();
@@ -791,14 +819,16 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 			int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
 			double fbrem=-1;
+
+			RawParticle part(myTrack.momentum(),myTrack.vertex().position());
+			part.setID(myTrack.type());
+			BaseParticlePropagator myPropag(part,160,layerPositions[0],3.8);
+			myPropag.propagate();
+			unsigned result=myPropag.getSuccess();
+			auto firstPropagation=myPropag;
+
 			if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
 			{
-
-				RawParticle part(myTrack.momentum(),myTrack.vertex().position());
-				part.setID(myTrack.type());
-				BaseParticlePropagator myPropag(part,160,layerPositions[0],3.8);
-				myPropag.propagate();
-				unsigned result=myPropag.getSuccess();
 				vtx=myPropag.propagated().vertex();
 				unsigned nlayers=40;
 
@@ -832,6 +862,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 		  	{
 				vtx = myTrack.endVertex().position();
 			}
+			auto orig_vtx=myTrack.vertex().position();
 
 			// fill branches
 			genpart_eta.push_back(myTrack.momentum().eta());
@@ -841,6 +872,15 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 			genpart_dvx.push_back(vtx.x());
 			genpart_dvy.push_back(vtx.y());
 			genpart_dvz.push_back(vtx.z());
+
+            genpart_ovx.push_back(orig_vtx.x());
+            genpart_ovy.push_back(orig_vtx.y());
+            genpart_ovz.push_back(orig_vtx.z());
+
+            genpart_exx.push_back(firstPropagation.propagated().vertex().x());
+            genpart_exy.push_back(firstPropagation.propagated().vertex().y());
+            genpart_exphi.push_back(firstPropagation.propagated().phi());
+
 			genpart_fbrem.push_back(fbrem);
 			genpart_pid.push_back(myTrack.type());
 			genpart_gen.push_back(myTrack.genpartIndex());
