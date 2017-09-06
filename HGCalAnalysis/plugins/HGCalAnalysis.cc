@@ -61,6 +61,100 @@
 
 #include "TTree.h"
 
+namespace HGCal_helpers{
+
+class  coordinates{
+public:
+    coordinates():x(0),y(0),z(0),eta(100),phi(0){}
+    float x,y,z,eta,phi;
+    inline math::XYZTLorentzVectorD toVector(){
+        return math::XYZTLorentzVectorD(x,y,z,0);
+    }
+};
+class simpleTrackPropagator{
+public:
+    simpleTrackPropagator(MagneticField const* f):field_(f),prod_( field_, alongMomentum, 5.e-5),absz_target_(0){
+        ROOT::Math::SMatrixIdentity id;
+        AlgebraicSymMatrix55 C(id);
+        C *= 0.001;
+        err_=CurvilinearTrajectoryError(C);
+    }
+    void setPropagationTargetZ(const float& z);
+
+    bool propagate(const double px,const double py,const double pz,
+            const double x,const double y,const double z, const float charge,
+            coordinates& coords)const;
+
+    bool propagate(const math::XYZTLorentzVectorD& momentum,
+            const math::XYZTLorentzVectorD& position,
+            const float charge,
+            coordinates& coords)const;
+
+
+private:
+    simpleTrackPropagator():field_(0),prod_( field_, alongMomentum, 5.e-5),absz_target_(0){}
+    const RKPropagatorInS & RKProp()const{return prod_.propagator;}
+    Plane::PlanePointer targetPlaneForward_,targetPlaneBackward_;
+    MagneticField const* field_;
+    CurvilinearTrajectoryError err_;
+    defaultRKPropagator::Product prod_;
+    float absz_target_;
+};
+
+void simpleTrackPropagator::setPropagationTargetZ(const float& z){
+    targetPlaneForward_ = Plane::build( Plane::PositionType (0,0,std::abs(z)), Plane::RotationType());
+    targetPlaneBackward_ = Plane::build( Plane::PositionType (0,0,-std::abs(z)), Plane::RotationType());
+    absz_target_=std::abs(z);
+}
+bool simpleTrackPropagator::propagate(const double px,const double py,const double pz,
+        const double x,const double y,const double z, const float charge,coordinates& output)const{
+
+    output=coordinates();
+
+    typedef TrajectoryStateOnSurface TSOS;
+    GlobalPoint startingPosition(x,y,z);
+    GlobalVector startingMomentum(px,py,pz);
+    Plane::PlanePointer startingPlane = Plane::build(
+            Plane::PositionType (x,y,z), Plane::RotationType () );
+    TSOS startingStateP(GlobalTrajectoryParameters(
+            startingPosition,startingMomentum, charge, field_), err_, *startingPlane);
+
+
+
+    TSOS trackStateP;
+    if(pz>0){
+        trackStateP = RKProp().propagate( startingStateP, *targetPlaneForward_);
+    }
+    else{
+        trackStateP = RKProp().propagate( startingStateP, *targetPlaneBackward_);
+    }
+    if (trackStateP.isValid()){
+        output.x=trackStateP.globalPosition().x();
+        output.y=trackStateP.globalPosition().y();
+        output.z=trackStateP.globalPosition().z();
+        output.phi=trackStateP.globalPosition().phi();
+        output.eta=trackStateP.globalPosition().eta();
+        return true;
+    }
+    return false;
+}
+
+bool simpleTrackPropagator::propagate(const math::XYZTLorentzVectorD& momentum,
+        const math::XYZTLorentzVectorD& position,
+        const float charge,coordinates& output)const{
+    return propagate(momentum.px(),momentum.py(),momentum.pz(),
+            position.x(),position.y(),position.z(),charge,output);
+}
+
+}//HGCal_helpers
+
+
+
+
+
+
+
+
 class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns,edm::one::SharedResources>  {
 public:
 //
@@ -96,7 +190,7 @@ void computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
 // ---------parameters ----------------------------
 bool readOfficialReco;
 bool readCaloParticles;
-bool storeGenParticleOrigin;
+bool storeMoreGenInfo;
 bool storeGenParticleExtrapolation;
 bool storePCAvariables;
 bool recomputePCA;
@@ -149,7 +243,9 @@ std::vector<float> genpart_ovy;
 std::vector<float> genpart_ovz;
 std::vector<float> genpart_exx;
 std::vector<float> genpart_exy;
+std::vector<int> genpart_mother;
 std::vector<float> genpart_exphi;
+std::vector<float> genpart_exeta;
 std::vector<float> genpart_fbrem;
 std::vector<int> genpart_pid;
 std::vector<int> genpart_gen;
@@ -315,7 +411,7 @@ HGCalAnalysis::HGCalAnalysis() {
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
 	readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
-    storeGenParticleOrigin(iConfig.getParameter<bool>("storeGenParticleOrigin")),
+    storeMoreGenInfo(iConfig.getParameter<bool>("storeGenParticleOrigin")),
     storeGenParticleExtrapolation(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
 	storePCAvariables(iConfig.getParameter<bool>("storePCAvariables")),
 	recomputePCA(iConfig.getParameter<bool>("recomputePCA")),
@@ -385,13 +481,15 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("genpart_dvy", &genpart_dvy);
 	t->Branch("genpart_dvz", &genpart_dvz);
 
-	if(storeGenParticleOrigin){
+	if(storeMoreGenInfo){
     t->Branch("genpart_ovx", &genpart_ovx);
     t->Branch("genpart_ovy", &genpart_ovy);
     t->Branch("genpart_ovz", &genpart_ovz);
+    t->Branch("genpart_mother",&genpart_mother);
 	}
 	if(storeGenParticleExtrapolation){
 	t->Branch("genpart_exphi", &genpart_exphi);
+    t->Branch("genpart_exeta", &genpart_exeta);
     t->Branch("genpart_exx", &genpart_exx);
     t->Branch("genpart_exy", &genpart_exy);
 	}
@@ -563,7 +661,9 @@ void HGCalAnalysis::clearVariables() {
     genpart_ovz.clear();
     genpart_exx.clear();
     genpart_exy.clear();
+    genpart_mother.clear();
     genpart_exphi.clear();
+    genpart_exeta.clear();
 	genpart_fbrem.clear();
 	genpart_pid.clear();
 	genpart_gen.clear();
@@ -714,25 +814,20 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 	iEvent.getByToken(_clusters,clusterHandle);
 	Handle<std::vector<TrackingVertex> > vtxHandle;
-	Handle<std::vector<TrackingParticle> > partHandle;
-	const std::vector<TrackingParticle> * part;
 
 	Handle<edm::HepMCProduct> hevH;
 	Handle<std::vector<SimTrack> >simTracksHandle;
 	Handle<std::vector<SimVertex> >simVerticesHandle;
 
 	iEvent.getByToken(_hev,hevH);
-	if(!readOfficialReco) {
-		iEvent.getByToken(_vtx,vtxHandle);
-		iEvent.getByToken(_part,partHandle);
-		part = &(*partHandle);
-	} else // use SimTracks and HepMCProduct
-	{
-		iEvent.getByToken(_simTracks,simTracksHandle);
-		iEvent.getByToken(_simVertices,simVerticesHandle);
-		mySimEvent->fill(*simTracksHandle,*simVerticesHandle);
 
-	}
+	iEvent.getByToken(_simTracks,simTracksHandle);
+	iEvent.getByToken(_simVertices,simVerticesHandle);
+	mySimEvent->fill(*simTracksHandle,*simVerticesHandle);
+
+
+	//SimTrack test;
+	//test.
 
 
 	Handle<std::vector<SimCluster> > simClusterHandle;
@@ -765,133 +860,123 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	vz = primaryVertex->position().z()/10.;
 
 	// std::cout << "start the fun" << std::endl;
+	HGCal_helpers::simpleTrackPropagator toHGCalPropagator(aField);
+	toHGCalPropagator.setPropagationTargetZ(layerPositions[0]);
 
-	if( !readOfficialReco) {
-		unsigned int npart = part->size();
-		for(unsigned int i=0; i<npart; ++i) {
+	std::vector<FSimTrack*> allselectedgentracks;
+	unsigned int npart = mySimEvent->nTracks();
+	for (unsigned int i=0; i<npart; ++i) {
+	    std::vector<float> xp,yp,zp;
+	    FSimTrack &myTrack(mySimEvent->track(i));
+	    math::XYZTLorentzVectorD vtx(0,0,0,0);
 
-			// event=0 is the hard scattering (all PU have event()>=1)
-			// bunchCrossing == 0 intime, buncCrossing!=0 offtime, standard generation has [-12,+3]
-			if((*part)[i].eventId().event() ==0 and (*part)[i].eventId().bunchCrossing()==0) {
+	    int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
+	    double fbrem=-1;
 
-				// look for the generator particle, set to -1 for Geant produced paticles
-				int tp_genpart=-1;
-				if (!(*part)[i].genParticles().empty()) tp_genpart=(*part)[i].genParticle_begin().key();
 
-				// default values for decay position is outside detector, i.e. ~stable
-				int reachedEE=1;
-				double fbrem=-1;
-				float dvx=999.;
-				float dvy=999.;
-				float dvz=999.;
-				if((*part)[i].decayVertices().size()>=1) { //they can be delta rays, in this case you have multiple decay verices
-					dvx=(*part)[i].decayVertices()[0]->position().x();
-					dvy=(*part)[i].decayVertices()[0]->position().y();
-					dvz=(*part)[i].decayVertices()[0]->position().z();
-					if ((*part)[i].decayVertices()[0]->inVolume()) reachedEE=0; //if it decays inside the tracker volume
-				}
+	    if(std::abs(myTrack.vertex().position().z())>=layerPositions[0]) continue;
 
-				// look for origin of particle inside the beampipe so that we can assess if a track can potentially give a reco::Track
-				float r_origin=(*part)[i].parentVertex()->position().Pt();
-				bool fromBeamPipe=true;
-				if (r_origin>2.0) fromBeamPipe=false;
-				genpart_eta.push_back((*part)[i].eta());
-				genpart_phi.push_back((*part)[i].phi());
-				genpart_pt.push_back((*part)[i].pt());
-				genpart_energy.push_back((*part)[i].energy());
-				genpart_dvx.push_back(dvx);
-				genpart_dvy.push_back(dvy);
-				genpart_dvz.push_back(dvz);
-				genpart_fbrem.push_back(fbrem);
-				genpart_pid.push_back((*part)[i].pdgId());
-				genpart_gen.push_back(tp_genpart);
-				genpart_reachedEE.push_back(reachedEE);
-				genpart_fromBeamPipe.push_back(fromBeamPipe);
-			}
-		}
-	} else
-	{
-		unsigned int npart = mySimEvent->nTracks();
-		for (unsigned int i=0; i<npart; ++i) {
-			std::vector<float> xp,yp,zp;
-			FSimTrack &myTrack(mySimEvent->track(i));
-			math::XYZTLorentzVectorD vtx(0,0,0,0);
-
-			int reachedEE=0; // compute the extrapolations for the particles reaching EE and for the gen particles
-			double fbrem=-1;
-
+	    /*
 			RawParticle part(myTrack.momentum(),myTrack.vertex().position());
 			part.setID(myTrack.type());
 			BaseParticlePropagator myPropag(part,160,layerPositions[0],3.8);
 			myPropag.propagate();
 			unsigned result=myPropag.getSuccess();
 			auto firstPropagation=myPropag;
+	     */
+	    unsigned nlayers=40;
+	    if (myTrack.noEndVertex())// || myTrack.genpartIndex()>=0)
+	    {
+	        HGCal_helpers::coordinates propcoords;
+	        bool reachesHGCal=toHGCalPropagator.propagate(myTrack.momentum(),
+	                myTrack.vertex().position(),
+	                myTrack.charge(),propcoords);
+	        vtx=propcoords.toVector();
 
-			if (myTrack.noEndVertex() || myTrack.genpartIndex()>=0)
-			{
-				vtx=myPropag.propagated().vertex();
-				unsigned nlayers=40;
+	        if (reachesHGCal && vtx.Rho()<160 && vtx.Rho()> 25) {
+	            reachedEE=2;
+	            double dpt=0;
 
-				if (myTrack.noEndVertex()) {
-					if (result==2 && vtx.Rho()> 25) {
-						reachedEE=2;
-						double dpt=0;
+	            for(int i=0; i<myTrack.nDaughters(); ++i)
+	                dpt+=myTrack.daughter(i).momentum().pt();
+	            if(abs(myTrack.type())==11)
+	                fbrem = dpt/myTrack.momentum().pt();
+	        }
+	        else if (reachesHGCal&& vtx.Rho()>160) reachedEE=1;
 
-						for(int i=0; i<myTrack.nDaughters(); ++i)
-						  	dpt+=myTrack.daughter(i).momentum().pt();
-						if(abs(myTrack.type())==11)
-						  	fbrem = dpt/myTrack.momentum().pt();
-					}
-					if (result==1) reachedEE=1;
-				}
-				else // in that case we propagate only to the first layers
-				  	nlayers=1;
 
-				for(unsigned il=0; il<nlayers; ++il) {
-					myPropag.setPropagationConditions(140,layerPositions[il],false);
-					if(il>0) // set PID 22 for a straight-line extrapolation after the 1st layer
-						myPropag.setID(22);
-					myPropag.propagate();
-					RawParticle propParticle=myPropag.propagated();
-					xp.push_back(propParticle.vertex().x());
-					yp.push_back(propParticle.vertex().y());
-					zp.push_back(propParticle.vertex().z());
-				}
-			}
-			else
-		  	{
-				vtx = myTrack.endVertex().position();
-			}
-			auto orig_vtx=myTrack.vertex().position();
+	        HGCal_helpers::simpleTrackPropagator indiv_particleProp(aField);
+	        for(unsigned il=0; il<nlayers; ++il) {
 
-			// fill branches
-			genpart_eta.push_back(myTrack.momentum().eta());
-			genpart_phi.push_back(myTrack.momentum().phi());
-			genpart_pt.push_back(myTrack.momentum().pt());
-			genpart_energy.push_back(myTrack.momentum().energy());
-			genpart_dvx.push_back(vtx.x());
-			genpart_dvy.push_back(vtx.y());
-			genpart_dvz.push_back(vtx.z());
+	            float charge=myTrack.charge();
+	            if(il)
+	                charge=0;
+	            indiv_particleProp.setPropagationTargetZ(layerPositions[il]);
+	            HGCal_helpers::coordinates propCoords;
+	            indiv_particleProp.propagate(myTrack.momentum(),
+	                    myTrack.vertex().position(),charge,propCoords);
 
-            genpart_ovx.push_back(orig_vtx.x());
-            genpart_ovy.push_back(orig_vtx.y());
-            genpart_ovz.push_back(orig_vtx.z());
+	            xp.push_back(propCoords.x);
+	            yp.push_back(propCoords.y);
+	            zp.push_back(propCoords.z);
+	        }
+	    }
+	    else
+	    {
+	        vtx = myTrack.endVertex().position();
+	    }
+	    auto orig_vtx=myTrack.vertex().position();
 
-            genpart_exx.push_back(firstPropagation.propagated().vertex().x());
-            genpart_exy.push_back(firstPropagation.propagated().vertex().y());
-            genpart_exphi.push_back(firstPropagation.propagated().phi());
+	    allselectedgentracks.push_back(&mySimEvent->track(i));
+	    // fill branches
+	    genpart_eta.push_back(myTrack.momentum().eta());
+	    genpart_phi.push_back(myTrack.momentum().phi());
+	    genpart_pt.push_back(myTrack.momentum().pt());
+	    genpart_energy.push_back(myTrack.momentum().energy());
+	    genpart_dvx.push_back(vtx.x());
+	    genpart_dvy.push_back(vtx.y());
+	    genpart_dvz.push_back(vtx.z());
 
-			genpart_fbrem.push_back(fbrem);
-			genpart_pid.push_back(myTrack.type());
-			genpart_gen.push_back(myTrack.genpartIndex());
-			genpart_reachedEE.push_back(reachedEE);
-			genpart_fromBeamPipe.push_back(true);
+	    genpart_ovx.push_back(orig_vtx.x());
+	    genpart_ovy.push_back(orig_vtx.y());
+	    genpart_ovz.push_back(orig_vtx.z());
 
-			genpart_posx.push_back(xp);
-			genpart_posy.push_back(yp);
-			genpart_posz.push_back(zp);
-		}
+	    HGCal_helpers::coordinates hitsHGCal;
+	    toHGCalPropagator.propagate(myTrack.momentum(),
+	            orig_vtx,
+	            myTrack.charge(),hitsHGCal );
+
+
+	    genpart_exphi.push_back(hitsHGCal.phi);
+	    genpart_exeta.push_back(hitsHGCal.eta);
+	    genpart_exx.push_back(hitsHGCal.x);
+	    genpart_exy.push_back(hitsHGCal.y);
+
+	    genpart_fbrem.push_back(fbrem);
+	    genpart_pid.push_back(myTrack.type());
+	    genpart_gen.push_back(myTrack.genpartIndex());
+	    genpart_reachedEE.push_back(reachedEE);
+	    genpart_fromBeamPipe.push_back(true);
+
+	    genpart_posx.push_back(xp);
+	    genpart_posy.push_back(yp);
+	    genpart_posz.push_back(zp);
 	}
+
+	//associate gen particles to mothers
+	genpart_mother.resize(genpart_posz.size(),-1);
+	for(size_t i=0;i<allselectedgentracks.size();i++){
+	    auto track=allselectedgentracks.at(i);
+	    if(track->noMother())continue;
+	    for(size_t j=0;j<allselectedgentracks.size();j++){
+	        if(i==j)continue;
+	        if(&track->mother() == allselectedgentracks.at(j)){
+	            genpart_mother.at(i)=j;
+	        }
+	    }
+	}
+
+
 	//make a map detid-rechit
 	hitmap.clear();
 	switch(algo) {
