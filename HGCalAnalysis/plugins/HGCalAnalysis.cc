@@ -1384,108 +1384,108 @@ void HGCalAnalysis::fillRecHit(const DetId& detid, const float& fraction, const 
 void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
                                  math::XYZVector& axis, float & sigu, float &sigv, float & sigp, float &sige, float radius)  {
     //bool recomputePCA=false;
-		sigu = 0.;
-		sigv = 0.;
-		sigp = 0.;
-		sige = 0.;
-		float radius2 = radius*radius;
+    sigu = 0.;
+    sigv = 0.;
+    sigp = 0.;
+    sige = 0.;
+    float radius2 = radius*radius;
 
-		pca_.reset(new TPrincipal(3,"D"));
-		Double_t pcavars[3];
+    pca_.reset(new TPrincipal(3,"D"));
+    Double_t pcavars[3];
 
-		//  std::cout << " Barycenter " << bar << " " << axis << std::endl;
-		// First build the rotation matrix
-		math::XYZVector mainAxis(axis);
-		mainAxis.unit();
-		math::XYZVector phiAxis(bar.x(),bar.y(),0);
-		math::XYZVector udir(mainAxis.Cross(phiAxis));
-		udir = udir.unit();
+    //  std::cout << " Barycenter " << bar << " " << axis << std::endl;
+    // First build the rotation matrix
+    math::XYZVector mainAxis(axis);
+    mainAxis.unit();
+    math::XYZVector phiAxis(bar.x(),bar.y(),0);
+    math::XYZVector udir(mainAxis.Cross(phiAxis));
+    udir = udir.unit();
     // std::cout << " udir "<< udir.unit() << std::endl;
-		Transform3D trans(Point(bar),Point(bar+mainAxis),Point(bar+udir),
-						  Point(0,0,0), Point(0.,0.,1.), Point(1.,0.,0.));
+    Transform3D trans(Point(bar),Point(bar+mainAxis),Point(bar+udir),
+		      Point(0,0,0), Point(0.,0.,1.), Point(1.,0.,0.));
     // Point testPoint(bar+udir);
     // Point localTestPoint=trans(testPoint);
     // std::cout << " bar " << bar << std::endl;
     // std::cout << " udir "<< udir << std::endl;
     // std::cout << "TestPoint g " << testPoint << std::endl;
     // std::cout << "TestPoint l " << localTestPoint << std::endl;
-		//  unsigned nhit=0;
-		float etot=0;
-		for(reco::HGCalMultiCluster::component_iterator it = cluster.begin();
-			it!=cluster.end(); it++) {
-			const std::vector< std::pair<DetId, float> > &hf = (*it)->hitsAndFractions();
-			unsigned hfsize=hf.size();
-			if(hfsize==0) continue;
-			unsigned int layer = recHitTools.getLayerWithOffset(hf[0].first);
-			if(layer>28) continue;
+    //  unsigned nhit=0;
+    float etot=0;
+    for(reco::HGCalMultiCluster::component_iterator it = cluster.begin();
+	it!=cluster.end(); it++) {
+	const std::vector< std::pair<DetId, float> > &hf = (*it)->hitsAndFractions();
+	unsigned hfsize=hf.size();
+	if(hfsize==0) continue;
+	unsigned int layer = recHitTools.getLayerWithOffset(hf[0].first);
+	if(layer>28) continue;
 
 
-			for(unsigned int j = 0; j < hfsize; j++) {
-				const DetId rh_detid = hf[j].first;
-				const HGCRecHit *hit = hitmap[rh_detid];
-				float fraction = hf[j].second;
-				if(fraction>0)
-				  {
-					math::XYZPoint local = trans(Point(recHitTools.getPosition(rh_detid)));
-					if(local.Perp2() > radius2) continue;
+	for(unsigned int j = 0; j < hfsize; j++) {
+	    const DetId rh_detid = hf[j].first;
+	    const HGCRecHit *hit = hitmap[rh_detid];
+	    float fraction = hf[j].second;
+	    if(fraction>0)
+	    {
+		math::XYZPoint local = trans(Point(recHitTools.getPosition(rh_detid)));
+		if(local.Perp2() > radius2) continue;
 
-					if(local.Perp2() < radius2 ) {
+		if(local.Perp2() < radius2 ) {
 
-					    math::XYZPoint rh_point = Point(recHitTools.getPosition(rh_detid));
-					    sige += (rh_point.eta() - cluster.eta())*(rh_point.eta() - cluster.eta()) * hit->energy();
-					    sigp += deltaPhi(rh_point.phi(),cluster.phi())*deltaPhi(rh_point.phi(),cluster.phi()) * hit->energy();
+		    math::XYZPoint rh_point = Point(recHitTools.getPosition(rh_detid));
+		    sige += (rh_point.eta() - cluster.eta())*(rh_point.eta() - cluster.eta()) * hit->energy();
+		    sigp += deltaPhi(rh_point.phi(),cluster.phi())*deltaPhi(rh_point.phi(),cluster.phi()) * hit->energy();
 
-					    sigu += local.x()*local.x()*hit->energy();
-					    sigv += local.y()*local.y()*hit->energy();
-					    etot += hit->energy();
-					  //	    ++nhit;
-					}
-					if (!recomputePCA) continue;
-					double thickness = (DetId::Forward == DetId(rh_detid).det()) ? recHitTools.getSiThickness(rh_detid) : -1 ;
-					double mip=dEdXWeights[layer]*0.001; // convert in GeV
-					if (thickness > 99. && thickness < 101)
-						mip *= invThicknessCorrection[0];
-					else if (thickness > 199 && thickness <201)
-						mip *= invThicknessCorrection[1];
-					else if (thickness > 299 && thickness <301)
-						mip *= invThicknessCorrection[2];
-
-					// std::cout << " layer " << layer << " thickness " << thickness << " mip " << mip << std::endl;
-
-					pcavars[0] = recHitTools.getPosition(rh_detid).x();
-					pcavars[1] = recHitTools.getPosition(rh_detid).y();
-					pcavars[2] = recHitTools.getPosition(rh_detid).z();
-					if(pcavars[2]!=0){
-						for (int i=0; i<int(hit->energy()/mip); ++i)
-							pca_->AddRow(pcavars);
-					}
-				  }
-			}
+		    sigu += local.x()*local.x()*hit->energy();
+		    sigv += local.y()*local.y()*hit->energy();
+		    etot += hit->energy();
+		    //	    ++nhit;
 		}
-		if(etot > 0.) {
-		    sigu=sigu/etot;
-		    sigv=sigv/etot;
-		    sigp=sigp/etot;
-		    sige=sige/etot;
+		if (!recomputePCA) continue;
+		double thickness = (DetId::Forward == DetId(rh_detid).det()) ? recHitTools.getSiThickness(rh_detid) : -1 ;
+		double mip=dEdXWeights[layer]*0.001; // convert in GeV
+		if (thickness > 99. && thickness < 101)
+		    mip *= invThicknessCorrection[0];
+		else if (thickness > 199 && thickness <201)
+		    mip *= invThicknessCorrection[1];
+		else if (thickness > 299 && thickness <301)
+		    mip *= invThicknessCorrection[2];
 
+		// std::cout << " layer " << layer << " thickness " << thickness << " mip " << mip << std::endl;
+
+		pcavars[0] = recHitTools.getPosition(rh_detid).x();
+		pcavars[1] = recHitTools.getPosition(rh_detid).y();
+		pcavars[2] = recHitTools.getPosition(rh_detid).z();
+		if(pcavars[2]!=0){
+		    for (int i=0; i<int(hit->energy()/mip); ++i)
+			pca_->AddRow(pcavars);
 		}
-		sigu=std::sqrt(sigu);
-		sigv=std::sqrt(sigv);
-		sigp=std::sqrt(sigp);
-		sige=std::sqrt(sige);
-
-		if (recomputePCA) {
-			pca_->MakePrincipals();
-
-			const TMatrixD& eigens = *(pca_->GetEigenVectors());
-			math::XYZVector newaxis(eigens(0,0),eigens(1,0),eigens(2,0));
-			if( newaxis.z()*bar.z() < 0.0 ) {
-			  newaxis = math::XYZVector(-eigens(0,0),-eigens(1,0),-eigens(2,0));
-			}
-			axis = newaxis;
-			const TVectorD means = *(pca_->GetMeanValues());
-			bar = math::XYZPoint(means[0],means[1],means[2]);
+	    }
 	}
+    }
+    if(etot > 0.) {
+	sigu=sigu/etot;
+	sigv=sigv/etot;
+	sigp=sigp/etot;
+	sige=sige/etot;
+
+    }
+    sigu=std::sqrt(sigu);
+    sigv=std::sqrt(sigv);
+    sigp=std::sqrt(sigp);
+    sige=std::sqrt(sige);
+
+    if (recomputePCA) {
+	pca_->MakePrincipals();
+
+	const TMatrixD& eigens = *(pca_->GetEigenVectors());
+	math::XYZVector newaxis(eigens(0,0),eigens(1,0),eigens(2,0));
+	if( newaxis.z()*bar.z() < 0.0 ) {
+	    newaxis = math::XYZVector(-eigens(0,0),-eigens(1,0),-eigens(2,0));
+	}
+	axis = newaxis;
+	const TVectorD means = *(pca_->GetMeanValues());
+	bar = math::XYZPoint(means[0],means[1],means[2]);
+    }
 }
 
 
