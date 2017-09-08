@@ -188,7 +188,7 @@ void computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
 
 
 // ---------parameters ----------------------------
-bool readOfficialReco;
+//bool readOfficialReco;
 bool readCaloParticles;
 bool storeMoreGenInfo;
 bool storeGenParticleExtrapolation;
@@ -409,7 +409,7 @@ HGCalAnalysis::HGCalAnalysis() {
 }
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
-	readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
+	//readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
 	readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
     storeMoreGenInfo(iConfig.getParameter<bool>("storeGenParticleOrigin")),
     storeGenParticleExtrapolation(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
@@ -443,14 +443,10 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	_clusters = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
 	_simClusters = consumes<std::vector<SimCluster> >(edm::InputTag("mix","MergedCaloTruth"));
 	_hev = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared") );
-	if(!readOfficialReco) {
-		_vtx = consumes<std::vector<TrackingVertex> >(edm::InputTag("mix","MergedTrackTruth"));
-		_part = consumes<std::vector<TrackingParticle> >(edm::InputTag("mix","MergedTrackTruth"));
-	}
-	else {
-		_simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
-		_simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));
-	}
+
+	_simTracks = consumes<std::vector<SimTrack> >(edm::InputTag("g4SimHits"));
+	_simVertices = consumes<std::vector<SimVertex> >(edm::InputTag("g4SimHits"));
+
 	if (readCaloParticles) {
 	  	_caloParticles = consumes<std::vector<CaloParticle> >(edm::InputTag("mix","MergedCaloTruth"));
 	}
