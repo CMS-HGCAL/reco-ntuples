@@ -102,6 +102,7 @@ bool readOfficialReco;
 bool readCaloParticles;
 bool storePCAvariables;
 bool recomputePCA;
+bool includeHaloPCA;
 double layerClusterPtThreshold;
 double propagationPtThreshold;
 std::string detector;
@@ -316,7 +317,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
 	storePCAvariables(iConfig.getParameter<bool>("storePCAvariables")),
 	recomputePCA(iConfig.getParameter<bool>("recomputePCA")),
-	recomputePCA(iConfig.getParameter<bool>("includeHaloPCA")),
+	includeHaloPCA(iConfig.getParameter<bool>("includeHaloPCA")),
 	layerClusterPtThreshold(iConfig.getParameter<double>("layerClusterPtThreshold")),
 	propagationPtThreshold(iConfig.getUntrackedParameter<double>("propagationPtThreshold",3.0)),
 	detector(iConfig.getParameter<std::string >("detector")),
