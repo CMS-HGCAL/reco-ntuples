@@ -188,7 +188,6 @@ void computeWidth(const reco::HGCalMultiCluster& cluster, math::XYZPoint & bar,
 
 
 // ---------parameters ----------------------------
-//bool readOfficialReco;
 bool readCaloParticles;
 bool storeMoreGenInfo;
 bool storeGenParticleExtrapolation;
@@ -409,7 +408,6 @@ HGCalAnalysis::HGCalAnalysis() {
 }
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
-	//readOfficialReco(iConfig.getParameter<bool>("readOfficialReco")),
 	readCaloParticles(iConfig.getParameter<bool>("readCaloParticles")),
     storeMoreGenInfo(iConfig.getParameter<bool>("storeGenParticleOrigin")),
     storeGenParticleExtrapolation(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
@@ -822,9 +820,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	mySimEvent->fill(*simTracksHandle,*simVerticesHandle);
 
 
-	//SimTrack test;
-	//test.
-
 
 	Handle<std::vector<SimCluster> > simClusterHandle;
 	Handle<std::vector<reco::PFCluster> > pfClusterHandle;
@@ -872,14 +867,6 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
 	    if(std::abs(myTrack.vertex().position().z())>=layerPositions[0]) continue;
 
-	    /*
-			RawParticle part(myTrack.momentum(),myTrack.vertex().position());
-			part.setID(myTrack.type());
-			BaseParticlePropagator myPropag(part,160,layerPositions[0],3.8);
-			myPropag.propagate();
-			unsigned result=myPropag.getSuccess();
-			auto firstPropagation=myPropag;
-	     */
 	    unsigned nlayers=40;
 	    if (myTrack.noEndVertex())// || myTrack.genpartIndex()>=0)
 	    {
