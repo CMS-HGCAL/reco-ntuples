@@ -46,7 +46,7 @@ process.TFileService = cms.Service("TFileService",
 
                                    )
 
-reRunClustering = False
+reRunClustering = True
 
 if reRunClustering:
     #process.hgcalLayerClusters.minClusters = cms.uint32(0)
