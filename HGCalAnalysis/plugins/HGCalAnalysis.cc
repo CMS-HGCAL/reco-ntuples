@@ -147,6 +147,7 @@ std::vector<float> gen_eta;
 std::vector<float> gen_phi;
 std::vector<float> gen_pt;
 std::vector<float> gen_energy;
+std::vector<int> gen_charge;
 std::vector<int> gen_pdgid;
 std::vector<int> gen_status;
 
@@ -361,6 +362,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("gen_phi", &gen_phi);
 	t->Branch("gen_pt", &gen_pt);
 	t->Branch("gen_energy", &gen_energy);
+	t->Branch("gen_charge", &gen_charge);
 	t->Branch("gen_pdgid", &gen_pdgid);
 	t->Branch("gen_status", &gen_status);
 
@@ -508,6 +510,7 @@ void HGCalAnalysis::clearVariables() {
 	gen_phi.clear();
 	gen_pt.clear();
 	gen_energy.clear();
+	gen_charge.clear();
 	gen_pdgid.clear();
 	gen_status.clear();
 
@@ -1089,6 +1092,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     gen_phi.push_back(it_p->phi());
     gen_pt.push_back(it_p->pt());
     gen_energy.push_back(it_p->energy());
+    gen_charge.push_back(it_p->charge());
     gen_pdgid.push_back(it_p->pdgId());
     gen_status.push_back(it_p->status());
   }
