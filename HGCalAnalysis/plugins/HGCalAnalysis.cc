@@ -949,12 +949,18 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	//associate gen particles to mothers
 	genpart_mother.resize(genpart_posz.size(),-1);
 	for(size_t i=0;i<allselectedgentracks.size();i++){
-	    auto track=allselectedgentracks.at(i);
-	    if(track->noMother())continue;
-	    for(size_t j=0;j<allselectedgentracks.size();j++){
-	        if(i==j)continue;
-	        if(&track->mother() == allselectedgentracks.at(j)){
-	            genpart_mother.at(i)=j;
+	    const auto tracki=allselectedgentracks.at(i);
+
+	    for(size_t j=i+1;j<allselectedgentracks.size();j++){
+	        const auto trackj=allselectedgentracks.at(j);
+
+	        if(! tracki->noMother()){
+	            if(& tracki->mother() == trackj)
+	                genpart_mother.at(i)=j;
+	        }
+	        if(! trackj->noMother()){
+	            if(& trackj->mother() == tracki)
+	                genpart_mother.at(j)=i;
 	        }
 	    }
 	}
