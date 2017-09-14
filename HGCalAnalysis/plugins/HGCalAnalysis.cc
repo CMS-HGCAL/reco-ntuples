@@ -163,6 +163,7 @@ std::vector<float> gen_energy;
 std::vector<int> gen_charge;
 std::vector<int> gen_pdgid;
 std::vector<int> gen_status;
+std::vector<std::vector<int>> gen_daughters;
 
 
 ////////////////////
@@ -411,6 +412,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet& iConfig) :
 	t->Branch("gen_charge", &gen_charge);
 	t->Branch("gen_pdgid", &gen_pdgid);
 	t->Branch("gen_status", &gen_status);
+	t->Branch("gen_daughters", &gen_daughters);
 
   //////////////////
 	// RecHits
@@ -584,7 +586,7 @@ void HGCalAnalysis::clearVariables() {
 	gen_charge.clear();
 	gen_pdgid.clear();
 	gen_status.clear();
-
+  gen_daughters.clear();
 	////////////////////
 	// RecHits
 	// associated to layer clusters
@@ -1240,6 +1242,11 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
     gen_charge.push_back(it_p->charge());
     gen_pdgid.push_back(it_p->pdgId());
     gen_status.push_back(it_p->status());
+    std::vector<int> daughters(it_p->daughterRefVector().size(), 0);
+    for (unsigned j = 0; j < it_p->daughterRefVector().size(); ++j) {
+      daughters[j] = static_cast<int>(it_p->daughterRefVector().at(j).key());
+    }
+    gen_daughters.push_back(daughters);
   }
 
 	ev_event = iEvent.id().event();
