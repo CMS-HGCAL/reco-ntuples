@@ -906,9 +906,7 @@ HGCalAnalysis::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 	        HGCal_helpers::simpleTrackPropagator indiv_particleProp(aField);
 	        for(unsigned il=0; il<nlayers; ++il) {
 
-	            float charge=myTrack.charge();
-	            if(il)
-	                charge=0;
+	            const float charge=myTrack.charge();
 	            indiv_particleProp.setPropagationTargetZ(layerPositions[il]);
 	            HGCal_helpers::coordinates propCoords;
 	            indiv_particleProp.propagate(myTrack.momentum(),
