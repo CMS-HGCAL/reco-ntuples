@@ -184,6 +184,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   bool storeMoreGenInfo_;
   bool storeGenParticleExtrapolation_;
   bool storePCAvariables_;
+  bool storeElectrons_;
   bool recomputePCA_;
   bool includeHaloPCA_;
   double layerClusterPtThreshold_;
@@ -461,6 +462,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
+      storeElectrons_(iConfig.getParameter<bool>("storeElectrons")),
       recomputePCA_(iConfig.getParameter<bool>("recomputePCA")),
       includeHaloPCA_(iConfig.getParameter<bool>("includeHaloPCA")),
       layerClusterPtThreshold_(iConfig.getParameter<double>("layerClusterPtThreshold")),
@@ -669,46 +671,48 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   ////////////////////
   // Ecal Driven Gsf Electrons From MultiClusters
   //
-  t_->Branch("ecalDrivenGsfele_charge", &ecalDrivenGsfele_charge_);
-  t_->Branch("ecalDrivenGsfele_eta", &ecalDrivenGsfele_eta_);
-  t_->Branch("ecalDrivenGsfele_phi", &ecalDrivenGsfele_phi_);
-  t_->Branch("ecalDrivenGsfele_pt", &ecalDrivenGsfele_pt_);
-  t_->Branch("ecalDrivenGsfele_scpos", &ecalDrivenGsfele_scpos_);
-  t_->Branch("ecalDrivenGsfele_sceta", &ecalDrivenGsfele_sceta_);
-  t_->Branch("ecalDrivenGsfele_scphi", &ecalDrivenGsfele_scphi_);
-  t_->Branch("ecalDrivenGsfele_seedlayer", &ecalDrivenGsfele_seedlayer_);
-  t_->Branch("ecalDrivenGsfele_seedpos", &ecalDrivenGsfele_seedpos_);
-  t_->Branch("ecalDrivenGsfele_seedeta", &ecalDrivenGsfele_seedeta_);
-  t_->Branch("ecalDrivenGsfele_seedphi", &ecalDrivenGsfele_seedphi_);
-  t_->Branch("ecalDrivenGsfele_seedenergy", &ecalDrivenGsfele_seedenergy_);
-  t_->Branch("ecalDrivenGsfele_energy", &ecalDrivenGsfele_energy_);
-  t_->Branch("ecalDrivenGsfele_energyEE", &ecalDrivenGsfele_energyEE_);
-  t_->Branch("ecalDrivenGsfele_energyFH", &ecalDrivenGsfele_energyFH_);
-  t_->Branch("ecalDrivenGsfele_energyBH", &ecalDrivenGsfele_energyBH_);
-  t_->Branch("ecalDrivenGsfele_isEB", &ecalDrivenGsfele_isEB_);
-  t_->Branch("ecalDrivenGsfele_hoe", &ecalDrivenGsfele_hoe_);
-  t_->Branch("ecalDrivenGsfele_numClinSC", &ecalDrivenGsfele_numClinSC_);
-  t_->Branch("ecalDrivenGsfele_track_dxy", &ecalDrivenGsfele_track_dxy_);
-  t_->Branch("ecalDrivenGsfele_track_dz", &ecalDrivenGsfele_track_dz_);
-  t_->Branch("ecalDrivenGsfele_track_simdxy", &ecalDrivenGsfele_track_simdxy_);
-  t_->Branch("ecalDrivenGsfele_track_simdz", &ecalDrivenGsfele_track_simdz_);
-  t_->Branch("ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx",
-             &ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_);
-  t_->Branch("ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx",
-             &ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_);
-  t_->Branch("ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo",
-             &ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo_);
-  t_->Branch("ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo",
-             &ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo_);
-  t_->Branch("ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo",
-             &ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo_);
-  t_->Branch("ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo",
-             &ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo_);
-  t_->Branch("ecalDrivenGsfele_eSuperClusterOverP", &ecalDrivenGsfele_eSuperClusterOverP_);
-  t_->Branch("ecalDrivenGsfele_eSeedClusterOverP", &ecalDrivenGsfele_eSeedClusterOverP_);
-  t_->Branch("ecalDrivenGsfele_eSeedClusterOverPout", &ecalDrivenGsfele_eSeedClusterOverPout_);
-  t_->Branch("ecalDrivenGsfele_eEleClusterOverPout", &ecalDrivenGsfele_eEleClusterOverPout_);
-  t_->Branch("ecalDrivenGsfele_pfClusterIndex", &ecalDrivenGsfele_pfClusterIndex_);
+  if (storeElectrons_) {
+    t_->Branch("ecalDrivenGsfele_charge", &ecalDrivenGsfele_charge_);
+    t_->Branch("ecalDrivenGsfele_eta", &ecalDrivenGsfele_eta_);
+    t_->Branch("ecalDrivenGsfele_phi", &ecalDrivenGsfele_phi_);
+    t_->Branch("ecalDrivenGsfele_pt", &ecalDrivenGsfele_pt_);
+    t_->Branch("ecalDrivenGsfele_scpos", &ecalDrivenGsfele_scpos_);
+    t_->Branch("ecalDrivenGsfele_sceta", &ecalDrivenGsfele_sceta_);
+    t_->Branch("ecalDrivenGsfele_scphi", &ecalDrivenGsfele_scphi_);
+    t_->Branch("ecalDrivenGsfele_seedlayer", &ecalDrivenGsfele_seedlayer_);
+    t_->Branch("ecalDrivenGsfele_seedpos", &ecalDrivenGsfele_seedpos_);
+    t_->Branch("ecalDrivenGsfele_seedeta", &ecalDrivenGsfele_seedeta_);
+    t_->Branch("ecalDrivenGsfele_seedphi", &ecalDrivenGsfele_seedphi_);
+    t_->Branch("ecalDrivenGsfele_seedenergy", &ecalDrivenGsfele_seedenergy_);
+    t_->Branch("ecalDrivenGsfele_energy", &ecalDrivenGsfele_energy_);
+    t_->Branch("ecalDrivenGsfele_energyEE", &ecalDrivenGsfele_energyEE_);
+    t_->Branch("ecalDrivenGsfele_energyFH", &ecalDrivenGsfele_energyFH_);
+    t_->Branch("ecalDrivenGsfele_energyBH", &ecalDrivenGsfele_energyBH_);
+    t_->Branch("ecalDrivenGsfele_isEB", &ecalDrivenGsfele_isEB_);
+    t_->Branch("ecalDrivenGsfele_hoe", &ecalDrivenGsfele_hoe_);
+    t_->Branch("ecalDrivenGsfele_numClinSC", &ecalDrivenGsfele_numClinSC_);
+    t_->Branch("ecalDrivenGsfele_track_dxy", &ecalDrivenGsfele_track_dxy_);
+    t_->Branch("ecalDrivenGsfele_track_dz", &ecalDrivenGsfele_track_dz_);
+    t_->Branch("ecalDrivenGsfele_track_simdxy", &ecalDrivenGsfele_track_simdxy_);
+    t_->Branch("ecalDrivenGsfele_track_simdz", &ecalDrivenGsfele_track_simdz_);
+    t_->Branch("ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx",
+               &ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_);
+    t_->Branch("ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx",
+               &ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_);
+    t_->Branch("ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo",
+               &ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo_);
+    t_->Branch("ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo",
+               &ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo_);
+    t_->Branch("ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo",
+               &ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo_);
+    t_->Branch("ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo",
+               &ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo_);
+    t_->Branch("ecalDrivenGsfele_eSuperClusterOverP", &ecalDrivenGsfele_eSuperClusterOverP_);
+    t_->Branch("ecalDrivenGsfele_eSeedClusterOverP", &ecalDrivenGsfele_eSeedClusterOverP_);
+    t_->Branch("ecalDrivenGsfele_eSeedClusterOverPout", &ecalDrivenGsfele_eSeedClusterOverPout_);
+    t_->Branch("ecalDrivenGsfele_eEleClusterOverPout", &ecalDrivenGsfele_eEleClusterOverPout_);
+    t_->Branch("ecalDrivenGsfele_pfClusterIndex", &ecalDrivenGsfele_pfClusterIndex_);
+  }
 
   ////////////////////
   // calo particles
@@ -1405,84 +1409,86 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   }  // end loop over pfClusters From MultiClusters
 
   // Loop over Ecal Driven Gsf Electrons From MultiClusters
-  for (auto const &ele : electrons) {
-    std::vector<uint32_t> pfclustersIndex;
-    auto const &sc = ele.superCluster();
-    float hoe = 0.;
-    float energyEE = 0.;
-    float energyFH = 0.;
-    float energyBH = 0.;
-    for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
-      if (DetId::Forward == (*cl)->seed().det()) {
-        if (false)
-          std::cout << "SuperCluster Key: " << sc.key() << " own CaloCluster Key: " << cl->key();
-        if (electrons_ValueMapClusters.contains(cl->id())) {
-          auto pfClusterKey = electrons_ValueMapClusters[*cl].key();
-          pfclustersIndex.push_back(pfClusterKey);
-          // Redefine HoE for the HGCAL case
-          energyEE += pfclusterFromMultiCl_energyEE_[pfClusterKey];
-          energyFH += pfclusterFromMultiCl_energyFH_[pfClusterKey];
-          energyBH += pfclusterFromMultiCl_energyBH_[pfClusterKey];
-          if (false) {
-            std::cout << " PFCluster key: " << electrons_ValueMapClusters[*cl].key() << std::endl;
-            std::cout << " PFCluster looks like: " << (*electrons_ValueMapClusters[*cl])
-                      << std::endl;
-            std::cout << " Own CaloCluster looks like: " << *(*cl) << std::endl;
-            std::cout << " CastToPFCluster looks like: "
-                      << *(dynamic_cast<const reco::PFCluster *>(&*electrons_ValueMapClusters[*cl]))
-                      << std::endl;
-            for (auto const &pfrh :
-                 dynamic_cast<const reco::PFCluster *>(&*electrons_ValueMapClusters[*cl])
-                     ->recHitFractions()) {
-              std::cout << " PFRecHit key: " << pfrh.recHitRef().key() << std::endl;
-              if (pfrh.recHitRef().isAvailable()) std::cout << pfrh << std::endl;
-            }
-          }  // end of DEBUG section
-          assert(pfClusterKey <= pfclusterFromMultiCl_eta_.size());
-        }
-        hoe = (energyFH + energyBH) / (energyEE + energyFH + energyBH);
-      }  // is within HGCAL
-    }    // End of loop over clusters within the SC
-    ecalDrivenGsfele_charge_.push_back(ele.charge());
-    ecalDrivenGsfele_eta_.push_back(ele.eta());
-    ecalDrivenGsfele_phi_.push_back(ele.phi());
-    ecalDrivenGsfele_pt_.push_back(ele.pt());
-    ecalDrivenGsfele_scpos_.push_back(ele.superCluster()->position());
-    ecalDrivenGsfele_sceta_.push_back(ele.superCluster()->eta());
-    ecalDrivenGsfele_scphi_.push_back(ele.superCluster()->phi());
-    ecalDrivenGsfele_seedlayer_.push_back(
-        recHitTools_.getLayerWithOffset(ele.superCluster()->seed()->seed()));
-    ecalDrivenGsfele_seedpos_.push_back(ele.superCluster()->seed()->position());
-    ecalDrivenGsfele_seedeta_.push_back(ele.superCluster()->seed()->eta());
-    ecalDrivenGsfele_seedphi_.push_back(ele.superCluster()->seed()->phi());
-    ecalDrivenGsfele_seedenergy_.push_back(ele.superCluster()->seed()->energy());
-    ecalDrivenGsfele_energy_.push_back(ele.energy());
-    ecalDrivenGsfele_energyEE_.push_back(energyEE);
-    ecalDrivenGsfele_energyFH_.push_back(energyFH);
-    ecalDrivenGsfele_energyBH_.push_back(energyBH);
-    ecalDrivenGsfele_isEB_.push_back(ele.isEB());
-    ecalDrivenGsfele_hoe_.push_back(hoe);
-    ecalDrivenGsfele_numClinSC_.push_back(sc->clusters().size());
-    ecalDrivenGsfele_track_dxy_.push_back(ele.gsfTrack()->dxy(vertices[0].position()));
-    ecalDrivenGsfele_track_dz_.push_back(ele.gsfTrack()->dz(vertices[0].position()));
-    ecalDrivenGsfele_track_simdxy_.push_back(ele.gsfTrack()->dxy(sim_pv));
-    ecalDrivenGsfele_track_simdz_.push_back(ele.gsfTrack()->dz(sim_pv));
-    ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_.push_back(
-        ele.deltaEtaSuperClusterTrackAtVtx());
-    ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_.push_back(
-        ele.deltaPhiSuperClusterTrackAtVtx());
-    ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo_.push_back(ele.deltaEtaEleClusterTrackAtCalo());
-    ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo_.push_back(ele.deltaPhiEleClusterTrackAtCalo());
-    ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo_.push_back(
-        ele.deltaEtaSeedClusterTrackAtCalo());
-    ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo_.push_back(
-        ele.deltaPhiSeedClusterTrackAtCalo());
-    ecalDrivenGsfele_eSuperClusterOverP_.push_back(ele.eSuperClusterOverP());
-    ecalDrivenGsfele_eSeedClusterOverP_.push_back(ele.eSeedClusterOverP());
-    ecalDrivenGsfele_eSeedClusterOverPout_.push_back(ele.eSeedClusterOverPout());
-    ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
-    ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
-  }  // End of loop over electrons
+  if (storeElectrons_) {
+    for (auto const &ele : electrons) {
+      std::vector<uint32_t> pfclustersIndex;
+      auto const &sc = ele.superCluster();
+      float hoe = 0.;
+      float energyEE = 0.;
+      float energyFH = 0.;
+      float energyBH = 0.;
+      for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
+        if (DetId::Forward == (*cl)->seed().det()) {
+          if (false)
+            std::cout << "SuperCluster Key: " << sc.key() << " own CaloCluster Key: " << cl->key();
+          if (electrons_ValueMapClusters.contains(cl->id())) {
+            auto pfClusterKey = electrons_ValueMapClusters[*cl].key();
+            pfclustersIndex.push_back(pfClusterKey);
+            // Redefine HoE for the HGCAL case
+            energyEE += pfclusterFromMultiCl_energyEE_[pfClusterKey];
+            energyFH += pfclusterFromMultiCl_energyFH_[pfClusterKey];
+            energyBH += pfclusterFromMultiCl_energyBH_[pfClusterKey];
+            if (false) {
+              std::cout << " PFCluster key: " << electrons_ValueMapClusters[*cl].key() << std::endl;
+              std::cout << " PFCluster looks like: " << (*electrons_ValueMapClusters[*cl])
+                        << std::endl;
+              std::cout << " Own CaloCluster looks like: " << *(*cl) << std::endl;
+              std::cout << " CastToPFCluster looks like: "
+                        << *(dynamic_cast<const reco::PFCluster *>(&*electrons_ValueMapClusters[*cl]))
+                        << std::endl;
+              for (auto const &pfrh :
+                   dynamic_cast<const reco::PFCluster *>(&*electrons_ValueMapClusters[*cl])
+                       ->recHitFractions()) {
+                std::cout << " PFRecHit key: " << pfrh.recHitRef().key() << std::endl;
+                if (pfrh.recHitRef().isAvailable()) std::cout << pfrh << std::endl;
+              }
+            }  // end of DEBUG section
+            assert(pfClusterKey <= pfclusterFromMultiCl_eta_.size());
+          }
+          hoe = (energyFH + energyBH) / (energyEE + energyFH + energyBH);
+        }  // is within HGCAL
+      }    // End of loop over clusters within the SC
+      ecalDrivenGsfele_charge_.push_back(ele.charge());
+      ecalDrivenGsfele_eta_.push_back(ele.eta());
+      ecalDrivenGsfele_phi_.push_back(ele.phi());
+      ecalDrivenGsfele_pt_.push_back(ele.pt());
+      ecalDrivenGsfele_scpos_.push_back(ele.superCluster()->position());
+      ecalDrivenGsfele_sceta_.push_back(ele.superCluster()->eta());
+      ecalDrivenGsfele_scphi_.push_back(ele.superCluster()->phi());
+      ecalDrivenGsfele_seedlayer_.push_back(
+          recHitTools_.getLayerWithOffset(ele.superCluster()->seed()->seed()));
+      ecalDrivenGsfele_seedpos_.push_back(ele.superCluster()->seed()->position());
+      ecalDrivenGsfele_seedeta_.push_back(ele.superCluster()->seed()->eta());
+      ecalDrivenGsfele_seedphi_.push_back(ele.superCluster()->seed()->phi());
+      ecalDrivenGsfele_seedenergy_.push_back(ele.superCluster()->seed()->energy());
+      ecalDrivenGsfele_energy_.push_back(ele.energy());
+      ecalDrivenGsfele_energyEE_.push_back(energyEE);
+      ecalDrivenGsfele_energyFH_.push_back(energyFH);
+      ecalDrivenGsfele_energyBH_.push_back(energyBH);
+      ecalDrivenGsfele_isEB_.push_back(ele.isEB());
+      ecalDrivenGsfele_hoe_.push_back(hoe);
+      ecalDrivenGsfele_numClinSC_.push_back(sc->clusters().size());
+      ecalDrivenGsfele_track_dxy_.push_back(ele.gsfTrack()->dxy(vertices[0].position()));
+      ecalDrivenGsfele_track_dz_.push_back(ele.gsfTrack()->dz(vertices[0].position()));
+      ecalDrivenGsfele_track_simdxy_.push_back(ele.gsfTrack()->dxy(sim_pv));
+      ecalDrivenGsfele_track_simdz_.push_back(ele.gsfTrack()->dz(sim_pv));
+      ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_.push_back(
+          ele.deltaEtaSuperClusterTrackAtVtx());
+      ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_.push_back(
+          ele.deltaPhiSuperClusterTrackAtVtx());
+      ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo_.push_back(ele.deltaEtaEleClusterTrackAtCalo());
+      ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo_.push_back(ele.deltaPhiEleClusterTrackAtCalo());
+      ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo_.push_back(
+          ele.deltaEtaSeedClusterTrackAtCalo());
+      ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo_.push_back(
+          ele.deltaPhiSeedClusterTrackAtCalo());
+      ecalDrivenGsfele_eSuperClusterOverP_.push_back(ele.eSuperClusterOverP());
+      ecalDrivenGsfele_eSeedClusterOverP_.push_back(ele.eSeedClusterOverP());
+      ecalDrivenGsfele_eSeedClusterOverPout_.push_back(ele.eSeedClusterOverPout());
+      ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
+      ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
+    }  // End of loop over electrons
+  }
 
   // loop over caloParticles
   if (readCaloParticles_) {
