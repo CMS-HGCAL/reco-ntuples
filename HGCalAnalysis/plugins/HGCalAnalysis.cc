@@ -473,7 +473,7 @@ HGCalAnalysis::HGCalAnalysis() { ; }
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
     : readCaloParticles_(iConfig.getParameter<bool>("readCaloParticles")),
-	    readGen_(iConfig.getParameter<bool>("readGenParticles")),
+      readGen_(iConfig.getParameter<bool>("readGenParticles")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
@@ -762,6 +762,7 @@ HGCalAnalysis::~HGCalAnalysis() {
 }
 
 //
+// member functions
 //
 void HGCalAnalysis::clearVariables() {
   ev_run_ = 0;
@@ -799,15 +800,15 @@ void HGCalAnalysis::clearVariables() {
   genpart_posz_.clear();
 	
   ////////////////////
-	// reco::GenParticles
-	//
+  // reco::GenParticles
+  //
   gen_eta_.clear();
-	gen_phi_.clear();
-	gen_pt_.clear();
-	gen_energy_.clear();
-	gen_charge_.clear();
-	gen_pdgid_.clear();
-	gen_status_.clear();
+  gen_phi_.clear();
+  gen_pt_.clear();
+  gen_energy_.clear();
+  gen_charge_.clear();
+  gen_pdgid_.clear();
+  gen_status_.clear();
   gen_daughters_.clear();
 
   ////////////////////
