@@ -174,10 +174,10 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
 
   void computeWidth(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
                     math::XYZVector &axis, float &sigu, float &sigv, float &sigp, float &sige,
-                    float &cyl_ene, float radius = 5, bool withHalo = false);
+                    float &cyl_ene, float radius = 3, bool withHalo = false);
 
   void doRecomputePCA(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
-                      math::XYZVector &axis, float radius = 5, bool withHalo = false);
+                      math::XYZVector &axis, float radius = 3, bool withHalo = false);
 
   // ---------parameters ----------------------------
   bool readCaloParticles_;
@@ -1221,7 +1221,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       float sigu, sigv;
       float sigp, sige;
       float cyl_ene, cyl_pt;
-      float radius = 5.;  // radius of cylinder to select rechits
+      float radius = 3.;  // radius of cylinder to select rechits
       bool withHalo = includeHaloPCA_;
 
       if (recomputePCA_) doRecomputePCA(multiClusters[i], barycenter, axis, radius, withHalo);
