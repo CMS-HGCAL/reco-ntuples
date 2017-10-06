@@ -15,6 +15,7 @@
 <use   name="TrackPropagation/RungeKutta"/>
 <use   name="MagneticField/Engine"/>
 <use   name="TrackingTools/Records"/>
+<use   name="EgammaTools/EgammaAnalysis"/>
 <use   name="hepmc"/>
 <use   name="heppdt"/>
 <library   file="*.cc" name="RecoNtuplesHGCalAnalysisPlugins">
