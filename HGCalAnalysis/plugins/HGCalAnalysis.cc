@@ -573,6 +573,18 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   t_->Branch("genpart_posy", &genpart_posy_);
   t_->Branch("genpart_posz", &genpart_posz_);
 
+
+  if (readGen_) {
+    t_->Branch("gen_eta", &gen_eta_);
+    t_->Branch("gen_phi", &gen_phi_);
+    t_->Branch("gen_pt", &gen_pt_);
+    t_->Branch("gen_energy", &gen_energy_);
+    t_->Branch("gen_charge", &gen_charge_);
+    t_->Branch("gen_pdgid", &gen_pdgid_);
+    t_->Branch("gen_status", &gen_status_);
+    t_->Branch("gen_daughters", &gen_daughters_);
+  }
+
   ////////////////////
   // RecHits
   // associated to layer clusters
