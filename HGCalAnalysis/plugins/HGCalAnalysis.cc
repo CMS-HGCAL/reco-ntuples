@@ -181,6 +181,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
 
   // ---------parameters ----------------------------
   bool readCaloParticles_;
+  bool readGen_;
   bool storeMoreGenInfo_;
   bool storeGenParticleExtrapolation_;
   bool storePCAvariables_;
@@ -200,6 +201,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   edm::EDGetTokenT<reco::CaloClusterCollection> clusters_;
   edm::EDGetTokenT<std::vector<TrackingVertex>> vtx_;
   edm::EDGetTokenT<std::vector<TrackingParticle>> part_;
+  edm::EDGetTokenT<std::vector<reco::GenParticle> > genParticles_;
   edm::EDGetTokenT<std::vector<SimCluster>> simClusters_;
   edm::EDGetTokenT<std::vector<reco::PFCluster>> pfClusters_;
   edm::EDGetTokenT<std::vector<reco::PFCluster>> pfClustersFromMultiCl_;
@@ -251,6 +253,18 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<std::vector<float>> genpart_posx_;
   std::vector<std::vector<float>> genpart_posy_;
   std::vector<std::vector<float>> genpart_posz_;
+
+  ////////////////////
+  // reco::GenParticles
+  //
+  std::vector<float> gen_eta_;
+  std::vector<float> gen_phi_;
+  std::vector<float> gen_pt_;
+  std::vector<float> gen_energy_;
+  std::vector<int> gen_charge_;
+  std::vector<int> gen_pdgid_;
+  std::vector<int> gen_status_;
+  std::vector<std::vector<int>> gen_daughters_;
 
   ////////////////////
   // RecHits
@@ -459,6 +473,7 @@ HGCalAnalysis::HGCalAnalysis() { ; }
 
 HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
     : readCaloParticles_(iConfig.getParameter<bool>("readCaloParticles")),
+      readGen_(iConfig.getParameter<bool>("readGenParticles")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
@@ -499,6 +514,11 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   if (readCaloParticles_) {
     caloParticles_ = consumes<std::vector<CaloParticle>>(edm::InputTag("mix", "MergedCaloTruth"));
   }
+
+  if (readGen_) {
+    genParticles_ = consumes<std::vector<reco::GenParticle>>(edm::InputTag("genParticles"));
+  }
+
   pfClusters_ = consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCal"));
   pfClustersFromMultiCl_ =
       consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCalFromMultiCl"));
@@ -552,6 +572,18 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   t_->Branch("genpart_posx", &genpart_posx_);
   t_->Branch("genpart_posy", &genpart_posy_);
   t_->Branch("genpart_posz", &genpart_posz_);
+
+
+  if (readGen_) {
+    t_->Branch("gen_eta", &gen_eta_);
+    t_->Branch("gen_phi", &gen_phi_);
+    t_->Branch("gen_pt", &gen_pt_);
+    t_->Branch("gen_energy", &gen_energy_);
+    t_->Branch("gen_charge", &gen_charge_);
+    t_->Branch("gen_pdgid", &gen_pdgid_);
+    t_->Branch("gen_status", &gen_status_);
+    t_->Branch("gen_daughters", &gen_daughters_);
+  }
 
   ////////////////////
   // RecHits
@@ -778,6 +810,18 @@ void HGCalAnalysis::clearVariables() {
   genpart_posx_.clear();
   genpart_posy_.clear();
   genpart_posz_.clear();
+	
+  ////////////////////
+  // reco::GenParticles
+  //
+  gen_eta_.clear();
+  gen_phi_.clear();
+  gen_pt_.clear();
+  gen_energy_.clear();
+  gen_charge_.clear();
+  gen_pdgid_.clear();
+  gen_status_.clear();
+  gen_daughters_.clear();
 
   ////////////////////
   // RecHits
@@ -1300,6 +1344,26 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
           fillRecHit(detid, -1, layer);
         }
       }
+    }
+  }
+
+  if (readGen_) {
+    Handle<std::vector<reco::GenParticle>> genParticlesHandle;
+    iEvent.getByToken(genParticles_, genParticlesHandle);
+    for (std::vector<reco::GenParticle>::const_iterator it_p = genParticlesHandle->begin();
+         it_p != genParticlesHandle->end(); ++it_p) {
+      gen_eta_.push_back(it_p->eta());
+      gen_phi_.push_back(it_p->phi());
+      gen_pt_.push_back(it_p->pt());
+      gen_energy_.push_back(it_p->energy());
+      gen_charge_.push_back(it_p->charge());
+      gen_pdgid_.push_back(it_p->pdgId());
+      gen_status_.push_back(it_p->status());
+      std::vector<int> daughters(it_p->daughterRefVector().size(), 0);
+      for (unsigned j = 0; j < it_p->daughterRefVector().size(); ++j) {
+        daughters[j] = static_cast<int>(it_p->daughterRefVector().at(j).key());
+      }
+      gen_daughters_.push_back(daughters);
     }
   }
 
