@@ -411,14 +411,30 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
 					 // PFClustersHGCalFromMultiClusters
 
   // gsfEle electron variables
+  std::vector<float> ecalDrivenGsfele_ele_pcaEigVal1_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaEigVal2_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaEigVal3_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaEigSig1_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaEigSig2_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaEigSig3_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaAxisX_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaAxisY_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaAxisZ_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaPosX_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaPosY_;
+  std::vector<float> ecalDrivenGsfele_ele_pcaPosZ_;
+
   std::vector<float> ecalDrivenGsfele_ele_siguu_;
   std::vector<float> ecalDrivenGsfele_ele_sigvv_;
   std::vector<float> ecalDrivenGsfele_ele_sigee_;
   std::vector<float> ecalDrivenGsfele_ele_sigpp_;
+
   std::vector<float> ecalDrivenGsfele_ele_nlay_;
   std::vector<float> ecalDrivenGsfele_ele_firstlay_;
   std::vector<float> ecalDrivenGsfele_ele_lastlay_;
-
+  std::vector<float> ecalDrivenGsfele_ele_FHoverEE_;
+  std::vector<float> ecalDrivenGsfele_ele_HoverEE_;
+  std::vector<float> ecalDrivenGsfele_ele_EE4overEE_;
 
   ////////////////////
   // calo particles
@@ -737,10 +753,27 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_sigvv", &ecalDrivenGsfele_ele_sigvv_);
     t_->Branch("ecalDrivenGsfele_ele_sigpp", &ecalDrivenGsfele_ele_sigpp_);
     t_->Branch("ecalDrivenGsfele_ele_sigee", &ecalDrivenGsfele_ele_sigee_);
+
+    t_->Branch("ecalDrivenGsfele_ele_pcaEigVal1", &ecalDrivenGsfele_ele_pcaEigVal1_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaEigVal2", &ecalDrivenGsfele_ele_pcaEigVal2_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaEigVal3", &ecalDrivenGsfele_ele_pcaEigVal3_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaEigSig1", &ecalDrivenGsfele_ele_pcaEigSig1_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaEigSig2", &ecalDrivenGsfele_ele_pcaEigSig2_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaEigSig3", &ecalDrivenGsfele_ele_pcaEigSig3_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaAxisX", &ecalDrivenGsfele_ele_pcaAxisX_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaAxisY", &ecalDrivenGsfele_ele_pcaAxisY_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaAxisZ", &ecalDrivenGsfele_ele_pcaAxisZ_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaPosX", &ecalDrivenGsfele_ele_pcaPosX_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaPosY", &ecalDrivenGsfele_ele_pcaPosY_);
+    t_->Branch("ecalDrivenGsfele_ele_pcaPosZ", &ecalDrivenGsfele_ele_pcaPosZ_);
+
     t_->Branch("ecalDrivenGsfele_ele_nlay", &ecalDrivenGsfele_ele_nlay_);
     t_->Branch("ecalDrivenGsfele_ele_firstlay", &ecalDrivenGsfele_ele_firstlay_);
     t_->Branch("ecalDrivenGsfele_ele_lastlay", &ecalDrivenGsfele_ele_lastlay_);
 
+    t_->Branch("ecalDrivenGsfele_ele_FHoverEE", &ecalDrivenGsfele_ele_FHoverEE_);
+    t_->Branch("ecalDrivenGsfele_ele_HoverEE", &ecalDrivenGsfele_ele_HoverEE_);
+    t_->Branch("ecalDrivenGsfele_ele_EE4overEE", &ecalDrivenGsfele_ele_EE4overEE_);
   }
 
   ////////////////////
@@ -959,13 +992,30 @@ void HGCalAnalysis::clearVariables() {
   ecalDrivenGsfele_pfClusterIndex_.clear();
 
   //
+  ecalDrivenGsfele_ele_pcaEigVal1_.clear();
+  ecalDrivenGsfele_ele_pcaEigVal2_.clear();
+  ecalDrivenGsfele_ele_pcaEigVal3_.clear();
+  ecalDrivenGsfele_ele_pcaEigSig1_.clear();
+  ecalDrivenGsfele_ele_pcaEigSig2_.clear();
+  ecalDrivenGsfele_ele_pcaEigSig3_.clear();
+  ecalDrivenGsfele_ele_pcaAxisX_.clear();
+  ecalDrivenGsfele_ele_pcaAxisY_.clear();
+  ecalDrivenGsfele_ele_pcaAxisZ_.clear();
+  ecalDrivenGsfele_ele_pcaPosX_.clear();
+  ecalDrivenGsfele_ele_pcaPosY_.clear();
+  ecalDrivenGsfele_ele_pcaPosZ_.clear();
+
   ecalDrivenGsfele_ele_siguu_.clear();
   ecalDrivenGsfele_ele_sigvv_.clear();
   ecalDrivenGsfele_ele_sigee_.clear();
   ecalDrivenGsfele_ele_sigpp_.clear();
+
   ecalDrivenGsfele_ele_nlay_.clear();
   ecalDrivenGsfele_ele_firstlay_.clear();
   ecalDrivenGsfele_ele_lastlay_.clear();
+  ecalDrivenGsfele_ele_FHoverEE_.clear();
+  ecalDrivenGsfele_ele_HoverEE_.clear();
+  ecalDrivenGsfele_ele_EE4overEE_.clear();
 
   ////////////////////
   // calo particles
@@ -1534,22 +1584,77 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
 
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
-      eIDHelper_->computeHGCAL(ele,3.);
-      // if gsfEle isEB returned values are -1, otherwise need
-      // if(ele.isEB()) continue;
+      float radius = 3.;
+      eIDHelper_->computeHGCAL(ele,radius);
 
-      ecalDrivenGsfele_ele_siguu_.push_back(eIDHelper_->sigmaUU());
-      ecalDrivenGsfele_ele_sigvv_.push_back(eIDHelper_->sigmaVV());
-      ecalDrivenGsfele_ele_sigpp_.push_back(eIDHelper_->sigmaPP());
-      ecalDrivenGsfele_ele_sigee_.push_back(eIDHelper_->sigmaEE());
+      // Check if computation did not run successfully
+      if (eIDHelper_->sigmaUU() == -1) {
+	  ecalDrivenGsfele_ele_pcaPosX_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaPosY_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaPosZ_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaAxisX_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaAxisY_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaAxisZ_.push_back(-1);
 
-      // Longitudinal variables
-      LongDeps ld(eIDHelper_->energyPerLayer(3.));
+	  ecalDrivenGsfele_ele_pcaEigVal1_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaEigVal2_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaEigVal3_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaEigSig1_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaEigSig2_.push_back(-1);
+	  ecalDrivenGsfele_ele_pcaEigSig3_.push_back(-1);
 
-      ecalDrivenGsfele_ele_nlay_.push_back(ld.nLayers());
-      ecalDrivenGsfele_ele_firstlay_.push_back(ld.firstLayer());
-      ecalDrivenGsfele_ele_lastlay_.push_back(ld.lastLayer());
+	  ecalDrivenGsfele_ele_siguu_.push_back(-1);
+	  ecalDrivenGsfele_ele_sigvv_.push_back(-1);
+	  ecalDrivenGsfele_ele_sigpp_.push_back(-1);
+	  ecalDrivenGsfele_ele_sigee_.push_back(-1);
 
+	  ecalDrivenGsfele_ele_nlay_.push_back(-1);
+	  ecalDrivenGsfele_ele_firstlay_.push_back(-1);
+	  ecalDrivenGsfele_ele_lastlay_.push_back(-1);
+
+	  ecalDrivenGsfele_ele_FHoverEE_.push_back(-1);
+	  ecalDrivenGsfele_ele_HoverEE_.push_back(-1);
+	  ecalDrivenGsfele_ele_EE4overEE_.push_back(-1);
+      }
+      else {
+	  // PCA variables: axis, barycenter, eigenvalues and sigmas
+	  ecalDrivenGsfele_ele_pcaPosX_.push_back(eIDHelper_->barycenter().x());
+	  ecalDrivenGsfele_ele_pcaPosY_.push_back(eIDHelper_->barycenter().y());
+	  ecalDrivenGsfele_ele_pcaPosZ_.push_back(eIDHelper_->barycenter().z());
+	  ecalDrivenGsfele_ele_pcaAxisX_.push_back(eIDHelper_->axis().x());
+	  ecalDrivenGsfele_ele_pcaAxisY_.push_back(eIDHelper_->axis().y());
+	  ecalDrivenGsfele_ele_pcaAxisZ_.push_back(eIDHelper_->axis().z());
+
+	  ecalDrivenGsfele_ele_pcaEigVal1_.push_back(eIDHelper_->eigenValues()(0));
+	  ecalDrivenGsfele_ele_pcaEigVal2_.push_back(eIDHelper_->eigenValues()(1));
+	  ecalDrivenGsfele_ele_pcaEigVal3_.push_back(eIDHelper_->eigenValues()(2));
+	  ecalDrivenGsfele_ele_pcaEigSig1_.push_back(eIDHelper_->sigmas()(0));
+	  ecalDrivenGsfele_ele_pcaEigSig2_.push_back(eIDHelper_->sigmas()(1));
+	  ecalDrivenGsfele_ele_pcaEigSig3_.push_back(eIDHelper_->sigmas()(2));
+
+	  // Shower shapes
+	  ecalDrivenGsfele_ele_siguu_.push_back(eIDHelper_->sigmaUU());
+	  ecalDrivenGsfele_ele_sigvv_.push_back(eIDHelper_->sigmaVV());
+	  ecalDrivenGsfele_ele_sigpp_.push_back(eIDHelper_->sigmaPP());
+	  ecalDrivenGsfele_ele_sigee_.push_back(eIDHelper_->sigmaEE());
+
+	  // Longitudinal variables
+	  LongDeps ld(eIDHelper_->energyPerLayer(radius));
+
+	  ecalDrivenGsfele_ele_nlay_.push_back(ld.nLayers());
+	  ecalDrivenGsfele_ele_firstlay_.push_back(ld.firstLayer());
+	  ecalDrivenGsfele_ele_lastlay_.push_back(ld.lastLayer());
+
+	  float FHoverEE = ld.energyFH() / ld.energyEE();
+	  ecalDrivenGsfele_ele_FHoverEE_.push_back(FHoverEE);
+	  float HoverEE = (ld.energyFH() + ld.energyBH()) / ld.energyEE();
+	  ecalDrivenGsfele_ele_HoverEE_.push_back(HoverEE);
+
+	  float EE4overEE = 0;
+	  for (unsigned lay = 1; lay < 5; ++lay) EE4overEE += ld.energyPerLayer()[lay];
+	  EE4overEE /= ld.energyEE();
+	  ecalDrivenGsfele_ele_EE4overEE_.push_back(EE4overEE);
+      }
     }  // End of loop over electrons
   }
 
