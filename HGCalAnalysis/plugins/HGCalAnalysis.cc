@@ -1533,21 +1533,22 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
       ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
 
-
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
       eIDHelper_->computeHGCAL(ele,3.);
-      // if gsfEle isEB returned values are -1
+      // if gsfEle isEB returned values are -1, otherwise need
+      // if(ele.isEB()) continue;
 
       ecalDrivenGsfele_ele_siguu_.push_back(eIDHelper_->sigmaUU());
       ecalDrivenGsfele_ele_sigvv_.push_back(eIDHelper_->sigmaVV());
       ecalDrivenGsfele_ele_sigpp_.push_back(eIDHelper_->sigmaPP());
       ecalDrivenGsfele_ele_sigee_.push_back(eIDHelper_->sigmaEE());
 
-      ecalDrivenGsfele_ele_nlay_.push_back(eIDHelper_->nLayers());
-      ecalDrivenGsfele_ele_firstlay_.push_back(eIDHelper_->firstLayer());
-      ecalDrivenGsfele_ele_lastlay_.push_back(eIDHelper_->lastLayer());
+      // Longitudinal variables
+      LongDeps ld(eIDHelper_->energyPerLayer(3.));
 
-
+      ecalDrivenGsfele_ele_nlay_.push_back(ld.nLayers());
+      ecalDrivenGsfele_ele_firstlay_.push_back(ld.firstLayer());
+      ecalDrivenGsfele_ele_lastlay_.push_back(ld.lastLayer());
 
     }  // End of loop over electrons
   }
