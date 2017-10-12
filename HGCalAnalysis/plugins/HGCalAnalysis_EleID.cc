@@ -1173,6 +1173,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       } else if (reachesHGCal && vtx.Rho() > 160)
 	reachedEE = 1;
 
+      if (reachedEE < 2) continue;
       HGCal_helpers_EleID::simpleTrackPropagator indiv_particleProp(aField_);
       for (unsigned il = 0; il < nlayers; ++il) {
 	const float charge = myTrack.charge();
@@ -1205,7 +1206,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
     genpart_ovz_.push_back(orig_vtx.z());
 
     HGCal_helpers_EleID::coordinates hitsHGCal;
-    toHGCalPropagator.propagate(myTrack.momentum(), orig_vtx, myTrack.charge(), hitsHGCal);
+    if (reachedEE == 2)
+	toHGCalPropagator.propagate(myTrack.momentum(), orig_vtx, myTrack.charge(), hitsHGCal);
 
     genpart_exphi_.push_back(hitsHGCal.phi);
     genpart_exeta_.push_back(hitsHGCal.eta);
