@@ -166,11 +166,12 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   virtual void beginJob() override;
   virtual void analyze(const edm::Event &, const edm::EventSetup &) override;
   virtual void endJob() override;
+    /*
   virtual int fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerCluster,
 			       const bool &fillRecHits, const int &multiClusterIndex = -1);
   virtual void fillRecHit(const DetId &detid, const float &fraction, const unsigned int &layer,
 			  const int &cluster_index_ = -1);
-
+    */
   void clearVariables();
 
   void retrieveLayerPositions(const edm::EventSetup &, unsigned layers);
@@ -197,23 +198,29 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
 
   // ----------member data ---------------------------
 
+    /*
   edm::EDGetTokenT<HGCRecHitCollection> recHitsEE_;
   edm::EDGetTokenT<HGCRecHitCollection> recHitsFH_;
   edm::EDGetTokenT<HGCRecHitCollection> recHitsBH_;
   edm::EDGetTokenT<reco::CaloClusterCollection> clusters_;
+    */
   edm::EDGetTokenT<std::vector<TrackingVertex>> vtx_;
   edm::EDGetTokenT<std::vector<TrackingParticle>> part_;
+    /*
   edm::EDGetTokenT<std::vector<SimCluster>> simClusters_;
   edm::EDGetTokenT<std::vector<reco::PFCluster>> pfClusters_;
   edm::EDGetTokenT<std::vector<reco::PFCluster>> pfClustersFromMultiCl_;
   edm::EDGetTokenT<std::vector<CaloParticle>> caloParticles_;
   edm::EDGetTokenT<std::vector<reco::HGCalMultiCluster>> multiClusters_;
+    */
   edm::EDGetTokenT<std::vector<SimTrack>> simTracks_;
   edm::EDGetTokenT<std::vector<SimVertex>> simVertices_;
   edm::EDGetTokenT<edm::HepMCProduct> hev_;
+    /*
   edm::EDGetTokenT<std::vector<reco::Track>> tracks_;
+    */
   edm::EDGetTokenT<std::vector<reco::GsfElectron>> electrons_;
-  edm::EDGetTokenT<edm::ValueMap<reco::CaloClusterPtr>> electrons_ValueMapClusters_;
+    //edm::EDGetTokenT<edm::ValueMap<reco::CaloClusterPtr>> electrons_ValueMapClusters_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_;
 
   // Ele ID helper
@@ -258,6 +265,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<std::vector<float>> genpart_posy_;
   std::vector<std::vector<float>> genpart_posz_;
 
+    /*
   ////////////////////
   // RecHits
   // associated to layer clusters
@@ -370,6 +378,8 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<std::vector<float>> pfclusterFromMultiCl_fractions_;
   std::vector<std::vector<uint32_t>> pfclusterFromMultiCl_rechits_;
 
+    */
+
   ////////////////////
   // Ecal Driven GsfElectrons From MultiClusters
   //
@@ -436,6 +446,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_ele_HoverEE_;
   std::vector<float> ecalDrivenGsfele_ele_EE4overEE_;
 
+    /*
   ////////////////////
   // calo particles
   //
@@ -457,6 +468,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<std::vector<float>> track_posx_;
   std::vector<std::vector<float>> track_posy_;
   std::vector<std::vector<float>> track_posz_;
+    */
 
   ////////////////////
   // helper classes
@@ -508,6 +520,17 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   // now do what ever initialization is needed
   mySimEvent_ = new FSimEvent(particleFilter_);
 
+  simTracks_ = consumes<std::vector<SimTrack>>(edm::InputTag("g4SimHits"));
+  simVertices_ = consumes<std::vector<SimVertex>>(edm::InputTag("g4SimHits"));
+  hev_ = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared"));
+
+  vertices_ = consumes<std::vector<reco::Vertex>>(edm::InputTag("offlinePrimaryVertices"));
+
+  eIDHelper_ = new ElectronIDHelper(iConfig , consumesCollector());
+  electrons_ =
+      consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
+
+  /*
   if (detector_ == "all") {
     recHitsEE_ = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit", "HGCEERecHits"));
     recHitsFH_ = consumes<HGCRecHitCollection>(edm::InputTag("HGCalRecHit", "HGCHEFRecHits"));
@@ -523,13 +546,6 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   }
   clusters_ = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
   simClusters_ = consumes<std::vector<SimCluster>>(edm::InputTag("mix", "MergedCaloTruth"));
-  hev_ = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared"));
-
-  simTracks_ = consumes<std::vector<SimTrack>>(edm::InputTag("g4SimHits"));
-  simVertices_ = consumes<std::vector<SimVertex>>(edm::InputTag("g4SimHits"));
-
-  eIDHelper_ = new ElectronIDHelper(iConfig , consumesCollector());
-
 
   if (readCaloParticles_) {
     caloParticles_ = consumes<std::vector<CaloParticle>>(edm::InputTag("mix", "MergedCaloTruth"));
@@ -537,14 +553,13 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   pfClusters_ = consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCal"));
   pfClustersFromMultiCl_ =
       consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCalFromMultiCl"));
+  electrons_ValueMapClusters_ = consumes<edm::ValueMap<reco::CaloClusterPtr>>(
+      edm::InputTag("particleFlowSuperClusterHGCalFromMultiCl:PFClusterAssociationEBEE"));
+
   multiClusters_ =
       consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag("hgcalLayerClusters"));
   tracks_ = consumes<std::vector<reco::Track>>(edm::InputTag("generalTracks"));
-  electrons_ =
-      consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
-  electrons_ValueMapClusters_ = consumes<edm::ValueMap<reco::CaloClusterPtr>>(
-      edm::InputTag("particleFlowSuperClusterHGCalFromMultiCl:PFClusterAssociationEBEE"));
-  vertices_ = consumes<std::vector<reco::Vertex>>(edm::InputTag("offlinePrimaryVertices"));
+  */
 
   usesResource(TFileService::kSharedResource);
   edm::Service<TFileService> fs;
@@ -588,6 +603,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   t_->Branch("genpart_posy", &genpart_posy_);
   t_->Branch("genpart_posz", &genpart_posz_);
 
+  /*
   ////////////////////
   // RecHits
   // associated to layer clusters
@@ -702,7 +718,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   t_->Branch("pfclusterFromMultiCl_hits", &pfclusterFromMultiCl_hits_);
   t_->Branch("pfclusterFromMultiCl_fractions", &pfclusterFromMultiCl_fractions_);
   t_->Branch("pfclusterFromMultiCl_rechits", &pfclusterFromMultiCl_rechits_);
-
+  */
   ////////////////////
   // Ecal Driven Gsf Electrons From MultiClusters
   //
@@ -776,6 +792,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_EE4overEE", &ecalDrivenGsfele_ele_EE4overEE_);
   }
 
+  /*
   ////////////////////
   // calo particles
   //
@@ -797,6 +814,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   t_->Branch("track_posx", &track_posx_);
   t_->Branch("track_posy", &track_posy_);
   t_->Branch("track_posz", &track_posz_);
+  */
+
 }
 HGCalAnalysis_EleID::~HGCalAnalysis_EleID() {
   // do anything here that needs to be done at desctruction time
@@ -841,6 +860,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   genpart_posy_.clear();
   genpart_posz_.clear();
 
+  /*
   ////////////////////
   // RecHits
   // associated to layer clusters
@@ -953,6 +973,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   pfclusterFromMultiCl_fractions_.clear();
   pfclusterFromMultiCl_rechits_.clear();
 
+  */
   ////////////////////
   //  Ecal Driven Gsf Electrons From MultiClusters
   //
@@ -1017,6 +1038,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_ele_HoverEE_.clear();
   ecalDrivenGsfele_ele_EE4overEE_.clear();
 
+  /*
   ////////////////////
   // calo particles
   //
@@ -1038,6 +1060,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   track_posx_.clear();
   track_posy_.clear();
   track_posz_.clear();
+  */
 }
 
 void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup) {
@@ -1047,14 +1070,14 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   // std::cout << "after clearVariables" << std::endl;
 
   ParticleTable::Sentry ptable(mySimEvent_->theTable());
-  recHitTools_.getEventSetup(iSetup);
+  //recHitTools_.getEventSetup(iSetup);
 
   Handle<HGCRecHitCollection> recHitHandleEE;
   Handle<HGCRecHitCollection> recHitHandleFH;
   Handle<HGCRecHitCollection> recHitHandleBH;
   Handle<reco::CaloClusterCollection> clusterHandle;
 
-  iEvent.getByToken(clusters_, clusterHandle);
+  //iEvent.getByToken(clusters_, clusterHandle);
   Handle<std::vector<TrackingVertex>> vtxHandle;
 
   Handle<edm::HepMCProduct> hevH;
@@ -1067,6 +1090,11 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   iEvent.getByToken(simVertices_, simVerticesHandle);
   mySimEvent_->fill(*simTracksHandle, *simVerticesHandle);
 
+  Handle<std::vector<reco::GsfElectron>> eleHandle;
+  iEvent.getByToken(electrons_, eleHandle);
+  const std::vector<reco::GsfElectron> &electrons = *eleHandle;
+
+  /*
   Handle<std::vector<SimCluster>> simClusterHandle;
   Handle<std::vector<reco::PFCluster>> pfClusterHandle;
   Handle<std::vector<reco::PFCluster>> pfClusterFromMultiClHandle;
@@ -1092,10 +1120,6 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   iEvent.getByToken(tracks_, trackHandle);
   const std::vector<reco::Track> &tracks = *trackHandle;
 
-  Handle<std::vector<reco::GsfElectron>> eleHandle;
-  iEvent.getByToken(electrons_, eleHandle);
-  const std::vector<reco::GsfElectron> &electrons = *eleHandle;
-
   edm::Handle<edm::ValueMap<reco::CaloClusterPtr>> electrons_ValueMapClustersHandle;
   iEvent.getByToken(electrons_ValueMapClusters_, electrons_ValueMapClustersHandle);
   auto const &electrons_ValueMapClusters = *electrons_ValueMapClustersHandle;
@@ -1103,6 +1127,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   Handle<std::vector<reco::HGCalMultiCluster>> multiClusterHandle;
   iEvent.getByToken(multiClusters_, multiClusterHandle);
   const std::vector<reco::HGCalMultiCluster> &multiClusters = *multiClusterHandle;
+
+  */
 
   Handle<std::vector<reco::Vertex>> verticesHandle;
   iEvent.getByToken(vertices_, verticesHandle);
@@ -1214,6 +1240,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
     }
   }
 
+  /*
   // make a map detid-rechit
   hitmap_.clear();
   switch (algo_) {
@@ -1496,13 +1523,14 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
     pfclusterFromMultiCl_rechits_.push_back(rechits_indices);
   }  // end loop over pfClusters From MultiClusters
 
+  */
   // Loop over Ecal Driven Gsf Electrons From MultiClusters
   if (storeElectrons_) {
 
     // initialize eleID helper
-    //eIDHelper_->eventInit(iEvent,iSetup);
-    eIDHelper_->setHitMap(&hitmap_);
-    eIDHelper_->setRecHitTools(&recHitTools_);
+    eIDHelper_->eventInit(iEvent,iSetup);
+    //eIDHelper_->setHitMap(&hitmap_);
+    //eIDHelper_->setRecHitTools(&recHitTools_);
 
     for (auto const &ele : electrons) {
       std::vector<uint32_t> pfclustersIndex;
@@ -1511,6 +1539,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       float energyEE = 0.;
       float energyFH = 0.;
       float energyBH = 0.;
+
+      /*
       for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
 	if (DetId::Forward == (*cl)->seed().det()) {
 	  if (false)
@@ -1542,7 +1572,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  hoe = (energyFH + energyBH) / (energyEE + energyFH + energyBH);
 	}  // is within HGCAL
       }    // End of loop over clusters within the SC
-
+      */
       ecalDrivenGsfele_charge_.push_back(ele.charge());
       ecalDrivenGsfele_eta_.push_back(ele.eta());
       ecalDrivenGsfele_phi_.push_back(ele.phi());
@@ -1658,6 +1688,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
     }  // End of loop over electrons
   }
 
+  /*
   // loop over caloParticles
   if (readCaloParticles_) {
     for (std::vector<CaloParticle>::const_iterator it_caloPart = caloParticles->begin();
@@ -1726,12 +1757,6 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  Plane::PlanePointer endPlane = Plane::build(
 	      Plane::PositionType(0, 0, zside * layerPositions_[il]), Plane::RotationType());
 	  try {
-	    /*
-	    std::cout << "Trying from " <<
-	    " layer " << il <<
-	    " starting point " << startingStateP.globalPosition() <<
-	    std::endl;
-	    */
 	    TSOS trackStateP = RKProp.propagate(startingStateP, *endPlane);
 	    if (trackStateP.isValid()) {
 	      xp_curr = trackStateP.globalPosition().x();
@@ -1765,6 +1790,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
     track_posz_.push_back(zp);
 
   }  // end loop over tracks
+  */
+
 
   ev_event_ = iEvent.id().event();
   ev_lumi_ = iEvent.id().luminosityBlock();
@@ -1818,6 +1845,7 @@ void HGCalAnalysis_EleID::retrieveLayerPositions(const edm::EventSetup &es, unsi
   }
 }
 
+/*
 int HGCalAnalysis_EleID::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerCluster,
 				    const bool &fillRecHits, const int &multiClusterIndex) {
   // std::cout << "in fillLayerCluster" << std::endl;
@@ -1960,7 +1988,7 @@ void HGCalAnalysis_EleID::fillRecHit(const DetId &detid, const float &fraction, 
   detIdToRecHitIndexMap_[detid] = rechit_index_;
   ++rechit_index_;
 }
-
+*/
 void HGCalAnalysis_EleID::computeWidth(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
 				 math::XYZVector &axis, float &sigu, float &sigv, float &sigp,
 				 float &sige, float &cyl_ene, float radius, bool withHalo) {
