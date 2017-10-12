@@ -237,6 +237,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   float vtx_x_;
   float vtx_y_;
   float vtx_z_;
+    int n_vtx_;
 
   ////////////////////
   // GenParticles
@@ -412,6 +413,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo_;
   std::vector<float> ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo_;
   std::vector<float> ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo_;
+  std::vector<float> ecalDrivenGsfele_fbrem_;
   std::vector<float> ecalDrivenGsfele_eSuperClusterOverP_;
   std::vector<float> ecalDrivenGsfele_eSeedClusterOverP_;
   std::vector<float> ecalDrivenGsfele_eSeedClusterOverPout_;
@@ -445,6 +447,8 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_ele_FHoverEE_;
   std::vector<float> ecalDrivenGsfele_ele_HoverEE_;
   std::vector<float> ecalDrivenGsfele_ele_EE4overEE_;
+  std::vector<float> ecalDrivenGsfele_ele_layEfrac10_;
+  std::vector<float> ecalDrivenGsfele_ele_layEfrac90_;
 
     /*
   ////////////////////
@@ -571,6 +575,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   t_->Branch("event", &ev_event_);
   t_->Branch("lumi", &ev_lumi_);
   t_->Branch("run", &ev_run_);
+  t_->Branch("n_vtx", &n_vtx_);
   t_->Branch("vtx_x", &vtx_x_);
   t_->Branch("vtx_y", &vtx_y_);
   t_->Branch("vtx_z", &vtx_z_);
@@ -762,7 +767,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_eSeedClusterOverP", &ecalDrivenGsfele_eSeedClusterOverP_);
     t_->Branch("ecalDrivenGsfele_eSeedClusterOverPout", &ecalDrivenGsfele_eSeedClusterOverPout_);
     t_->Branch("ecalDrivenGsfele_eEleClusterOverPout", &ecalDrivenGsfele_eEleClusterOverPout_);
-    t_->Branch("ecalDrivenGsfele_pfClusterIndex", &ecalDrivenGsfele_pfClusterIndex_);
+    t_->Branch("ecalDrivenGsfele_fbrem", &ecalDrivenGsfele_fbrem_);
+    //t_->Branch("ecalDrivenGsfele_pfClusterIndex", &ecalDrivenGsfele_pfClusterIndex_);
 
     // electron (seed) variables
     t_->Branch("ecalDrivenGsfele_ele_siguu", &ecalDrivenGsfele_ele_siguu_);
@@ -790,6 +796,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_FHoverEE", &ecalDrivenGsfele_ele_FHoverEE_);
     t_->Branch("ecalDrivenGsfele_ele_HoverEE", &ecalDrivenGsfele_ele_HoverEE_);
     t_->Branch("ecalDrivenGsfele_ele_EE4overEE", &ecalDrivenGsfele_ele_EE4overEE_);
+    t_->Branch("ecalDrivenGsfele_ele_layEfrac10", &ecalDrivenGsfele_ele_layEfrac10_);
+    t_->Branch("ecalDrivenGsfele_ele_layEfrac90", &ecalDrivenGsfele_ele_layEfrac90_);
   }
 
   /*
@@ -829,6 +837,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   ev_run_ = 0;
   ev_lumi_ = 0;
   ev_event_ = 0;
+  n_vtx_ = 0;
   vtx_x_ = 0;
   vtx_y_ = 0;
   vtx_z_ = 0;
@@ -1011,6 +1020,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_eSeedClusterOverPout_.clear();
   ecalDrivenGsfele_eEleClusterOverPout_.clear();
   ecalDrivenGsfele_pfClusterIndex_.clear();
+  ecalDrivenGsfele_fbrem_.clear();
 
   //
   ecalDrivenGsfele_ele_pcaEigVal1_.clear();
@@ -1037,6 +1047,8 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_ele_FHoverEE_.clear();
   ecalDrivenGsfele_ele_HoverEE_.clear();
   ecalDrivenGsfele_ele_EE4overEE_.clear();
+  ecalDrivenGsfele_ele_layEfrac10_.clear();
+  ecalDrivenGsfele_ele_layEfrac90_.clear();
 
   /*
   ////////////////////
@@ -1134,12 +1146,13 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   iEvent.getByToken(vertices_, verticesHandle);
   auto const &vertices = *verticesHandle;
 
+  n_vtx_ = vertices.size();
+
   HepMC::GenVertex *primaryVertex = *(hevH)->GetEvent()->vertices_begin();
   float vx = primaryVertex->position().x() / 10.;  // to put in official units
   float vy = primaryVertex->position().y() / 10.;
   vz_ = primaryVertex->position().z() / 10.;
   Point sim_pv(vx, vy, vz_);
-  // std::cout << "start the fun" << std::endl;
 
   HGCal_helpers_EleID::simpleTrackPropagator toHGCalPropagator(aField_);
   toHGCalPropagator.setPropagationTargetZ(layerPositions_[0]);
@@ -1614,6 +1627,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_eSeedClusterOverPout_.push_back(ele.eSeedClusterOverPout());
       ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
       ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
+      ecalDrivenGsfele_fbrem_.push_back(ele.fbrem());
 
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
       float radius = 3.;
@@ -1647,6 +1661,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  ecalDrivenGsfele_ele_FHoverEE_.push_back(-1);
 	  ecalDrivenGsfele_ele_HoverEE_.push_back(-1);
 	  ecalDrivenGsfele_ele_EE4overEE_.push_back(-1);
+	  ecalDrivenGsfele_ele_layEfrac10_.push_back(-1);
+	  ecalDrivenGsfele_ele_layEfrac90_.push_back(-1);
       }
       else {
 	  // PCA variables: axis, barycenter, eigenvalues and sigmas
@@ -1686,6 +1702,22 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  for (unsigned lay = 1; lay < 5; ++lay) EE4overEE += ld.energyPerLayer()[lay];
 	  EE4overEE /= ld.energyEE();
 	  ecalDrivenGsfele_ele_EE4overEE_.push_back(EE4overEE);
+
+	  int lay_Efrac10 = 0;
+	  int lay_Efrac90 = 0;
+	  float lay_energy = 0;
+	  for (unsigned lay = 1; lay < 52; ++lay) {
+	      lay_energy += ld.energyPerLayer()[lay];
+	      if (lay_Efrac10 == 0 && lay_energy > 0.1 * ld.energyEE()){
+		  lay_Efrac10 = lay;
+	      }
+	      if (lay_Efrac90 == 0 && lay_energy > 0.9 * ld.energyEE()){
+		  lay_Efrac90 = lay;
+	      }
+	  }
+	  ecalDrivenGsfele_ele_layEfrac10_.push_back(lay_Efrac10);
+	  ecalDrivenGsfele_ele_layEfrac90_.push_back(lay_Efrac90);
+
       }
     }  // End of loop over electrons
   }
