@@ -450,6 +450,11 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_ele_layEfrac10_;
   std::vector<float> ecalDrivenGsfele_ele_layEfrac90_;
 
+  std::vector<float> ecalDrivenGsfele_predDepth_;
+  std::vector<float> ecalDrivenGsfele_realDepth_;
+  std::vector<float> ecalDrivenGsfele_depthCompat_;
+  std::vector<float> ecalDrivenGsfele_predDepthSigma_;
+
     /*
   ////////////////////
   // calo particles
@@ -798,6 +803,12 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_EE4overEE", &ecalDrivenGsfele_ele_EE4overEE_);
     t_->Branch("ecalDrivenGsfele_ele_layEfrac10", &ecalDrivenGsfele_ele_layEfrac10_);
     t_->Branch("ecalDrivenGsfele_ele_layEfrac90", &ecalDrivenGsfele_ele_layEfrac90_);
+
+    t_->Branch("ecalDrivenGsfele_ele_predDepth", &ecalDrivenGsfele_predDepth_);
+    t_->Branch("ecalDrivenGsfele_ele_realDepth", &ecalDrivenGsfele_realDepth_);
+    t_->Branch("ecalDrivenGsfele_ele_depthCompat", &ecalDrivenGsfele_depthCompat_);
+    t_->Branch("ecalDrivenGsfele_ele_predDepthSigma", &ecalDrivenGsfele_predDepthSigma_);
+
   }
 
   /*
@@ -1049,6 +1060,11 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_ele_EE4overEE_.clear();
   ecalDrivenGsfele_ele_layEfrac10_.clear();
   ecalDrivenGsfele_ele_layEfrac90_.clear();
+
+  ecalDrivenGsfele_predDepth_.clear();
+  ecalDrivenGsfele_realDepth_.clear();
+  ecalDrivenGsfele_depthCompat_.clear();
+  ecalDrivenGsfele_predDepthSigma_.clear();
 
   /*
   ////////////////////
@@ -1663,6 +1679,11 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  ecalDrivenGsfele_ele_EE4overEE_.push_back(-1);
 	  ecalDrivenGsfele_ele_layEfrac10_.push_back(-1);
 	  ecalDrivenGsfele_ele_layEfrac90_.push_back(-1);
+
+	  ecalDrivenGsfele_predDepth_.push_back(-1);
+	  ecalDrivenGsfele_realDepth_.push_back(-1);
+	  ecalDrivenGsfele_depthCompat_.push_back(-1);
+	  ecalDrivenGsfele_predDepthSigma_.push_back(-1);
       }
       else {
 	  // PCA variables: axis, barycenter, eigenvalues and sigmas
@@ -1717,6 +1738,15 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  }
 	  ecalDrivenGsfele_ele_layEfrac10_.push_back(lay_Efrac10);
 	  ecalDrivenGsfele_ele_layEfrac90_.push_back(lay_Efrac90);
+
+	  // Depth
+	  float measuredDepth, expectedDepth, expectedSigma;
+	  float depthCompatibility = eIDHelper_->clusterDepthCompatibility(ld,measuredDepth,expectedDepth, expectedSigma);
+
+	  ecalDrivenGsfele_predDepth_.push_back(expectedDepth);
+	  ecalDrivenGsfele_predDepthSigma_.push_back(expectedSigma);
+	  ecalDrivenGsfele_realDepth_.push_back(measuredDepth);
+	  ecalDrivenGsfele_depthCompat_.push_back(depthCompatibility);
 
       }
     }  // End of loop over electrons
