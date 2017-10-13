@@ -407,6 +407,12 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_track_dz_;
   std::vector<float> ecalDrivenGsfele_track_simdxy_;
   std::vector<float> ecalDrivenGsfele_track_simdz_;
+
+  std::vector<float> ecalDrivenGsfele_track_pOut_;
+  std::vector<float> ecalDrivenGsfele_track_gsfChi2_;
+  std::vector<float> ecalDrivenGsfele_track_kfChi2_;
+  std::vector<float> ecalDrivenGsfele_track_kfNhits_;
+
   std::vector<float> ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_;
   std::vector<float> ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_;
   std::vector<float> ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo_;
@@ -777,6 +783,11 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_fbrem", &ecalDrivenGsfele_fbrem_);
     //t_->Branch("ecalDrivenGsfele_pfClusterIndex", &ecalDrivenGsfele_pfClusterIndex_);
 
+    t_->Branch("ecalDrivenGsfele_track_pOut", &ecalDrivenGsfele_track_pOut_);
+    t_->Branch("ecalDrivenGsfele_track_gsfChi2", &ecalDrivenGsfele_track_gsfChi2_);
+    t_->Branch("ecalDrivenGsfele_track_kfChi2", &ecalDrivenGsfele_track_kfChi2_);
+    t_->Branch("ecalDrivenGsfele_track_kfNhits", &ecalDrivenGsfele_track_kfNhits_);
+
     // electron (seed) variables
     t_->Branch("ecalDrivenGsfele_ele_siguu", &ecalDrivenGsfele_ele_siguu_);
     t_->Branch("ecalDrivenGsfele_ele_sigvv", &ecalDrivenGsfele_ele_sigvv_);
@@ -1036,7 +1047,11 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_pfClusterIndex_.clear();
   ecalDrivenGsfele_fbrem_.clear();
 
-  //
+  ecalDrivenGsfele_track_pOut_.clear();
+  ecalDrivenGsfele_track_gsfChi2_.clear();
+  ecalDrivenGsfele_track_kfChi2_.clear();
+  ecalDrivenGsfele_track_kfNhits_.clear();
+
   ecalDrivenGsfele_ele_pcaEigVal1_.clear();
   ecalDrivenGsfele_ele_pcaEigVal2_.clear();
   ecalDrivenGsfele_ele_pcaEigVal3_.clear();
@@ -1659,6 +1674,15 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
       //ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
       ecalDrivenGsfele_fbrem_.push_back(ele.fbrem());
+
+      ecalDrivenGsfele_track_pOut_.push_back(std::sqrt(ele.trackMomentumAtVtx().perp2()));
+      ecalDrivenGsfele_track_gsfChi2_.push_back(ele.gsfTrack()->normalizedChi2());
+
+      reco::TrackRef myTrackRef = ele.closestCtfTrackRef();
+      bool validKF = myTrackRef.isAvailable() && myTrackRef.isNonnull();
+
+      ecalDrivenGsfele_track_kfChi2_.push_back((validKF) ? myTrackRef->normalizedChi2() : -1 );
+      ecalDrivenGsfele_track_kfNhits_.push_back((validKF) ? myTrackRef->hitPattern().trackerLayersWithMeasurement() : -1);
 
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
       float radius = 3.;
