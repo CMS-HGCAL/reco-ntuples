@@ -539,6 +539,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   eIDHelper_ = new ElectronIDHelper(iConfig , consumesCollector());
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
+      //consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectrons"));
 
   /*
   if (detector_ == "all") {
@@ -1570,6 +1571,13 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
     //eIDHelper_->setRecHitTools(&recHitTools_);
 
     for (auto const &ele : electrons) {
+      // filter electrons: endcap only and pt > 5 GeV
+      if (ele.isEB()) continue;
+      if (ele.pt() < 5) continue;
+
+      auto const &sc = ele.superCluster();
+
+      /*
       std::vector<uint32_t> pfclustersIndex;
       auto const &sc = ele.superCluster();
       float hoe = 0.;
@@ -1577,7 +1585,6 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       float energyFH = 0.;
       float energyBH = 0.;
 
-      /*
       for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
 	if (DetId::Forward == (*cl)->seed().det()) {
 	  if (false)
@@ -1624,11 +1631,13 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_seedphi_.push_back(ele.superCluster()->seed()->phi());
       ecalDrivenGsfele_seedenergy_.push_back(ele.superCluster()->seed()->energy());
       ecalDrivenGsfele_energy_.push_back(ele.energy());
+      /*
       ecalDrivenGsfele_energyEE_.push_back(energyEE);
       ecalDrivenGsfele_energyFH_.push_back(energyFH);
       ecalDrivenGsfele_energyBH_.push_back(energyBH);
-      ecalDrivenGsfele_isEB_.push_back(ele.isEB());
       ecalDrivenGsfele_hoe_.push_back(hoe);
+      */
+      ecalDrivenGsfele_isEB_.push_back(ele.isEB());
       ecalDrivenGsfele_numClinSC_.push_back(sc->clusters().size());
       ecalDrivenGsfele_track_dxy_.push_back(ele.gsfTrack()->dxy(vertices[0].position()));
       ecalDrivenGsfele_track_dz_.push_back(ele.gsfTrack()->dz(vertices[0].position()));
@@ -1648,7 +1657,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_eSeedClusterOverP_.push_back(ele.eSeedClusterOverP());
       ecalDrivenGsfele_eSeedClusterOverPout_.push_back(ele.eSeedClusterOverPout());
       ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
-      ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
+      //ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
       ecalDrivenGsfele_fbrem_.push_back(ele.fbrem());
 
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
@@ -1725,6 +1734,10 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  ecalDrivenGsfele_ele_FHoverEE_.push_back(FHoverEE);
 	  float HoverEE = (ld.energyFH() + ld.energyBH()) / ld.energyEE();
 	  ecalDrivenGsfele_ele_HoverEE_.push_back(HoverEE);
+
+	  ecalDrivenGsfele_energyEE_.push_back(ld.energyEE());
+	  ecalDrivenGsfele_energyFH_.push_back(ld.energyFH());
+	  ecalDrivenGsfele_energyBH_.push_back(ld.energyBH());
 
 	  float EE4overEE = 0;
 	  for (unsigned lay = 1; lay < 5; ++lay) EE4overEE += ld.energyPerLayer()[lay];
