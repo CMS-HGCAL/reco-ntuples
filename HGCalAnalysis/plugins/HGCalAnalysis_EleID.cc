@@ -449,6 +449,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_ele_EE4overEE_;
   std::vector<float> ecalDrivenGsfele_ele_layEfrac10_;
   std::vector<float> ecalDrivenGsfele_ele_layEfrac90_;
+  std::vector<float> ecalDrivenGsfele_ele_outEnergy_;
 
   std::vector<float> ecalDrivenGsfele_predDepth_;
   std::vector<float> ecalDrivenGsfele_realDepth_;
@@ -803,6 +804,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_EE4overEE", &ecalDrivenGsfele_ele_EE4overEE_);
     t_->Branch("ecalDrivenGsfele_ele_layEfrac10", &ecalDrivenGsfele_ele_layEfrac10_);
     t_->Branch("ecalDrivenGsfele_ele_layEfrac90", &ecalDrivenGsfele_ele_layEfrac90_);
+    t_->Branch("ecalDrivenGsfele_ele_outEnergy", &ecalDrivenGsfele_ele_outEnergy_);
 
     t_->Branch("ecalDrivenGsfele_ele_predDepth", &ecalDrivenGsfele_predDepth_);
     t_->Branch("ecalDrivenGsfele_ele_realDepth", &ecalDrivenGsfele_realDepth_);
@@ -1060,6 +1062,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_ele_EE4overEE_.clear();
   ecalDrivenGsfele_ele_layEfrac10_.clear();
   ecalDrivenGsfele_ele_layEfrac90_.clear();
+  ecalDrivenGsfele_ele_outEnergy_.clear();
 
   ecalDrivenGsfele_predDepth_.clear();
   ecalDrivenGsfele_realDepth_.clear();
@@ -1178,6 +1181,9 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
     std::vector<float> xp, yp, zp;
     FSimTrack &myTrack(mySimEvent_->track(i));
     math::XYZTLorentzVectorD vtx(0, 0, 0, 0);
+
+    // Skip particles with myTrack.genpartIndex != 1,2
+    if ( myTrack.genpartIndex() > 2 || myTrack.genpartIndex() < 0 ) continue;
 
     int reachedEE = 0;  // compute the extrapolations for the particles reaching EE
 			// and for the gen particles
@@ -1679,6 +1685,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  ecalDrivenGsfele_ele_EE4overEE_.push_back(-1);
 	  ecalDrivenGsfele_ele_layEfrac10_.push_back(-1);
 	  ecalDrivenGsfele_ele_layEfrac90_.push_back(-1);
+	  ecalDrivenGsfele_ele_outEnergy_.push_back(-1);
 
 	  ecalDrivenGsfele_predDepth_.push_back(-1);
 	  ecalDrivenGsfele_realDepth_.push_back(-1);
@@ -1727,15 +1734,17 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  int lay_Efrac10 = 0;
 	  int lay_Efrac90 = 0;
 	  float lay_energy = 0;
+	  float tot_energy = ld.energyEE() + ld.energyFH() + ld.energyBH();
+
+	  //std::cout << "Energy difference: \t" << eIDHelper_->electronClusterEnergy() - tot_energy << std::endl;
+	  ecalDrivenGsfele_ele_outEnergy_.push_back(eIDHelper_->electronClusterEnergy() - tot_energy);
+
 	  for (unsigned lay = 1; lay < 52; ++lay) {
 	      lay_energy += ld.energyPerLayer()[lay];
-	      if (lay_Efrac10 == 0 && lay_energy > 0.1 * ld.energyEE()){
-		  lay_Efrac10 = lay;
-	      }
-	      if (lay_Efrac90 == 0 && lay_energy > 0.9 * ld.energyEE()){
-		  lay_Efrac90 = lay;
-	      }
+	      if (lay_Efrac10 == 0 && lay_energy > 0.1 * tot_energy) lay_Efrac10 = lay;
+	      if (lay_Efrac90 == 0 && lay_energy > 0.9 * tot_energy) lay_Efrac90 = lay;
 	  }
+
 	  ecalDrivenGsfele_ele_layEfrac10_.push_back(lay_Efrac10);
 	  ecalDrivenGsfele_ele_layEfrac90_.push_back(lay_Efrac90);
 
