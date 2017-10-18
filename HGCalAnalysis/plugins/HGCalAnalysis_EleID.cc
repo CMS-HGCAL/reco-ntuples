@@ -185,6 +185,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
 
   // ---------parameters ----------------------------
   bool readCaloParticles_;
+  bool readGen_;
   bool storeMoreGenInfo_;
   bool storeGenParticleExtrapolation_;
   bool storePCAvariables_;
@@ -206,6 +207,8 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
     */
   edm::EDGetTokenT<std::vector<TrackingVertex>> vtx_;
   edm::EDGetTokenT<std::vector<TrackingParticle>> part_;
+  edm::EDGetTokenT<std::vector<reco::GenParticle> > genParticles_;
+
     /*
   edm::EDGetTokenT<std::vector<SimCluster>> simClusters_;
   edm::EDGetTokenT<std::vector<reco::PFCluster>> pfClusters_;
@@ -266,6 +269,17 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<std::vector<float>> genpart_posy_;
   std::vector<std::vector<float>> genpart_posz_;
 
+  ////////////////////
+  // reco::GenParticles
+  //
+  std::vector<float> gen_eta_;
+  std::vector<float> gen_phi_;
+  std::vector<float> gen_pt_;
+  std::vector<float> gen_energy_;
+  std::vector<int> gen_charge_;
+  std::vector<int> gen_pdgid_;
+  std::vector<int> gen_status_;
+  std::vector<std::vector<int>> gen_daughters_;
     /*
   ////////////////////
   // RecHits
@@ -412,6 +426,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_track_gsfChi2_;
   std::vector<float> ecalDrivenGsfele_track_kfChi2_;
   std::vector<float> ecalDrivenGsfele_track_kfNhits_;
+  std::vector<float> ecalDrivenGsfele_track_gsfNhits_;
 
   std::vector<float> ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_;
   std::vector<float> ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_;
@@ -519,6 +534,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID() { ; }
 
 HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     : readCaloParticles_(iConfig.getParameter<bool>("readCaloParticles")),
+      readGen_(iConfig.getParameter<bool>("readGenParticles")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
@@ -545,6 +561,9 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   eIDHelper_ = new ElectronIDHelper(iConfig , consumesCollector());
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
+  if (readGen_) {
+        genParticles_ = consumes<std::vector<reco::GenParticle>>(edm::InputTag("genParticles"));
+    }
       //consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectrons"));
 
   /*
@@ -567,6 +586,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   if (readCaloParticles_) {
     caloParticles_ = consumes<std::vector<CaloParticle>>(edm::InputTag("mix", "MergedCaloTruth"));
   }
+
   pfClusters_ = consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCal"));
   pfClustersFromMultiCl_ =
       consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCalFromMultiCl"));
@@ -577,6 +597,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
       consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag("hgcalLayerClusters"));
   tracks_ = consumes<std::vector<reco::Track>>(edm::InputTag("generalTracks"));
   */
+
+
 
   usesResource(TFileService::kSharedResource);
   edm::Service<TFileService> fs;
@@ -620,7 +642,16 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   t_->Branch("genpart_posx", &genpart_posx_);
   t_->Branch("genpart_posy", &genpart_posy_);
   t_->Branch("genpart_posz", &genpart_posz_);
-
+  if (readGen_) {
+    t_->Branch("gen_eta", &gen_eta_);
+    t_->Branch("gen_phi", &gen_phi_);
+    t_->Branch("gen_pt", &gen_pt_);
+    t_->Branch("gen_energy", &gen_energy_);
+    t_->Branch("gen_charge", &gen_charge_);
+    t_->Branch("gen_pdgid", &gen_pdgid_);
+    t_->Branch("gen_status", &gen_status_);
+    t_->Branch("gen_daughters", &gen_daughters_);
+  }
   /*
   ////////////////////
   // RecHits
@@ -787,6 +818,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_track_gsfChi2", &ecalDrivenGsfele_track_gsfChi2_);
     t_->Branch("ecalDrivenGsfele_track_kfChi2", &ecalDrivenGsfele_track_kfChi2_);
     t_->Branch("ecalDrivenGsfele_track_kfNhits", &ecalDrivenGsfele_track_kfNhits_);
+    t_->Branch("ecalDrivenGsfele_track_gsfNhits", &ecalDrivenGsfele_track_gsfNhits_);
 
     // electron (seed) variables
     t_->Branch("ecalDrivenGsfele_ele_siguu", &ecalDrivenGsfele_ele_siguu_);
@@ -893,6 +925,18 @@ void HGCalAnalysis_EleID::clearVariables() {
   genpart_posx_.clear();
   genpart_posy_.clear();
   genpart_posz_.clear();
+
+  ////////////////////
+  // reco::GenParticles
+  //
+  gen_eta_.clear();
+  gen_phi_.clear();
+  gen_pt_.clear();
+  gen_energy_.clear();
+  gen_charge_.clear();
+  gen_pdgid_.clear();
+  gen_status_.clear();
+  gen_daughters_.clear();
 
   /*
   ////////////////////
@@ -1051,6 +1095,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_track_gsfChi2_.clear();
   ecalDrivenGsfele_track_kfChi2_.clear();
   ecalDrivenGsfele_track_kfNhits_.clear();
+  ecalDrivenGsfele_track_gsfNhits_.clear();
 
   ecalDrivenGsfele_ele_pcaEigVal1_.clear();
   ecalDrivenGsfele_ele_pcaEigVal2_.clear();
@@ -1290,6 +1335,25 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       if (!trackj->noMother()) {
 	if (&trackj->mother() == tracki) genpart_mother_.at(j) = i;
       }
+    }
+  }
+  if (readGen_) {
+    Handle<std::vector<reco::GenParticle>> genParticlesHandle;
+    iEvent.getByToken(genParticles_, genParticlesHandle);
+    for (std::vector<reco::GenParticle>::const_iterator it_p = genParticlesHandle->begin();
+         it_p != genParticlesHandle->end(); ++it_p) {
+      gen_eta_.push_back(it_p->eta());
+      gen_phi_.push_back(it_p->phi());
+      gen_pt_.push_back(it_p->pt());
+      gen_energy_.push_back(it_p->energy());
+      gen_charge_.push_back(it_p->charge());
+      gen_pdgid_.push_back(it_p->pdgId());
+      gen_status_.push_back(it_p->status());
+      std::vector<int> daughters(it_p->daughterRefVector().size(), 0);
+      for (unsigned j = 0; j < it_p->daughterRefVector().size(); ++j) {
+        daughters[j] = static_cast<int>(it_p->daughterRefVector().at(j).key());
+      }
+      gen_daughters_.push_back(daughters);
     }
   }
 
@@ -1683,6 +1747,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 
       ecalDrivenGsfele_track_kfChi2_.push_back((validKF) ? myTrackRef->normalizedChi2() : -1 );
       ecalDrivenGsfele_track_kfNhits_.push_back((validKF) ? myTrackRef->hitPattern().trackerLayersWithMeasurement() : -1);
+      ecalDrivenGsfele_track_gsfNhits_.push_back(ele.gsfTrack()->hitPattern().trackerLayersWithMeasurement());
 
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
       float radius = 3.;
