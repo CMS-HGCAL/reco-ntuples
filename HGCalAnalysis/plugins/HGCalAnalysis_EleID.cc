@@ -186,6 +186,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   // ---------parameters ----------------------------
   bool readCaloParticles_;
   bool readGen_;
+  edm::InputTag genPartInputTag_;
   bool storeMoreGenInfo_;
   bool storeGenParticleExtrapolation_;
   bool storePCAvariables_;
@@ -196,6 +197,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   double propagationPtThreshold_;
   std::string detector_;
   bool rawRecHits_;
+
 
   // ----------member data ---------------------------
 
@@ -535,6 +537,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID() { ; }
 HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     : readCaloParticles_(iConfig.getParameter<bool>("readCaloParticles")),
       readGen_(iConfig.getParameter<bool>("readGenParticles")),
+      genPartInputTag_(iConfig.existsAs<edm::InputTag>("GenParticles") ? iConfig.getParameter<edm::InputTag>("GenParticles"): edm::InputTag("genParticles")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
@@ -562,7 +565,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
   if (readGen_) {
-        genParticles_ = consumes<std::vector<reco::GenParticle>>(edm::InputTag("genParticles"));
+      genParticles_ = consumes<std::vector<reco::GenParticle>>(genPartInputTag_);
     }
       //consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectrons"));
 
@@ -1238,13 +1241,10 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   toHGCalPropagator.setPropagationTargetZ(layerPositions_[0]);
   std::vector<FSimTrack *> allselectedgentracks;
   unsigned int npart = mySimEvent_->nTracks();
-  for (unsigned int i = 0; i < npart; ++i) {
+    for (unsigned int i = 0; i < npart; ++i) {
     std::vector<float> xp, yp, zp;
     FSimTrack &myTrack(mySimEvent_->track(i));
     math::XYZTLorentzVectorD vtx(0, 0, 0, 0);
-
-    // Skip particles with myTrack.genpartIndex != 1,2
-    if ( myTrack.genpartIndex() > 2 || myTrack.genpartIndex() < 0 ) continue;
 
     int reachedEE = 0;  // compute the extrapolations for the particles reaching EE
 			// and for the gen particles
@@ -1349,6 +1349,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       gen_charge_.push_back(it_p->charge());
       gen_pdgid_.push_back(it_p->pdgId());
       gen_status_.push_back(it_p->status());
+
       std::vector<int> daughters(it_p->daughterRefVector().size(), 0);
       for (unsigned j = 0; j < it_p->daughterRefVector().size(); ++j) {
         daughters[j] = static_cast<int>(it_p->daughterRefVector().at(j).key());
