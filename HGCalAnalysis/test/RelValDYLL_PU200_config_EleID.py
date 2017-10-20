@@ -15,7 +15,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 from FastSimulation.Event.ParticleFilter_cfi import *
 from RecoLocalCalo.HGCalRecProducers.HGCalRecHit_cfi import dEdX_weights as dEdX
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(100) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(40) )
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
@@ -23,16 +23,17 @@ process.source = cms.Source("PoolSource",
 #        'root://cms-xrd-global.cern.ch//store/relval/CMSSW_9_3_2/RelValZEE_14/GEN-SIM-RECO/93X_upgrade2023_realistic_v2_2023D17noPU-v1/10000/2E2C7104-E1A6-E711-817B-0CC47A7C3612.root'
 #        '/store/relval/CMSSW_9_3_0_pre4/RelValTTbar_14TeV/GEN-SIM-RECO/PU25ns_93X_upgrade2023_realistic_v0_D17PU200-v1/00000/082041D3-1E89-E711-80AA-0242AC130002.root'
 #       'root://polgrid4.in2p3.fr//store/relval/CMSSW_9_3_2/RelValSingleElectronPt15Eta1p7_2p7/GEN-SIM-RECO/93X_upgrade2023_realistic_v2_2023D17noPU-v1/10000/D0226E59-00A7-E711-AA65-0CC47A78A426.root'
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/ACFA776A-5CAE-E711-A251-0025905C2CA4.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/AA832E35-77AE-E711-80F9-0025904C5DD8.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/622A6148-73AE-E711-AEB1-0025904CDDEE.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/54CC2B0C-AFAF-E711-B23D-0025905C54BA.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/F0417CC9-B2AF-E711-883A-0025904C68D8.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/70273C7A-B4AF-E711-9DD2-0025904C68DC.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/48E59B54-B2AF-E711-AC7E-0025905D1E00.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/9A9D8351-B4AF-E711-A7CF-0025904C66A4.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/34F77174-B4AF-E711-A390-0025905D1D7A.root',
-'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/QCD_Flat_Pt-15to7000_TuneCUETP8M1_14TeV_pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/2C0CCB5F-9AAF-E711-B301-0CC47AF9B496.root',
+#'root://cms-xrd-global.cern.ch//store/relval/CMSSW_9_3_2/RelValZEE_14/GEN-SIM-RECO/PU25ns_93X_upgrade2023_realistic_v2_2023D17PU200-v1/10000/5CBBD7E3-F7AA-E711-904B-E0071B7A0670.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/BE500A88-5EAD-E711-8E07-0242AC110012.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/78E43CDF-5EAD-E711-BA4A-0242AC110002.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/04CC740B-5FAD-E711-9A4A-0242AC110008.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/A8640BD9-5EAD-E711-9B9C-0242AC11000D.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/7C369899-61AD-E711-BB03-0242AC110006.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/A0A41AA9-88AD-E711-8744-0242AC110002.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/6AB7D61B-91AD-E711-937F-0242AC11000F.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/68C29CB7-8AAD-E711-A9D8-0242AC110003.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/7AED1C74-6BAD-E711-ABA3-0242AC110010.root',
+'root://cms-xrd-global.cern.ch//store/mc/PhaseIITDRFall17DR/DYToLL-M-50_0J_14TeV-madgraphMLM-pythia8/GEN-SIM-RECO/PU200_93X_upgrade2023_realistic_v2-v1/00000/4409A3B7-8EAD-E711-800A-0242AC110009.root',
     ),
     duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
 )
@@ -41,9 +42,21 @@ process.prunedGenParticles = cms.EDProducer(
     "GenParticlePruner",
     src = cms.InputTag("genParticles"),
     select = cms.vstring(
-    "keep  pt > 1.5 & abs(eta) < 4"
+    "drop  *", # this is the default
+    "keep++ pdgId = {Z0}",
+#    "drop pdgId = {Z0} & status = 2"
     )
 )
+
+process.electrons = cms.EDFilter("PdgIdCandViewSelector",
+    src = cms.InputTag("prunedGenParticles"),
+    pdgId = cms.vint32( 11 )
+  )
+
+process.electronFilter = cms.EDFilter("CandViewCountFilter",
+    src = cms.InputTag("electrons"),
+    minNumber = cms.uint32(1),
+  )
 
 process.ana = cms.EDAnalyzer('HGCalAnalysis_EleID',
                              detector = cms.string("all"),
@@ -69,7 +82,7 @@ process.ana.TestParticleFilter.protonEMin = cms.double(100000)
 process.ana.TestParticleFilter.etaMax = cms.double(3.1)
 
 process.TFileService = cms.Service("TFileService",
-                                   fileName = cms.string("hgcalNtuple.root")
+                                   fileName = cms.string("hgcalNtupleDYLL.root")
 
                                    )
 
@@ -83,6 +96,6 @@ if reRunClustering:
     #process.hgcalLayerClusters.ecut = cms.double(3.)  # multiple of sigma noise if dependSensor is true
     #process.hgcalLayerClusters.kappa = cms.double(9.)  # multiple of sigma noise if dependSensor is true
     #process.hgcalLayerClusters.deltac = cms.vdouble(2.,3.,5.) #specify delta c for each subdetector separately
-    process.p = cms.Path(process.hgcalLayerClusters+process.ana)
+    process.p = cms.Path(process.hgcalLayerClusters+process.printTree+process.ana)
 else:
-    process.p = cms.Path(process.prunedGenParticles+process.ana)
+    process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana)
