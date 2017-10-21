@@ -1,7 +1,5 @@
 <use name="root"/>
 <use name="RecoLocalCalo/HGCalRecAlgos"/>
 <export>
-  <lib   name="1"/>
+  <lib name="1"/>
 </export>
-<Flags CXXFLAGS="-O0"/>
-<Flags CXXFLAGS="-g"/>
