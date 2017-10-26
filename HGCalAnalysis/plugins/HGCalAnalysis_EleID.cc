@@ -479,6 +479,14 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_depthCompat_;
   std::vector<float> ecalDrivenGsfele_predDepthSigma_;
 
+  std::vector<float> ecalDrivenGsfele_isoring1_;
+  std::vector<float> ecalDrivenGsfele_isoring2_;
+  std::vector<float> ecalDrivenGsfele_isoring3_;
+  std::vector<float> ecalDrivenGsfele_isoring4_;
+  std::vector<float> ecalDrivenGsfele_isoring5_;
+
+
+
     /*
   ////////////////////
   // calo particles
@@ -858,6 +866,12 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_depthCompat", &ecalDrivenGsfele_depthCompat_);
     t_->Branch("ecalDrivenGsfele_ele_predDepthSigma", &ecalDrivenGsfele_predDepthSigma_);
 
+    t_->Branch("ecalDrivenGsfele_ele_isoring1", &ecalDrivenGsfele_isoring1_);
+    t_->Branch("ecalDrivenGsfele_ele_isoring2", &ecalDrivenGsfele_isoring2_);
+    t_->Branch("ecalDrivenGsfele_ele_isoring3", &ecalDrivenGsfele_isoring3_);
+    t_->Branch("ecalDrivenGsfele_ele_isoring4", &ecalDrivenGsfele_isoring4_);
+    t_->Branch("ecalDrivenGsfele_ele_isoring5", &ecalDrivenGsfele_isoring5_);
+
   }
 
   /*
@@ -1132,6 +1146,12 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_realDepth_.clear();
   ecalDrivenGsfele_depthCompat_.clear();
   ecalDrivenGsfele_predDepthSigma_.clear();
+
+  ecalDrivenGsfele_isoring1_.clear();
+  ecalDrivenGsfele_isoring2_.clear();
+  ecalDrivenGsfele_isoring3_.clear();
+  ecalDrivenGsfele_isoring4_.clear();
+  ecalDrivenGsfele_isoring5_.clear();
 
   /*
   ////////////////////
@@ -1790,6 +1810,13 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  ecalDrivenGsfele_realDepth_.push_back(-1);
 	  ecalDrivenGsfele_depthCompat_.push_back(-1);
 	  ecalDrivenGsfele_predDepthSigma_.push_back(-1);
+
+      ecalDrivenGsfele_isoring1_.push_back(-1);
+      ecalDrivenGsfele_isoring2_.push_back(-1);
+      ecalDrivenGsfele_isoring3_.push_back(-1);
+      ecalDrivenGsfele_isoring4_.push_back(-1);
+      ecalDrivenGsfele_isoring5_.push_back(-1);
+
       }
       else {
 	  // PCA variables: axis, barycenter, eigenvalues and sigmas
@@ -1859,6 +1886,12 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 	  ecalDrivenGsfele_predDepthSigma_.push_back(expectedSigma);
 	  ecalDrivenGsfele_realDepth_.push_back(measuredDepth);
 	  ecalDrivenGsfele_depthCompat_.push_back(depthCompatibility);
+
+      ecalDrivenGsfele_isoring1_.push_back(eIDHelper_->getIsolationRing(0));
+      ecalDrivenGsfele_isoring2_.push_back(eIDHelper_->getIsolationRing(1));
+      ecalDrivenGsfele_isoring3_.push_back(eIDHelper_->getIsolationRing(2));
+      ecalDrivenGsfele_isoring4_.push_back(eIDHelper_->getIsolationRing(3));
+      ecalDrivenGsfele_isoring5_.push_back(eIDHelper_->getIsolationRing(4));
 
       }
     }  // End of loop over electrons
