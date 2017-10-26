@@ -412,6 +412,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_seedeta_;
   std::vector<float> ecalDrivenGsfele_seedphi_;
   std::vector<float> ecalDrivenGsfele_seedenergy_;
+  std::vector<float> ecalDrivenGsfele_eleenergy_;
   std::vector<float> ecalDrivenGsfele_energy_;
   std::vector<float> ecalDrivenGsfele_energyEE_;
   std::vector<float> ecalDrivenGsfele_energyFH_;
@@ -787,6 +788,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_seedeta", &ecalDrivenGsfele_seedeta_);
     t_->Branch("ecalDrivenGsfele_seedphi", &ecalDrivenGsfele_seedphi_);
     t_->Branch("ecalDrivenGsfele_seedenergy", &ecalDrivenGsfele_seedenergy_);
+    t_->Branch("ecalDrivenGsfele_eleenergy", &ecalDrivenGsfele_eleenergy_);
     t_->Branch("ecalDrivenGsfele_energy", &ecalDrivenGsfele_energy_);
     t_->Branch("ecalDrivenGsfele_energyEE", &ecalDrivenGsfele_energyEE_);
     t_->Branch("ecalDrivenGsfele_energyFH", &ecalDrivenGsfele_energyFH_);
@@ -1070,6 +1072,7 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_seedeta_.clear();
   ecalDrivenGsfele_seedphi_.clear();
   ecalDrivenGsfele_seedenergy_.clear();
+  ecalDrivenGsfele_eleenergy_.clear();
   ecalDrivenGsfele_energy_.clear();
   ecalDrivenGsfele_energyEE_.clear();
   ecalDrivenGsfele_energyFH_.clear();
@@ -1719,6 +1722,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_seedeta_.push_back(ele.superCluster()->seed()->eta());
       ecalDrivenGsfele_seedphi_.push_back(ele.superCluster()->seed()->phi());
       ecalDrivenGsfele_seedenergy_.push_back(ele.superCluster()->seed()->energy());
+      ecalDrivenGsfele_eleenergy_.push_back(ele.electronCluster()->energy());
       ecalDrivenGsfele_energy_.push_back(ele.energy());
       /*
       ecalDrivenGsfele_energyEE_.push_back(energyEE);
