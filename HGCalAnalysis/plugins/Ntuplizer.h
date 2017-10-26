@@ -119,11 +119,15 @@ private:
 
     //electrons
     int ele_N;
-    TClonesArray * m_electrons;
+//    TClonesArray * m_electrons;
 
     std::vector<int> ele_echarge;
     std::vector<double>  ele_he;
     std::vector<double> ele_hebc;
+    std::vector<double> ele_eta;
+    std::vector<double> ele_phi;
+    std::vector<double> ele_pt;
+
     //
     std::vector<double> ele_eseedpout;
     std::vector<double> ele_ep;

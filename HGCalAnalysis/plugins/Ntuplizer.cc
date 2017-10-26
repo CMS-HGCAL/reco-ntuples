@@ -117,7 +117,7 @@ Ntuplizer::~Ntuplizer()
 {
   // do anything here that needs to be done at desctruction time
   // (e.g. close files, deallocate resources etc.)
-  delete m_electrons ;
+//  delete m_electrons ;
 //   if (fill_L1trigger) {
 //     delete m_L1emIso;
 //     delete m_L1emNonIso;
@@ -163,8 +163,11 @@ void Ntuplizer::beginJob()
 
   // Electrons
   _mytree->Branch("ele_N",&ele_N,"ele_N/I");
-  m_electrons = new TClonesArray ("TLorentzVector");
-  _mytree->Branch ("electrons", "TClonesArray", &m_electrons, 256000,0);
+//  m_electrons = new TClonesArray ("TLorentzVector");
+//  _mytree->Branch ("electrons", "TClonesArray", &m_electrons, 256000,0);
+  _mytree->Branch("ele_eta,&ele_eta");
+  _mytree->Branch("ele_phi,&ele_eta");
+  _mytree->Branch("ele_pt,&ele_eta");
 
   _mytree->Branch("ele_echarge",&ele_echarge); // ,"ele_echarge[50]/I");
   //
@@ -415,7 +418,7 @@ void Ntuplizer::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup)
 
    FillVertices(iEvent, iSetup);
 
-   m_electrons -> Clear();
+//   m_electrons -> Clear();
    FillElectrons(iEvent, iSetup);
 
 //   FillMET (iEvent, iSetup);
@@ -547,7 +550,7 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
 
   // get the value map for eiD
 
-  TClonesArray & electrons = *m_electrons;
+//  TClonesArray & electrons = *m_electrons;
   int counter = 0;
   ele_N = electronsCol->size();
 
@@ -561,10 +564,13 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
   //  Loop on electrons
   // -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
   for (reco::GsfElectronCollection::const_iterator ielectrons=electronsCol->begin(); ielectrons!=electronsCol->end();++ielectrons) {
-    if(counter>49) continue;
+//    if(counter>49) continue;
 
-    setMomentum(myvector, ielectrons->p4());
-    new (electrons[counter]) TLorentzVector(myvector);
+//    setMomentum(myvector, ielectrons->p4());
+//    new (electrons[counter]) TLorentzVector(myvector);
+    ele_eta.push_back(ielectrons->eta());
+    ele_phi.push_back(ielectrons->phi());
+    ele_pt.push_back(ielectrons->pt());
 
     ele_echarge.push_back(ielectrons->charge());
     //
@@ -828,19 +834,20 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
     reco::CaloCluster_iterator itsclE = sclRef->clustersEnd();
 
     //cout << " sub clusters" << endl;
-
-    for(; itscl < itsclE ; ++itscl) {
-      bool isseed = false;
-      if((*itscl)==ielectrons->superCluster()->seed()) isseed=true; // continue; // skip seed cluster
-      //theBasicClusters_.push_back(&(**itscl));
-      //eSubClusters_ += (*itscl)->energy();
-      ele_sclsubE[counter][countersub]      = (*itscl)->energy();
-      //ele_sclsubE.at(counter).push_back( (*itscl)->energy() );
-      ele_sclsubEta[counter][countersub]    = (*itscl)->eta();
-      ele_sclsubPhi[counter][countersub]    = (*itscl)->phi();
-      ele_sclsubisseed[counter][countersub] = isseed;
-      //N subclusters?->sclNclus... to be checked
-      countersub++;
+    if(counter<50) {
+        for(; itscl < itsclE ; ++itscl) {
+            bool isseed = false;
+            if((*itscl)==ielectrons->superCluster()->seed()) isseed=true; // continue; // skip seed cluster
+            //theBasicClusters_.push_back(&(**itscl));
+            //eSubClusters_ += (*itscl)->energy();
+            ele_sclsubE[counter][countersub]      = (*itscl)->energy();
+            //ele_sclsubE.at(counter).push_back( (*itscl)->energy() );
+            ele_sclsubEta[counter][countersub]    = (*itscl)->eta();
+            ele_sclsubPhi[counter][countersub]    = (*itscl)->phi();
+            ele_sclsubisseed[counter][countersub] = isseed;
+            //N subclusters?->sclNclus... to be checked
+            countersub++;
+        }
     }
     // sort subclusters
 
@@ -901,6 +908,7 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
     // -----------------------------------------------------------------
      //here loop over the PF candidates around the electrons
     int numberOfPFAroundEle = 0;
+    if (counter>49) continue;
     for(unsigned i=0; i<pfCandColl->size(); i++) {
       const reco::PFCandidate& pfc = (*pfCandColl)[i];
       float dR = deltaR(ielectrons->eta(), ielectrons->phi(), pfc.momentum().Eta(), pfc.momentum().Phi());
@@ -1101,6 +1109,9 @@ void Ntuplizer::Init()
   //  for (int i = 0 ; i < 50 ; ++i) {
     //electrons
     ele_echarge.clear();
+    ele_eta.clear();
+    ele_phi.clear();
+    ele_pt.clear();
     ele_he.clear();
     ele_hebc.clear();
     ele_oldhe.clear();
