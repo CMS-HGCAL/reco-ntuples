@@ -165,10 +165,10 @@ void Ntuplizer::beginJob()
   _mytree->Branch("ele_N",&ele_N,"ele_N/I");
 //  m_electrons = new TClonesArray ("TLorentzVector");
 //  _mytree->Branch ("electrons", "TClonesArray", &m_electrons, 256000,0);
-  _mytree->Branch("ele_eta,&ele_eta");
-  _mytree->Branch("ele_phi,&ele_phi");
-  _mytree->Branch("ele_pt,&ele_pt");
-  _mytree->Branch("ele_e,&ele_e");
+  _mytree->Branch("ele_eta",&ele_eta);
+  _mytree->Branch("ele_phi",&ele_phi);
+  _mytree->Branch("ele_pt",&ele_pt);
+  _mytree->Branch("ele_e",&ele_e);
 
   _mytree->Branch("ele_echarge",&ele_echarge); // ,"ele_echarge[50]/I");
   //
