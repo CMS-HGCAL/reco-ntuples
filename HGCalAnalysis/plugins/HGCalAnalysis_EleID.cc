@@ -1683,12 +1683,12 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
       float radius = 3.;
       eIDHelper_->computeHGCAL(ele,radius);
-      //bool good_ele = eIDHelper_->computeHGCAL(ele,radius);
-      bool good_ele=true;
+      bool good_ele = eIDHelper_->computeHGCAL(ele,radius);
+      //bool good_ele=true;
 
       // Check if computation did not run successfully
-      if (eIDHelper_->sigmaUU() == -1) continue;
-      //      if (!good_ele) continue;
+      // if (eIDHelper_->sigmaUU() == -1) continue;
+      if (!good_ele) continue;
 
       auto const &sc = ele.superCluster();
 

@@ -110,5 +110,5 @@ if reRunClustering:
     #process.hgcalLayerClusters.deltac = cms.vdouble(2.,3.,5.) #specify delta c for each subdetector separately
     process.p = cms.Path(process.hgcalLayerClusters+process.printTree+process.ana)
 else:
-    #process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana+process.ntuplizer)
-    process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana)
+    process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana+process.ntuplizer)
+    #process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana)
