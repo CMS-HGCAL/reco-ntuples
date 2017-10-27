@@ -166,8 +166,9 @@ void Ntuplizer::beginJob()
 //  m_electrons = new TClonesArray ("TLorentzVector");
 //  _mytree->Branch ("electrons", "TClonesArray", &m_electrons, 256000,0);
   _mytree->Branch("ele_eta,&ele_eta");
-  _mytree->Branch("ele_phi,&ele_eta");
-  _mytree->Branch("ele_pt,&ele_eta");
+  _mytree->Branch("ele_phi,&ele_phi");
+  _mytree->Branch("ele_pt,&ele_pt");
+  _mytree->Branch("ele_e,&ele_e");
 
   _mytree->Branch("ele_echarge",&ele_echarge); // ,"ele_echarge[50]/I");
   //
@@ -571,6 +572,7 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
     ele_eta.push_back(ielectrons->eta());
     ele_phi.push_back(ielectrons->phi());
     ele_pt.push_back(ielectrons->pt());
+    ele_e.push_back(ielectrons->energy());
 
     ele_echarge.push_back(ielectrons->charge());
     //
@@ -1112,6 +1114,7 @@ void Ntuplizer::Init()
     ele_eta.clear();
     ele_phi.clear();
     ele_pt.clear();
+    ele_e.clear();
     ele_he.clear();
     ele_hebc.clear();
     ele_oldhe.clear();

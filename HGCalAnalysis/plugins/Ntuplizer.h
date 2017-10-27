@@ -127,6 +127,7 @@ private:
     std::vector<double> ele_eta;
     std::vector<double> ele_phi;
     std::vector<double> ele_pt;
+    std::vector<double> ele_e;
 
     //
     std::vector<double> ele_eseedpout;

@@ -77,7 +77,8 @@ process.ana = cms.EDAnalyzer('HGCalAnalysis_EleID',
                              TestParticleFilter = ParticleFilterBlock.ParticleFilter,
                              EERecHits = cms.InputTag('HGCalRecHit:HGCEERecHits'),
                              FHRecHits = cms.InputTag('HGCalRecHit:HGCHEFRecHits'),
-                             BHRecHits = cms.InputTag('HGCalRecHit:HGCHEBRecHits')
+                             BHRecHits = cms.InputTag('HGCalRecHit:HGCHEBRecHits'),
+                             PFMultiClusters = cms.InputTag('particleFlowClusterHGCalFromMultiCl')
 )
 
 process.ana.TestParticleFilter.protonEMin = cms.double(100000)
@@ -109,4 +110,5 @@ if reRunClustering:
     #process.hgcalLayerClusters.deltac = cms.vdouble(2.,3.,5.) #specify delta c for each subdetector separately
     process.p = cms.Path(process.hgcalLayerClusters+process.printTree+process.ana)
 else:
-    process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana+process.ntuplizer)
+    #process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana+process.ntuplizer)
+    process.p = cms.Path(process.prunedGenParticles+process.electrons+process.electronFilter+process.ana)

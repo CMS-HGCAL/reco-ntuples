@@ -485,8 +485,8 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_isoring3_;
   std::vector<float> ecalDrivenGsfele_isoring4_;
   std::vector<float> ecalDrivenGsfele_isoring5_;
-
-
+  std::vector<float> ecalDrivenGsfele_isoring6_;
+  std::vector<float> ecalDrivenGsfele_isoring7_;
 
     /*
   ////////////////////
@@ -873,7 +873,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_isoring3", &ecalDrivenGsfele_isoring3_);
     t_->Branch("ecalDrivenGsfele_ele_isoring4", &ecalDrivenGsfele_isoring4_);
     t_->Branch("ecalDrivenGsfele_ele_isoring5", &ecalDrivenGsfele_isoring5_);
-
+    t_->Branch("ecalDrivenGsfele_ele_isoring6", &ecalDrivenGsfele_isoring6_);
+    t_->Branch("ecalDrivenGsfele_ele_isoring7", &ecalDrivenGsfele_isoring7_);
   }
 
   /*
@@ -1155,7 +1156,8 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_isoring3_.clear();
   ecalDrivenGsfele_isoring4_.clear();
   ecalDrivenGsfele_isoring5_.clear();
-
+  ecalDrivenGsfele_isoring6_.clear();
+  ecalDrivenGsfele_isoring7_.clear();
   /*
   ////////////////////
   // calo particles
@@ -1680,12 +1682,13 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
       float radius = 3.;
-      //eIDHelper_->computeHGCAL(ele,radius);
-      bool good_ele = eIDHelper_->computeHGCAL(ele,radius);
+      eIDHelper_->computeHGCAL(ele,radius);
+      //bool good_ele = eIDHelper_->computeHGCAL(ele,radius);
+      bool good_ele=true;
 
       // Check if computation did not run successfully
-      //if (eIDHelper_->sigmaUU() == -1) {
-      if (!good_ele) continue;
+      if (eIDHelper_->sigmaUU() == -1) continue;
+      //      if (!good_ele) continue;
 
       auto const &sc = ele.superCluster();
 
@@ -1837,7 +1840,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_isoring3_.push_back(-1);
       ecalDrivenGsfele_isoring4_.push_back(-1);
       ecalDrivenGsfele_isoring5_.push_back(-1);
-
+      ecalDrivenGsfele_isoring6_.push_back(-1);
+      ecalDrivenGsfele_isoring7_.push_back(-1);
       }
       else {
 	  // PCA variables: axis, barycenter, eigenvalues and sigmas
@@ -1913,6 +1917,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_isoring3_.push_back(eIDHelper_->getIsolationRing(2));
       ecalDrivenGsfele_isoring4_.push_back(eIDHelper_->getIsolationRing(3));
       ecalDrivenGsfele_isoring5_.push_back(eIDHelper_->getIsolationRing(4));
+      ecalDrivenGsfele_isoring6_.push_back(eIDHelper_->getIsolationRing(5));
+      ecalDrivenGsfele_isoring7_.push_back(eIDHelper_->getIsolationRing(6));
 
       }
     }  // End of loop over electrons
