@@ -1730,7 +1730,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 
       // Compute variables using helper functions: https://github.com/CMS-HGCAL/EgammaTools
       float radius = 3.;
-      eIDHelper_->computeHGCAL(ele,radius);
+      eIDHelper_->computeHGCAL(ele,radius,0);
       //bool good_ele = eIDHelper_->computeHGCAL(ele,radius);
       bool good_ele=true;
 
