@@ -190,6 +190,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   edm::InputTag genPartInputTag_;
   edm::InputTag bsInputTag_;
   edm::InputTag puSummary_;
+  edm::InputTag electronTag_;
   bool storeMoreGenInfo_;
   bool storeGenParticleExtrapolation_;
   bool storePCAvariables_;
@@ -561,6 +562,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
       genPartInputTag_(iConfig.existsAs<edm::InputTag>("GenParticles") ? iConfig.getParameter<edm::InputTag>("GenParticles"): edm::InputTag("genParticles")),
       bsInputTag_(iConfig.existsAs<edm::InputTag>("BeamSpot")? iConfig.getParameter<edm::InputTag>("BeamSpot"): edm::InputTag("offlineBeamSpot")),
       puSummary_(iConfig.existsAs<edm::InputTag>("PUSummary")? iConfig.getParameter<edm::InputTag>("PUSummary"): edm::InputTag("addPileupInfo")),
+      electronTag_(iConfig.existsAs<edm::InputTag>("Electrons")? iConfig.getParameter<edm::InputTag>("Electrons"): edm::InputTag("ecalDrivenGsfElectronsFromMultiCl")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
@@ -587,7 +589,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   beamSpot_ = consumes<reco::BeamSpot>(bsInputTag_);
   eIDHelper_ = new ElectronIDHelper(iConfig , consumesCollector());
   electrons_ =
-      consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
+      consumes<std::vector<reco::GsfElectron>>(electronTag_);
   if (readGen_) {
       genParticles_ = consumes<std::vector<reco::GenParticle>>(genPartInputTag_);
     }
