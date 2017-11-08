@@ -21,6 +21,9 @@
 #include "DataFormats/METReco/interface/PFMETFwd.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 #include "DataFormats/ParticleFlowCandidate/interface/PFCandidateFwd.h"
+#include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
+
 //
 #include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
 #include "DataFormats/EgammaCandidates/interface/Conversion.h"
@@ -65,7 +68,7 @@ private:
     virtual void beginJob() override;
     virtual void analyze(const edm::Event&, const edm::EventSetup&) override;
     virtual void endJob() override;
-
+    float puDensity(float z, int npu, float z0,float sigmaz) const ;
     //virtual void beginRun(edm::Run const&, edm::EventSetup const&) override;
     //virtual void endRun(edm::Run const&, edm::EventSetup const&) override;
     //virtual void beginLuminosityBlock(edm::LuminosityBlock const&, edm::EventSetup const&) override;
@@ -96,6 +99,8 @@ private:
     edm::EDGetTokenT<reco::BeamSpot> beamspot_;
     edm::EDGetTokenT<reco::PFCandidateCollection> pfcandidates_;
     edm::EDGetTokenT<std::vector<reco::GenParticle>> genparticles_;
+    edm::EDGetTokenT<edm::HepMCProduct> hev_;
+    edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puSummaryInfo_;
     //std::vector<edm::InputTag > HLT_Filters_;
     //edm::InputTag SCTag_;
 
@@ -105,8 +110,16 @@ private:
 
     //global variables
     int _nEvent, _nRun, _nLumi;
-    //pile-up
+    // true vertex position (in cm)
+    float vz_;
+    float z_bs_;
+    float sigmaz_bs_;
+    float pu_density_;
+    float rpu_density_;
+    //pile-up - true number
     int _PU_N;
+    // pile-up - number unsmeared
+    int _PU_NOMINAL;
 
     //vertices
     int _vtx_N;

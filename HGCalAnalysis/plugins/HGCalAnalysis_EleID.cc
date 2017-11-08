@@ -23,7 +23,7 @@
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
 #include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
-
+#include "SimDataFormats/PileupSummaryInfo/interface/PileupSummaryInfo.h"
 #include "DataFormats/Math/interface/deltaPhi.h"
 // track data formats
 #include "DataFormats/TrackReco/interface/Track.h"
@@ -175,6 +175,7 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   void clearVariables();
 
   void retrieveLayerPositions(const edm::EventSetup &, unsigned layers);
+  float puDensity(float z, int npu, float z0,float sigmaz) const ;
 
   void computeWidth(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
 		    math::XYZVector &axis, float &sigu, float &sigv, float &sigp, float &sige,
@@ -187,6 +188,8 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   bool readCaloParticles_;
   bool readGen_;
   edm::InputTag genPartInputTag_;
+  edm::InputTag bsInputTag_;
+  edm::InputTag puSummary_;
   bool storeMoreGenInfo_;
   bool storeGenParticleExtrapolation_;
   bool storePCAvariables_;
@@ -227,6 +230,8 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   edm::EDGetTokenT<std::vector<reco::GsfElectron>> electrons_;
     //edm::EDGetTokenT<edm::ValueMap<reco::CaloClusterPtr>> electrons_ValueMapClusters_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_;
+  edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puSummaryInfo_;
+  edm::EDGetTokenT<reco::BeamSpot> beamSpot_;
 
   // Ele ID helper
   ElectronIDHelper * eIDHelper_;
@@ -242,7 +247,14 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   float vtx_x_;
   float vtx_y_;
   float vtx_z_;
-    int n_vtx_;
+  int n_vtx_;
+  int npu_;
+  int rpu_;
+  float z_bs_;
+  float sigmaz_bs_;
+  float pu_density_;
+  float rpu_density_;
+
 
   ////////////////////
   // GenParticles
@@ -547,6 +559,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     : readCaloParticles_(iConfig.getParameter<bool>("readCaloParticles")),
       readGen_(iConfig.getParameter<bool>("readGenParticles")),
       genPartInputTag_(iConfig.existsAs<edm::InputTag>("GenParticles") ? iConfig.getParameter<edm::InputTag>("GenParticles"): edm::InputTag("genParticles")),
+      bsInputTag_(iConfig.existsAs<edm::InputTag>("BeamSpot")? iConfig.getParameter<edm::InputTag>("BeamSpot"): edm::InputTag("offlineBeamSpot")),
+      puSummary_(iConfig.existsAs<edm::InputTag>("PUSummary")? iConfig.getParameter<edm::InputTag>("PUSummary"): edm::InputTag("addPileupInfo")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
@@ -569,7 +583,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   hev_ = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared"));
 
   vertices_ = consumes<std::vector<reco::Vertex>>(edm::InputTag("offlinePrimaryVertices"));
-
+  puSummaryInfo_ = consumes<std::vector<PileupSummaryInfo> > (puSummary_);
+  beamSpot_ = consumes<reco::BeamSpot>(bsInputTag_);
   eIDHelper_ = new ElectronIDHelper(iConfig , consumesCollector());
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
@@ -626,6 +641,12 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   t_->Branch("vtx_x", &vtx_x_);
   t_->Branch("vtx_y", &vtx_y_);
   t_->Branch("vtx_z", &vtx_z_);
+  t_->Branch("nominalpu",& npu_);
+  t_->Branch("realpu",& rpu_);
+  t_->Branch("z_bs", &z_bs_);
+  t_->Branch("sigmaz_bs", &sigmaz_bs_);
+  t_->Branch("pu_density",&pu_density_);
+  t_->Branch("truepu_density",&rpu_density_);
 
   t_->Branch("genpart_eta", &genpart_eta_);
   t_->Branch("genpart_phi", &genpart_phi_);
@@ -1214,6 +1235,15 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   iEvent.getByToken(electrons_, eleHandle);
   const std::vector<reco::GsfElectron> &electrons = *eleHandle;
 
+//  Handle<std::vector<reco::Vertex>> vtxHandle;
+//  iEvent.getByToken(vertices_,vtxHandle);
+
+  Handle<std::vector<PileupSummaryInfo>>  puSIHandle;
+  iEvent.getByToken(puSummaryInfo_,puSIHandle);
+
+  Handle<reco::BeamSpot> bsHandle;
+  iEvent.getByToken(beamSpot_,bsHandle);
+
   /*
   Handle<std::vector<SimCluster>> simClusterHandle;
   Handle<std::vector<reco::PFCluster>> pfClusterHandle;
@@ -1262,6 +1292,22 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
   vz_ = primaryVertex->position().z() / 10.;
   Point sim_pv(vx, vy, vz_);
 
+  auto const & pusi = *puSIHandle;
+  unsigned npsi=pusi.size();
+  for (unsigned ipsi=0; ipsi<npsi ;++ ipsi) {
+      if (pusi[ipsi].getBunchCrossing()==0) {
+          npu_ = pusi[ipsi].getTrueNumInteractions();
+          rpu_ = pusi[ipsi].getPU_NumInteractions();
+          break;
+      }
+  }
+
+  auto const & beamspot = *bsHandle;
+  // according to Josh, z0 and sigma is in mm
+  z_bs_ = beamspot.z0()*10.;
+  sigmaz_bs_ = beamspot.sigmaZ()*10.;
+  pu_density_ = puDensity(10.*vertices[0].z(), npu_, z_bs_, sigmaz_bs_);
+  rpu_density_ = puDensity(10.*vz_, rpu_, z_bs_, sigmaz_bs_);
   HGCal_helpers_EleID::simpleTrackPropagator toHGCalPropagator(aField_);
   toHGCalPropagator.setPropagationTargetZ(layerPositions_[0]);
   std::vector<FSimTrack *> allselectedgentracks;
@@ -2382,6 +2428,11 @@ void HGCalAnalysis_EleID::fillDescriptions(edm::ConfigurationDescriptions &descr
    return Surface::RotationType( xAxis, yAxis, zAxis);
    }
  */
+
+float HGCalAnalysis_EleID::puDensity(float z, int npu, float z0,float sigmaz) const {
+    float x = z-z0;
+    return npu*std::exp(-0.5*x*x/sigmaz/sigmaz)/std::sqrt(2.*TMath::TwoPi())/sigmaz;
+}
 
 // define this as a plug-in
 DEFINE_FWK_MODULE(HGCalAnalysis_EleID);

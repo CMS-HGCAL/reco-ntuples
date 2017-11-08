@@ -108,6 +108,8 @@ PileupSrc_ ("addPileupInfo")
     beamspot_ = consumes<reco::BeamSpot>(edm::InputTag("offlineBeamSpot"));
     pfcandidates_ = consumes<reco::PFCandidateCollection>(edm::InputTag("particleFlow"));
     genparticles_ = consumes<std::vector<reco::GenParticle>>(genPartInputTag_);
+    puSummaryInfo_ = consumes<std::vector<PileupSummaryInfo> > (PileupSrc_);
+    hev_ = consumes<edm::HepMCProduct>(edm::InputTag("generatorSmeared"));
 }
 
 // =============================================================================================
@@ -151,9 +153,16 @@ void Ntuplizer::beginJob()
   _mytree->Branch("nEvent",&_nEvent,"nEvent/I");
   _mytree->Branch("nRun",&_nRun,"nRun/I");
   _mytree->Branch("nLumi",&_nLumi,"nLumi/I");
+  _mytree->Branch("mc_vtx_z",&vz_);
+  _mytree->Branch("bs_z",&z_bs_);
+  _mytree->Branch("bs_sigmaz",&sigmaz_bs_);
+  _mytree->Branch("PU_DENSITY",&pu_density_);
+  _mytree->Branch("PU_REALDENSITY",&rpu_density_);
 
   // Pile UP
   _mytree->Branch("PU_N",&_PU_N,"PU_N/I");
+  _mytree->Branch("PU_NOMINAL",&_PU_NOMINAL,"PU_N/I");
+
 
   // Trigger
   _mytree->Branch("trig_fired_names",&trig_fired_names,"trig_fired_names[10000]/C");
@@ -452,6 +461,10 @@ void Ntuplizer::FillEvent(const edm::Event& iEvent, const edm::EventSetup& iSetu
   _nRun   = iEvent.id().run();
   _nLumi  = iEvent.luminosityBlock();
 
+  Handle<edm::HepMCProduct> hevH;
+  iEvent.getByToken(hev_, hevH);
+  HepMC::GenVertex *primaryVertex = *(hevH)->GetEvent()->vertices_begin();
+  vz_ = primaryVertex->position().z() / 10.;
   // ----------------
   // Fired Triggers
   // ----------------
@@ -503,12 +516,31 @@ void Ntuplizer::FillVertices(const edm::Event& iEvent, const edm::EventSetup& iS
 
   //const reco::VertexCollection & vertices = *recoPrimaryVertexCollection.product();
 
-//   // 	edm::Handle<reco::BeamSpot> recoBeamSpotHandle;
-//   // 	iEvent.getByType(recoBeamSpotHandle);
-//   // 	const reco::BeamSpot bs = *recoBeamSpotHandle;
-
   //int vtx_counter=0;
   _vtx_N = recoPrimaryVertexCollection->size();
+
+  vz_ = recoPrimaryVertexCollection->at(0).z();
+  Handle<std::vector<PileupSummaryInfo>>  puSIHandle;
+  iEvent.getByToken(puSummaryInfo_,puSIHandle);
+
+  auto const & pusi = *puSIHandle;
+  unsigned npsi=pusi.size();
+  for (unsigned ipsi=0; ipsi<npsi ;++ ipsi) {
+      if (pusi[ipsi].getBunchCrossing()==0) {
+          _PU_NOMINAL = pusi[ipsi].getTrueNumInteractions();
+          _PU_N = pusi[ipsi].getPU_NumInteractions();
+          break;
+      }
+  }
+
+  Handle<reco::BeamSpot> bsHandle;
+  iEvent.getByToken(beamspot_,bsHandle);
+  const reco::BeamSpot &beamspot = *(bsHandle.product());
+
+  z_bs_ = beamspot.z0()*10.;
+  sigmaz_bs_ = beamspot.sigmaZ()*10.;
+  pu_density_ = puDensity(10.*recoPrimaryVertexCollection->at(0).z(), _PU_NOMINAL, z_bs_, sigmaz_bs_);
+  rpu_density_ = puDensity(10.*vz_, _PU_N, z_bs_, sigmaz_bs_);
 
 } // end of FillVertices
 
@@ -547,7 +579,7 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
   // get the beam spot
   edm::Handle<reco::BeamSpot> beamspot_h;
   iEvent.getByToken(beamspot_, beamspot_h);
-  const reco::BeamSpot &beamSpot = *(beamspot_h.product());
+  const reco::BeamSpot &beamspot = *(beamspot_h.product());
 
   // get the value map for eiD
 
@@ -737,7 +769,7 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
     //ielectrons->gsfTrack()->trackerExpectedHitsInner().numberOfHits());
 
 
-    bool vtxFitConversion = ConversionTools::hasMatchedConversion(*ielectrons, conversions_h, beamSpot.position());
+    bool vtxFitConversion = ConversionTools::hasMatchedConversion(*ielectrons, conversions_h, beamspot.position());
     ele_vtxconv.push_back(vtxFitConversion);
 
     //
@@ -969,7 +1001,7 @@ void Ntuplizer::FillElectrons(const edm::Event& iEvent, const edm::EventSetup& i
     ++counter;
   } // for loop on gsfelectrons
 
-  if(counter>49) { ele_N = 50; cout << "Number of electrons>49, electrons_N set to 50" << endl;}
+//  if(counter>49) { ele_N = 50; cout << "Number of electrons>49, electrons_N set to 50" << endl;}
 
 } // end of FillElectrons
 
@@ -1319,6 +1351,11 @@ Ntuplizer::fillDescriptions(edm::ConfigurationDescriptions& descriptions) {
   edm::ParameterSetDescription desc;
   desc.setUnknown();
   descriptions.addDefault(desc);
+}
+
+float Ntuplizer::puDensity(float z, int npu, float z0,float sigmaz) const {
+    float x = z-z0;
+    return npu*std::exp(-0.5*x*x/sigmaz/sigmaz)/std::sqrt(2.*TMath::TwoPi())/sigmaz;
 }
 
 //define this as a plug-in
