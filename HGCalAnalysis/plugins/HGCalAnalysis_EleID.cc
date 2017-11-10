@@ -57,6 +57,8 @@
 
 #include "FWCore/Framework/interface/ConsumesCollector.h"
 #include "EgammaTools/EgammaAnalysis/interface/ElectronIDHelper.h"
+#include "EgammaTools/EgammaAnalysis/interface/ElectronBDTHelper.h"
+
 
 #include <map>
 #include <set>
@@ -234,8 +236,9 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   edm::EDGetTokenT<std::vector<PileupSummaryInfo>> puSummaryInfo_;
   edm::EDGetTokenT<reco::BeamSpot> beamSpot_;
 
-  // Ele ID helper
+  // Ele ID helpers
   ElectronIDHelper * eIDHelper_;
+  ElectronBDTHelper * bdtHelper_;
 
   TTree *t_;
 
@@ -501,6 +504,8 @@ class HGCalAnalysis_EleID : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm
   std::vector<float> ecalDrivenGsfele_isoring6_;
   std::vector<float> ecalDrivenGsfele_isoring7_;
 
+  std::vector<float> ecalDrivenGsfele_bdt_;
+
     /*
   ////////////////////
   // calo particles
@@ -562,7 +567,7 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
       genPartInputTag_(iConfig.existsAs<edm::InputTag>("GenParticles") ? iConfig.getParameter<edm::InputTag>("GenParticles"): edm::InputTag("genParticles")),
       bsInputTag_(iConfig.existsAs<edm::InputTag>("BeamSpot")? iConfig.getParameter<edm::InputTag>("BeamSpot"): edm::InputTag("offlineBeamSpot")),
       puSummary_(iConfig.existsAs<edm::InputTag>("PUSummary")? iConfig.getParameter<edm::InputTag>("PUSummary"): edm::InputTag("addPileupInfo")),
-      electronTag_(iConfig.existsAs<edm::InputTag>("Electrons")? iConfig.getParameter<edm::InputTag>("Electrons"): edm::InputTag("ecalDrivenGsfElectronsFromMultiCl")),
+      electronTag_(iConfig.existsAs<edm::InputTag>("GsfElectrons")? iConfig.getParameter<edm::InputTag>("GsfElectrons"): edm::InputTag("ecalDrivenGsfElectronsFromMultiCl")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
@@ -588,6 +593,8 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
   puSummaryInfo_ = consumes<std::vector<PileupSummaryInfo> > (puSummary_);
   beamSpot_ = consumes<reco::BeamSpot>(bsInputTag_);
   eIDHelper_ = new ElectronIDHelper(iConfig , consumesCollector());
+  bdtHelper_ = new ElectronBDTHelper(iConfig ,consumesCollector());
+
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(electronTag_);
   if (readGen_) {
@@ -898,7 +905,10 @@ HGCalAnalysis_EleID::HGCalAnalysis_EleID(const edm::ParameterSet &iConfig)
     t_->Branch("ecalDrivenGsfele_ele_isoring5", &ecalDrivenGsfele_isoring5_);
     t_->Branch("ecalDrivenGsfele_ele_isoring6", &ecalDrivenGsfele_isoring6_);
     t_->Branch("ecalDrivenGsfele_ele_isoring7", &ecalDrivenGsfele_isoring7_);
+    t_->Branch("ecalDrivenGsfele_bdt", &ecalDrivenGsfele_bdt_);
+
   }
+
 
   /*
   ////////////////////
@@ -1181,6 +1191,8 @@ void HGCalAnalysis_EleID::clearVariables() {
   ecalDrivenGsfele_isoring5_.clear();
   ecalDrivenGsfele_isoring6_.clear();
   ecalDrivenGsfele_isoring7_.clear();
+
+  ecalDrivenGsfele_bdt_.clear();
   /*
   ////////////////////
   // calo particles
@@ -1720,6 +1732,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
 
     // initialize eleID helper
     eIDHelper_->eventInit(iEvent,iSetup);
+    bdtHelper_->eventInit(iEvent,iSetup);
+    bdtHelper_->setElectonIDHelper(eIDHelper_);
     //eIDHelper_->setHitMap(&hitmap_);
     //eIDHelper_->setRecHitTools(&recHitTools_);
 
@@ -1890,6 +1904,8 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_isoring5_.push_back(-1);
       ecalDrivenGsfele_isoring6_.push_back(-1);
       ecalDrivenGsfele_isoring7_.push_back(-1);
+
+      ecalDrivenGsfele_bdt_.push_back(-1);
       }
       else {
 	  // PCA variables: axis, barycenter, eigenvalues and sigmas
@@ -1967,7 +1983,7 @@ void HGCalAnalysis_EleID::analyze(const edm::Event &iEvent, const edm::EventSetu
       ecalDrivenGsfele_isoring5_.push_back(eIDHelper_->getIsolationRing(4));
       ecalDrivenGsfele_isoring6_.push_back(eIDHelper_->getIsolationRing(5));
       ecalDrivenGsfele_isoring7_.push_back(eIDHelper_->getIsolationRing(6));
-
+      ecalDrivenGsfele_bdt_.push_back(bdtHelper_->computeBDT(ele));
       }
     }  // End of loop over electrons
   }
