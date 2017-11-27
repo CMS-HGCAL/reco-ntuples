@@ -20,7 +20,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-        '/store/relval/CMSSW_9_3_0_pre4/RelValTTbar_14TeV/GEN-SIM-RECO/PU25ns_93X_upgrade2023_realistic_v0_D17PU200-v1/00000/082041D3-1E89-E711-80AA-0242AC130002.root'
+        '/store/mc/PhaseIITDRFall17DR/SingleGammaPt100Eta1p6_2p8/GEN-SIM-RECO/noPUFEVT_93X_upgrade2023_realistic_v2-v1/90000/02F2B8A2-44AA-E711-BD55-7845C4FC38ED.root'
     ),
     duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
 )
@@ -33,6 +33,8 @@ process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              storeGenParticleExtrapolation = cms.bool(False),
                              storePCAvariables = cms.bool(False),
                              storeElectrons = cms.bool(True),
+                             storePFCandidates = cms.bool(True),
+                             readGenParticles = cms.bool(True),
                              recomputePCA = cms.bool(False),
                              includeHaloPCA = cms.bool(True),
                              dEdXWeights = dEdX,

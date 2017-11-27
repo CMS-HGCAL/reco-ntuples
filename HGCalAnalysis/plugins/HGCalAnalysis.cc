@@ -16,6 +16,7 @@
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
 #include "DataFormats/ParticleFlowReco/interface/PFCluster.h"
 #include "DataFormats/VertexReco/interface/Vertex.h"
+#include "DataFormats/ParticleFlowCandidate/interface/PFCandidate.h"
 #include "Geometry/HGCalGeometry/interface/HGCalGeometry.h"
 #include "Geometry/HcalTowerAlgo/interface/HcalGeometry.h"
 #include "SimDataFormats/CaloAnalysis/interface/CaloParticle.h"
@@ -186,6 +187,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   bool storeGenParticleExtrapolation_;
   bool storePCAvariables_;
   bool storeElectrons_;
+  bool storePFCandidates_;
   bool recomputePCA_;
   bool includeHaloPCA_;
   double layerClusterPtThreshold_;
@@ -214,6 +216,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   edm::EDGetTokenT<std::vector<reco::GsfElectron>> electrons_;
   edm::EDGetTokenT<edm::ValueMap<reco::CaloClusterPtr>> electrons_ValueMapClusters_;
   edm::EDGetTokenT<std::vector<reco::Vertex>> vertices_;
+  edm::EDGetTokenT<std::vector<reco::PFCandidate>> pfCandidates_;
 
   TTree *t_;
 
@@ -440,6 +443,17 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<std::vector<float>> track_posy_;
   std::vector<std::vector<float>> track_posz_;
 
+
+  ////////////////////
+  // PF candidates
+  //
+  std::vector<float> pfcandidate_eta_;
+  std::vector<float> pfcandidate_phi_;
+  std::vector<float> pfcandidate_pt_;
+  std::vector<float> pfcandidate_energy_;
+  std::vector<int> pfcandidate_pdgid_;
+
+
   ////////////////////
   // helper classes
   //
@@ -478,6 +492,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
       storeElectrons_(iConfig.getParameter<bool>("storeElectrons")),
+      storePFCandidates_(iConfig.getParameter<bool>("storePFCandidates")),
       recomputePCA_(iConfig.getParameter<bool>("recomputePCA")),
       includeHaloPCA_(iConfig.getParameter<bool>("includeHaloPCA")),
       layerClusterPtThreshold_(iConfig.getParameter<double>("layerClusterPtThreshold")),
@@ -517,6 +532,10 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
 
   if (readGen_) {
     genParticles_ = consumes<std::vector<reco::GenParticle>>(edm::InputTag("genParticles"));
+  }
+
+  if (storePFCandidates_) {
+    pfCandidates_ = consumes<std::vector<reco::PFCandidate>>(edm::InputTag("particleFlow"));
   }
 
   pfClusters_ = consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCal"));
@@ -767,6 +786,18 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   t_->Branch("track_posx", &track_posx_);
   t_->Branch("track_posy", &track_posy_);
   t_->Branch("track_posz", &track_posz_);
+
+  ////////////////////
+  // PF candidates
+  //
+  if (storePFCandidates_) {
+    t_->Branch("pfcandidate_eta", &pfcandidate_eta_);
+    t_->Branch("pfcandidate_phi", &pfcandidate_phi_);
+    t_->Branch("pfcandidate_pt", &pfcandidate_pt_);
+    t_->Branch("pfcandidate_energy", &pfcandidate_energy_);
+    t_->Branch("pfcandidate_pdgid", &pfcandidate_pdgid_);
+  }
+
 }
 HGCalAnalysis::~HGCalAnalysis() {
   // do anything here that needs to be done at desctruction time
@@ -810,7 +841,7 @@ void HGCalAnalysis::clearVariables() {
   genpart_posx_.clear();
   genpart_posy_.clear();
   genpart_posz_.clear();
-	
+
   ////////////////////
   // reco::GenParticles
   //
@@ -994,6 +1025,15 @@ void HGCalAnalysis::clearVariables() {
   track_posx_.clear();
   track_posy_.clear();
   track_posz_.clear();
+
+  ////////////////////
+  // PF candidates
+  //
+  pfcandidate_eta_.clear();
+  pfcandidate_phi_.clear();
+  pfcandidate_pt_.clear();
+  pfcandidate_energy_.clear();
+  pfcandidate_pdgid_.clear();
 }
 
 void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup) {
@@ -1661,6 +1701,19 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
     track_posz_.push_back(zp);
 
   }  // end loop over tracks
+
+  if (storePFCandidates_) {
+    Handle<std::vector<reco::PFCandidate>> pfCandidatesHandle;
+    iEvent.getByToken(pfCandidates_, pfCandidatesHandle);
+    for (std::vector<reco::PFCandidate>::const_iterator it_p = pfCandidatesHandle->begin();
+         it_p != pfCandidatesHandle->end(); ++it_p) {
+      pfcandidate_eta_.push_back(it_p->eta());
+      pfcandidate_phi_.push_back(it_p->phi());
+      pfcandidate_pt_.push_back(it_p->pt());
+      pfcandidate_energy_.push_back(it_p->energy());
+      pfcandidate_pdgid_.push_back(it_p->pdgId());
+    }
+  }
 
   ev_event_ = iEvent.id().event();
   ev_lumi_ = iEvent.id().luminosityBlock();
