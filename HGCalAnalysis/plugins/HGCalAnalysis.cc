@@ -349,7 +349,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> simcluster_energy_;
   std::vector<float> simcluster_simEnergy_;
   std::vector<std::vector<uint32_t>> simcluster_hits_;
-  std::vector<std::vector<uint32_t>> simcluster_hits_indices_;
+  std::vector<std::vector<int>> simcluster_hits_indices_;
   std::vector<std::vector<float>> simcluster_fractions_;
   std::vector<std::vector<unsigned int>> simcluster_layers_;
   std::vector<std::vector<unsigned int>> simcluster_wafers_;
@@ -1417,7 +1417,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
     const std::vector<std::pair<uint32_t, float>> hits_and_fractions =
         it_simClus->hits_and_fractions();
     std::vector<uint32_t> hits;
-    std::vector<uint32_t> hits_indices;
+    std::vector<int> hits_indices;
     std::vector<float> fractions;
     std::vector<unsigned int> layers;
     std::vector<unsigned int> wafers;
@@ -1426,9 +1426,10 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
              hits_and_fractions.begin();
          it_haf != hits_and_fractions.end(); ++it_haf) {
       auto index_iterator = detIdToRecHitIndexMap_.find( it_haf->first);
-      if(index_iterator == detIdToRecHitIndexMap_.end())
-        continue;
-      hits_indices.push_back(index_iterator->second);
+      int index_simcluster = -1;
+      if(index_iterator != detIdToRecHitIndexMap_.end())
+        index_simcluster = index_iterator->second;
+      hits_indices.push_back(index_simcluster);
       hits.push_back(it_haf->first);
       fractions.push_back(it_haf->second);
       layers.push_back(recHitTools_.getLayerWithOffset(it_haf->first));
