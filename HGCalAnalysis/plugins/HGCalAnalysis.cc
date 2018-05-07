@@ -22,8 +22,6 @@
 #include "SimDataFormats/CaloAnalysis/interface/CaloParticle.h"
 #include "SimDataFormats/CaloAnalysis/interface/SimCluster.h"
 #include "SimDataFormats/GeneratorProducts/interface/HepMCProduct.h"
-#include "SimDataFormats/TrackingAnalysis/interface/TrackingParticle.h"
-#include "SimDataFormats/TrackingAnalysis/interface/TrackingVertex.h"
 
 #include "DataFormats/Math/interface/deltaPhi.h"
 // track data formats
@@ -201,8 +199,6 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   edm::EDGetTokenT<HGCRecHitCollection> recHitsFH_;
   edm::EDGetTokenT<HGCRecHitCollection> recHitsBH_;
   edm::EDGetTokenT<reco::CaloClusterCollection> clusters_;
-  edm::EDGetTokenT<std::vector<TrackingVertex>> vtx_;
-  edm::EDGetTokenT<std::vector<TrackingParticle>> part_;
   edm::EDGetTokenT<std::vector<reco::GenParticle> > genParticles_;
   edm::EDGetTokenT<std::vector<SimCluster>> simClusters_;
   edm::EDGetTokenT<std::vector<reco::PFCluster>> pfClusters_;
@@ -1055,7 +1051,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   Handle<reco::CaloClusterCollection> clusterHandle;
 
   iEvent.getByToken(clusters_, clusterHandle);
-  Handle<std::vector<TrackingVertex>> vtxHandle;
 
   Handle<edm::HepMCProduct> hevH;
   Handle<std::vector<SimTrack>> simTracksHandle;
@@ -1109,10 +1104,10 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   auto const &vertices = *verticesHandle;
 
   HepMC::GenVertex *primaryVertex = *(hevH)->GetEvent()->vertices_begin();
-  float vx = primaryVertex->position().x() / 10.;  // to put in official units
-  float vy = primaryVertex->position().y() / 10.;
+  float vx_ = primaryVertex->position().x() / 10.;  // to put in official units
+  float vy_ = primaryVertex->position().y() / 10.;
   vz_ = primaryVertex->position().z() / 10.;
-  Point sim_pv(vx, vy, vz_);
+  Point sim_pv(vx_, vy_, vz_);
   // std::cout << "start the fun" << std::endl;
 
   HGCal_helpers::simpleTrackPropagator toHGCalPropagator(aField_);
@@ -1730,8 +1725,8 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   ev_lumi_ = iEvent.id().luminosityBlock();
   ev_run_ = iEvent.id().run();
 
-  vtx_x_ = vx;
-  vtx_y_ = vy;
+  vtx_x_ = vx_;
+  vtx_y_ = vy_;
   vtx_z_ = vz_;
 
   t_->Fill();

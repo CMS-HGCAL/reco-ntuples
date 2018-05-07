@@ -8,7 +8,6 @@
 <use   name="RecoNtuples/HGCalAnalysis"/>
 <use   name="Geometry/Records"/>
 <use   name="SimDataFormats/CaloAnalysis"/>
-<use   name="SimDataFormats/TrackingAnalysis"/>
 <use   name="CommonTools/UtilAlgos"/>
 <use   name="FastSimulation/Event"/>
 <use   name="FastSimulation/CaloGeometryTools"/>
