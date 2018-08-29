@@ -11,6 +11,8 @@
 #include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/ForwardDetId/interface/HGCalDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCSiliconDetId.h"
 #include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
 #include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
@@ -539,7 +541,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   pfClustersFromMultiCl_ =
       consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCalFromMultiCl"));
   multiClusters_ =
-      consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag("hgcalLayerClusters"));
+      consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag("hgcalMultiClusters"));
   tracks_ = consumes<std::vector<reco::Track>>(edm::InputTag("generalTracks"));
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
@@ -1040,7 +1042,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   using namespace edm;
 
   clearVariables();
-  // std::cout << "after clearVariables" << std::endl;
 
   ParticleTable::Sentry ptable(mySimEvent_->theTable());
   recHitTools_.getEventSetup(iSetup);
@@ -1485,19 +1486,15 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
          it_haf != hits_and_fractions.end(); ++it_haf) {
       hits.push_back(it_haf->first);
       fractions.push_back(it_haf->second);
-      switch (HGCalDetId(it_haf->first).subdetId()) {
-        case HGCEE:
-          energyEE += hitmap_[it_haf->first]->energy() * it_haf->second;
-          break;
-        case HGCHEF:
-          energyFH += hitmap_[it_haf->first]->energy() * it_haf->second;
-          break;
-        case BHM:
-          energyBH += hitmap_[it_haf->first]->energy() * it_haf->second;
-          break;
-        default:
-          assert(false);
-      }
+      HGCalDetId detid = HGCalDetId(it_haf->first);
+      if (detid.subdetId() == HGCEE || detid.det() == DetId::HGCalEE)
+        energyEE += hitmap_[it_haf->first]->energy() * it_haf->second;
+      else if (detid.subdetId() == HGCHEF || (detid.det() == DetId::HGCalHSi))
+        energyFH += hitmap_[it_haf->first]->energy() * it_haf->second;
+      else if (detid.subdetId() == BHM || detid.det() == DetId::HGCalHSc)
+        energyBH += hitmap_[it_haf->first]->energy() * it_haf->second;
+      else
+        assert(false);
     }
     pfclusterFromMultiCl_pos_.push_back(it_pfClus->position());
     pfclusterFromMultiCl_eta_.push_back(it_pfClus->eta());
@@ -1759,16 +1756,8 @@ void HGCalAnalysis::endJob() {}
 void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup &es, unsigned layers) {
   recHitTools_.getEventSetup(es);
 
-  DetId id;
   for (unsigned ilayer = 1; ilayer <= layers; ++ilayer) {
-    if (ilayer <= 28) id = HGCalDetId(ForwardSubdetector::HGCEE, 1, ilayer, 1, 50, 1);
-    if (ilayer > 28 && ilayer <= 40)
-      id = HGCalDetId(ForwardSubdetector::HGCHEF, 1, ilayer - 28, 1, 50, 1);
-    if (ilayer > 40) id = HcalDetId(HcalSubdetector::HcalEndcap, 50, 100, ilayer - 40);
-    const GlobalPoint pos = recHitTools_.getPosition(id);
-    //  std::cout << "GEOM " ;
-    //	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
-
+    const GlobalPoint pos = recHitTools_.getPositionLayer(ilayer);
     layerPositions_.push_back(pos.z());
   }
 }
