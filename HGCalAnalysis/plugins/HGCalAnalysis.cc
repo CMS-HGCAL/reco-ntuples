@@ -473,6 +473,8 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> layerPositions_;
   std::vector<double> dEdXWeights_;
   std::vector<double> invThicknessCorrection_;
+  float hgcalOuterRadius_;
+  float hgcalInnerRadius_;
 
   // and also the magnetic field
   MagneticField const *aField_;
@@ -499,6 +501,8 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       particleFilter_(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
       dEdXWeights_(iConfig.getParameter<std::vector<double>>("dEdXWeights")),
       invThicknessCorrection_({1. / 1.132, 1. / 1.092, 1. / 1.084}),
+      hgcalOuterRadius_(iConfig.getParameter<double>("hgcalOuterRadius")),
+      hgcalInnerRadius_(iConfig.getParameter<double>("hgcalInnerRadius")),
       pca_(new TPrincipal(3, "D")) {
   // now do what ever initialization is needed
   mySimEvent_ = new FSimEvent(particleFilter_);
@@ -1125,7 +1129,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
 
     if (std::abs(myTrack.vertex().position().z()) >= layerPositions_[0]) continue;
 
-    unsigned nlayers = 40;
+    unsigned nlayers =   recHitTools_.lastLayerFH();
     if (myTrack.noEndVertex())  // || myTrack.genpartIndex()>=0)
     {
       HGCal_helpers::coordinates propcoords;
@@ -1133,13 +1137,13 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
           myTrack.momentum(), myTrack.vertex().position(), myTrack.charge(), propcoords);
       vtx = propcoords.toVector();
 
-      if (reachesHGCal && vtx.Rho() < 160 && vtx.Rho() > 25) {
+      if (reachesHGCal && vtx.Rho() < hgcalOuterRadius_ && vtx.Rho() > hgcalInnerRadius_) {
         reachedEE = 2;
         double dpt = 0;
 
         for (int i = 0; i < myTrack.nDaughters(); ++i) dpt += myTrack.daughter(i).momentum().pt();
         if (abs(myTrack.type()) == 11) fbrem = dpt / myTrack.momentum().pt();
-      } else if (reachesHGCal && vtx.Rho() > 160)
+      } else if (reachesHGCal && vtx.Rho() > hgcalOuterRadius_)
         reachedEE = 1;
 
       HGCal_helpers::simpleTrackPropagator indiv_particleProp(aField_);
