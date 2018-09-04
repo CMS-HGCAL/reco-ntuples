@@ -150,6 +150,10 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   typedef ROOT::Math::Transform3DPJ Transform3D;
   typedef ROOT::Math::Transform3DPJ::Point Point;
 
+  // approximative geometrical values
+  static constexpr float hgcalOuterRadius_ = 160.;
+  static constexpr float hgcalInnerRadius_ = 25.;
+
   HGCalAnalysis();
   explicit HGCalAnalysis(const edm::ParameterSet &);
   ~HGCalAnalysis();
@@ -473,8 +477,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> layerPositions_;
   std::vector<double> dEdXWeights_;
   std::vector<double> invThicknessCorrection_;
-  float hgcalOuterRadius_;
-  float hgcalInnerRadius_;
+
 
   // and also the magnetic field
   MagneticField const *aField_;
@@ -501,8 +504,6 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       particleFilter_(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
       dEdXWeights_(iConfig.getParameter<std::vector<double>>("dEdXWeights")),
       invThicknessCorrection_({1. / 1.132, 1. / 1.092, 1. / 1.084}),
-      hgcalOuterRadius_(iConfig.getParameter<double>("hgcalOuterRadius")),
-      hgcalInnerRadius_(iConfig.getParameter<double>("hgcalInnerRadius")),
       pca_(new TPrincipal(3, "D")) {
   // now do what ever initialization is needed
   mySimEvent_ = new FSimEvent(particleFilter_);

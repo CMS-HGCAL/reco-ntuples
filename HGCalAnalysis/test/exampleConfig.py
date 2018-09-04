@@ -15,7 +15,7 @@ process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 from FastSimulation.Event.ParticleFilter_cfi import *
 from RecoLocalCalo.HGCalRecProducers.HGCalRecHit_cfi import dEdX_weights as dEdX
 
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(1000) )
 
 process.source = cms.Source("PoolSource",
     # replace 'myfile.root' with the source file you want to use
@@ -39,8 +39,6 @@ process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              includeHaloPCA = cms.bool(True),
                              dEdXWeights = dEdX,
                              layerClusterPtThreshold = cms.double(-1),  # All LayerCluster belonging to a multicluster are saved; this Pt threshold applied to the others
-                             hgcalOuterRadius = cms.double(160.),
-                             hgcalInnerRadius = cms.double(25.),
                              TestParticleFilter = ParticleFilterBlock.ParticleFilter
 )
 
