@@ -150,6 +150,10 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   typedef ROOT::Math::Transform3DPJ Transform3D;
   typedef ROOT::Math::Transform3DPJ::Point Point;
 
+  // approximative geometrical values
+  static constexpr float hgcalOuterRadius_ = 160.;
+  static constexpr float hgcalInnerRadius_ = 25.;
+
   HGCalAnalysis();
   explicit HGCalAnalysis(const edm::ParameterSet &);
   ~HGCalAnalysis();
@@ -473,6 +477,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> layerPositions_;
   std::vector<double> dEdXWeights_;
   std::vector<double> invThicknessCorrection_;
+
 
   // and also the magnetic field
   MagneticField const *aField_;
@@ -1125,7 +1130,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
 
     if (std::abs(myTrack.vertex().position().z()) >= layerPositions_[0]) continue;
 
-    unsigned nlayers = 40;
+    unsigned nlayers =   recHitTools_.lastLayerFH();
     if (myTrack.noEndVertex())  // || myTrack.genpartIndex()>=0)
     {
       HGCal_helpers::coordinates propcoords;
@@ -1133,13 +1138,13 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
           myTrack.momentum(), myTrack.vertex().position(), myTrack.charge(), propcoords);
       vtx = propcoords.toVector();
 
-      if (reachesHGCal && vtx.Rho() < 160 && vtx.Rho() > 25) {
+      if (reachesHGCal && vtx.Rho() < hgcalOuterRadius_ && vtx.Rho() > hgcalInnerRadius_) {
         reachedEE = 2;
         double dpt = 0;
 
         for (int i = 0; i < myTrack.nDaughters(); ++i) dpt += myTrack.daughter(i).momentum().pt();
         if (abs(myTrack.type()) == 11) fbrem = dpt / myTrack.momentum().pt();
-      } else if (reachesHGCal && vtx.Rho() > 160)
+      } else if (reachesHGCal && vtx.Rho() > hgcalOuterRadius_)
         reachedEE = 1;
 
       HGCal_helpers::simpleTrackPropagator indiv_particleProp(aField_);
