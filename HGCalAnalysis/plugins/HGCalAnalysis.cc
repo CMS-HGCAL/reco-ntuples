@@ -1525,7 +1525,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       float energyFH = 0.;
       float energyBH = 0.;
       for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
-        if (DetId::Forward == (*cl)->seed().det()) {
+        if ((*cl)->seed().det() == DetId::Forward || (*cl)->seed().det() == DetId::HGCalEE || (*cl)->seed().det() == DetId::HGCalHSi) {
           if (false)
             std::cout << "SuperCluster Key: " << sc.key() << " own CaloCluster Key: " << cl->key();
           if (electrons_ValueMapClusters.contains(cl->id())) {
@@ -1787,7 +1787,7 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerClus
 
     if (storePCAvariables_) {
       double thickness =
-          (DetId::Forward == DetId(rh_detid).det()) ? recHitTools_.getSiThickness(rh_detid) : -1;
+          (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
       double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
       if (thickness > 99. && thickness < 101)
         mip *= invThicknessCorrection_[0];
@@ -1875,7 +1875,7 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
       (DetId::Forward == DetId(detid).det() ? recHitTools_.getCell(detid)
                                             : std::numeric_limits<unsigned int>::max());
   const double cellThickness =
-      (DetId::Forward == DetId(detid).det() ? recHitTools_.getSiThickness(detid)
+      ((detid.det() == DetId::Forward || detid.det() == DetId::HGCalEE || detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(detid)
                                             : std::numeric_limits<std::float_t>::max());
   const bool isHalfCell = recHitTools_.isHalfCell(detid);
   const double eta = recHitTools_.getEta(position, vz_);
@@ -2009,7 +2009,7 @@ void HGCalAnalysis::doRecomputePCA(const reco::HGCalMultiCluster &cluster, math:
       if (local.Perp2() > radius2) continue;
 
       double thickness =
-          (DetId::Forward == DetId(rh_detid).det()) ? recHitTools_.getSiThickness(rh_detid) : -1;
+          (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
       double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
       if (thickness > 99. && thickness < 101)
         mip *= invThicknessCorrection_[0];
