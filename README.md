@@ -17,3 +17,5 @@ scram b -j4
 ```
 
 The input file needs to be step3 (i.e. RECO). Example configs are provided in [HGCalAnalysis/test](HGCalAnalysis/test).
+
+Mind that depending on your RECO input file, you need to set `inputTag_HGCalMultiCluster` in the config part for the `EDAnalyzer` of `HGCalAnalysis` (i.e. the ntupliser) to either `hgcalMultiClusters` (newer releases) or `hgcalLayerClusters` (older releases).
