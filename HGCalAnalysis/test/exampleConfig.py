@@ -9,7 +9,11 @@ process.load('Configuration.StandardSequences.MagneticField_cff')
 process.load('Configuration.EventContent.EventContent_cff')
 process.load("FWCore.MessageService.MessageLogger_cfi")
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
-process.load('RecoLocalCalo.HGCalRecProducers.HGCalLocalRecoSequence_cff')
+try:
+    process.load('RecoLocalCalo.HGCalRecProducers.HGCalLocalRecoSequence_cff')
+except Exception: # ConfigFileReadError in case config does not exist
+    process.load('SimCalorimetry.HGCalSimProducers.hgcalDigitizer_cfi')
+    process.load('RecoLocalCalo.HGCalRecProducers.hgcalLayerClusters_cff')
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 from FastSimulation.Event.ParticleFilter_cfi import *
@@ -27,6 +31,7 @@ process.source = cms.Source("PoolSource",
 
 process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              detector = cms.string("all"),
+                             inputTag_HGCalMultiCluster = cms.string("hgcalLayerClusters"),
                              rawRecHits = cms.bool(True),
                              readCaloParticles = cms.bool(True),
                              storeGenParticleOrigin = cms.bool(True),
