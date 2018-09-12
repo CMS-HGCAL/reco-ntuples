@@ -193,6 +193,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   double layerClusterPtThreshold_;
   double propagationPtThreshold_;
   std::string detector_;
+  std::string inputTag_HGCalMultiCluster_;
   bool rawRecHits_;
 
   // ----------member data ---------------------------
@@ -497,6 +498,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       layerClusterPtThreshold_(iConfig.getParameter<double>("layerClusterPtThreshold")),
       propagationPtThreshold_(iConfig.getUntrackedParameter<double>("propagationPtThreshold", 3.0)),
       detector_(iConfig.getParameter<std::string>("detector")),
+      inputTag_HGCalMultiCluster_(iConfig.getParameter<std::string>("inputTag_HGCalMultiCluster")),
       rawRecHits_(iConfig.getParameter<bool>("rawRecHits")),
       particleFilter_(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
       dEdXWeights_(iConfig.getParameter<std::vector<double>>("dEdXWeights")),
@@ -541,7 +543,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   pfClustersFromMultiCl_ =
       consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCalFromMultiCl"));
   multiClusters_ =
-      consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag("hgcalMultiClusters"));
+      consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag(inputTag_HGCalMultiCluster_));
   tracks_ = consumes<std::vector<reco::Track>>(edm::InputTag("generalTracks"));
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
