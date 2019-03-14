@@ -11,6 +11,8 @@
 #include "DataFormats/CaloRecHit/interface/CaloClusterFwd.h"
 #include "DataFormats/EgammaCandidates/interface/GsfElectron.h"
 #include "DataFormats/ForwardDetId/interface/HGCalDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCScintillatorDetId.h"
+#include "DataFormats/ForwardDetId/interface/HGCSiliconDetId.h"
 #include "DataFormats/GsfTrackReco/interface/GsfTrack.h"
 #include "DataFormats/HGCRecHit/interface/HGCRecHitCollections.h"
 #include "DataFormats/HcalDetId/interface/HcalDetId.h"
@@ -150,6 +152,10 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   typedef ROOT::Math::Transform3DPJ Transform3D;
   typedef ROOT::Math::Transform3DPJ::Point Point;
 
+  // approximative geometrical values
+  static constexpr float hgcalOuterRadius_ = 160.;
+  static constexpr float hgcalInnerRadius_ = 25.;
+
   HGCalAnalysis();
   explicit HGCalAnalysis(const edm::ParameterSet &);
   ~HGCalAnalysis();
@@ -191,6 +197,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   double layerClusterPtThreshold_;
   double propagationPtThreshold_;
   std::string detector_;
+  std::string inputTag_HGCalMultiCluster_;
   bool rawRecHits_;
 
   // ----------member data ---------------------------
@@ -278,8 +285,10 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> rechit_time_;
   std::vector<float> rechit_thickness_;
   std::vector<int> rechit_layer_;
-  std::vector<int> rechit_wafer_;
-  std::vector<int> rechit_cell_;
+  std::vector<int> rechit_wafer_u_;
+  std::vector<int> rechit_wafer_v_;
+  std::vector<int> rechit_cell_u_;
+  std::vector<int> rechit_cell_v_;
   std::vector<unsigned int> rechit_detid_;
   std::vector<bool> rechit_isHalf_;
   std::vector<int> rechit_flags_;
@@ -348,8 +357,10 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<std::vector<int>> simcluster_hits_indices_;
   std::vector<std::vector<float>> simcluster_fractions_;
   std::vector<std::vector<unsigned int>> simcluster_layers_;
-  std::vector<std::vector<unsigned int>> simcluster_wafers_;
-  std::vector<std::vector<unsigned int>> simcluster_cells_;
+  std::vector<std::vector<int>> simcluster_wafers_u_;
+  std::vector<std::vector<int>> simcluster_wafers_v_;
+  std::vector<std::vector<int>> simcluster_cells_u_;
+  std::vector<std::vector<int>> simcluster_cells_v_;
 
   ////////////////////
   // PF clusters
@@ -474,6 +485,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<double> dEdXWeights_;
   std::vector<double> invThicknessCorrection_;
 
+
   // and also the magnetic field
   MagneticField const *aField_;
 
@@ -495,6 +507,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       layerClusterPtThreshold_(iConfig.getParameter<double>("layerClusterPtThreshold")),
       propagationPtThreshold_(iConfig.getUntrackedParameter<double>("propagationPtThreshold", 3.0)),
       detector_(iConfig.getParameter<std::string>("detector")),
+      inputTag_HGCalMultiCluster_(iConfig.getParameter<std::string>("inputTag_HGCalMultiCluster")),
       rawRecHits_(iConfig.getParameter<bool>("rawRecHits")),
       particleFilter_(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
       dEdXWeights_(iConfig.getParameter<std::vector<double>>("dEdXWeights")),
@@ -539,7 +552,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   pfClustersFromMultiCl_ =
       consumes<std::vector<reco::PFCluster>>(edm::InputTag("particleFlowClusterHGCalFromMultiCl"));
   multiClusters_ =
-      consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag("hgcalLayerClusters"));
+      consumes<std::vector<reco::HGCalMultiCluster>>(edm::InputTag(inputTag_HGCalMultiCluster_));
   tracks_ = consumes<std::vector<reco::Track>>(edm::InputTag("generalTracks"));
   electrons_ =
       consumes<std::vector<reco::GsfElectron>>(edm::InputTag("ecalDrivenGsfElectronsFromMultiCl"));
@@ -614,8 +627,10 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   t_->Branch("rechit_time", &rechit_time_);
   t_->Branch("rechit_thickness", &rechit_thickness_);
   t_->Branch("rechit_layer", &rechit_layer_);
-  t_->Branch("rechit_wafer", &rechit_wafer_);
-  t_->Branch("rechit_cell", &rechit_cell_);
+  t_->Branch("rechit_wafer_u", &rechit_wafer_u_);
+  t_->Branch("rechit_wafer_v", &rechit_wafer_v_);
+  t_->Branch("rechit_cell_u", &rechit_cell_u_);
+  t_->Branch("rechit_cell_v", &rechit_cell_v_);
   t_->Branch("rechit_detid", &rechit_detid_);
   t_->Branch("rechit_isHalf", &rechit_isHalf_);
   t_->Branch("rechit_flags", &rechit_flags_);
@@ -687,8 +702,10 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   t_->Branch("simcluster_hits_indices", &simcluster_hits_indices_);
   t_->Branch("simcluster_fractions", &simcluster_fractions_);
   t_->Branch("simcluster_layers", &simcluster_layers_);
-  t_->Branch("simcluster_wafers", &simcluster_wafers_);
-  t_->Branch("simcluster_cells", &simcluster_cells_);
+  t_->Branch("simcluster_wafers_u", &simcluster_wafers_u_);
+  t_->Branch("simcluster_wafers_v", &simcluster_wafers_v_);
+  t_->Branch("simcluster_cells_u", &simcluster_cells_u_);
+  t_->Branch("simcluster_cells_v", &simcluster_cells_v_);
 
   ////////////////////
   // PF clusters
@@ -865,8 +882,10 @@ void HGCalAnalysis::clearVariables() {
   rechit_time_.clear();
   rechit_thickness_.clear();
   rechit_layer_.clear();
-  rechit_wafer_.clear();
-  rechit_cell_.clear();
+  rechit_wafer_u_.clear();
+  rechit_wafer_v_.clear();
+  rechit_cell_u_.clear();
+  rechit_cell_v_.clear();
   rechit_detid_.clear();
   rechit_isHalf_.clear();
   rechit_flags_.clear();
@@ -936,8 +955,10 @@ void HGCalAnalysis::clearVariables() {
   simcluster_hits_indices_.clear();
   simcluster_fractions_.clear();
   simcluster_layers_.clear();
-  simcluster_wafers_.clear();
-  simcluster_cells_.clear();
+  simcluster_wafers_u_.clear();
+  simcluster_wafers_v_.clear();
+  simcluster_cells_u_.clear();
+  simcluster_cells_v_.clear();
 
   ////////////////////
   // PF clusters
@@ -1040,7 +1061,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   using namespace edm;
 
   clearVariables();
-  // std::cout << "after clearVariables" << std::endl;
 
   ParticleTable::Sentry ptable(mySimEvent_->theTable());
   recHitTools_.getEventSetup(iSetup);
@@ -1125,7 +1145,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
 
     if (std::abs(myTrack.vertex().position().z()) >= layerPositions_[0]) continue;
 
-    unsigned nlayers = 40;
+    unsigned nlayers =   recHitTools_.lastLayerFH();
     if (myTrack.noEndVertex())  // || myTrack.genpartIndex()>=0)
     {
       HGCal_helpers::coordinates propcoords;
@@ -1133,13 +1153,13 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
           myTrack.momentum(), myTrack.vertex().position(), myTrack.charge(), propcoords);
       vtx = propcoords.toVector();
 
-      if (reachesHGCal && vtx.Rho() < 160 && vtx.Rho() > 25) {
+      if (reachesHGCal && vtx.Rho() < hgcalOuterRadius_ && vtx.Rho() > hgcalInnerRadius_) {
         reachedEE = 2;
         double dpt = 0;
 
         for (int i = 0; i < myTrack.nDaughters(); ++i) dpt += myTrack.daughter(i).momentum().pt();
         if (abs(myTrack.type()) == 11) fbrem = dpt / myTrack.momentum().pt();
-      } else if (reachesHGCal && vtx.Rho() > 160)
+      } else if (reachesHGCal && vtx.Rho() > hgcalOuterRadius_)
         reachedEE = 1;
 
       HGCal_helpers::simpleTrackPropagator indiv_particleProp(aField_);
@@ -1415,8 +1435,10 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
     std::vector<int> hits_indices;
     std::vector<float> fractions;
     std::vector<unsigned int> layers;
-    std::vector<unsigned int> wafers;
-    std::vector<unsigned int> cells;
+    std::vector<int> wafers_u;
+    std::vector<int> wafers_v;
+    std::vector<int> cells_u;
+    std::vector<int> cells_v;
     for (std::vector<std::pair<uint32_t, float>>::const_iterator it_haf =
              hits_and_fractions.begin();
          it_haf != hits_and_fractions.end(); ++it_haf) {
@@ -1428,12 +1450,18 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       hits.push_back(it_haf->first);
       fractions.push_back(it_haf->second);
       layers.push_back(recHitTools_.getLayerWithOffset(it_haf->first));
-      if (DetId::Forward == DetId(it_haf->first).det()) {
-        wafers.push_back(recHitTools_.getWafer(it_haf->first));
-        cells.push_back(recHitTools_.getCell(it_haf->first));
+      if (DetId(it_haf->first).det() == DetId::Forward || DetId(it_haf->first).det() == DetId::HGCalEE || DetId(it_haf->first).det() == DetId::HGCalHSi) {
+        std::pair<int, int> this_wafer = recHitTools_.getWafer(it_haf->first);
+        std::pair<int, int> this_cell = recHitTools_.getCell(it_haf->first);
+        wafers_u.push_back(this_wafer.first);
+        wafers_v.push_back(this_wafer.second);
+        cells_u.push_back(this_cell.first);
+        cells_v.push_back(this_cell.second);
       } else {
-        wafers.push_back(std::numeric_limits<unsigned int>::max());
-        cells.push_back(std::numeric_limits<unsigned int>::max());
+        wafers_u.push_back(std::numeric_limits<unsigned int>::max());
+        wafers_v.push_back(std::numeric_limits<unsigned int>::max());
+        cells_u.push_back(std::numeric_limits<unsigned int>::max());
+        cells_v.push_back(std::numeric_limits<unsigned int>::max());
       }
     }
 
@@ -1446,8 +1474,10 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
     simcluster_hits_indices_.push_back(hits_indices);
     simcluster_fractions_.push_back(fractions);
     simcluster_layers_.push_back(layers);
-    simcluster_wafers_.push_back(wafers);
-    simcluster_cells_.push_back(cells);
+    simcluster_wafers_u_.push_back(wafers_u);
+    simcluster_wafers_v_.push_back(wafers_v);
+    simcluster_cells_u_.push_back(cells_u);
+    simcluster_cells_v_.push_back(cells_v);
 
   }  // end loop over simClusters
 
@@ -1485,19 +1515,15 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
          it_haf != hits_and_fractions.end(); ++it_haf) {
       hits.push_back(it_haf->first);
       fractions.push_back(it_haf->second);
-      switch (HGCalDetId(it_haf->first).subdetId()) {
-        case HGCEE:
-          energyEE += hitmap_[it_haf->first]->energy() * it_haf->second;
-          break;
-        case HGCHEF:
-          energyFH += hitmap_[it_haf->first]->energy() * it_haf->second;
-          break;
-        case BHM:
-          energyBH += hitmap_[it_haf->first]->energy() * it_haf->second;
-          break;
-        default:
-          assert(false);
-      }
+      HGCalDetId detid = HGCalDetId(it_haf->first);
+      if (detid.subdetId() == HGCEE || detid.det() == DetId::HGCalEE)
+        energyEE += hitmap_[it_haf->first]->energy() * it_haf->second;
+      else if (detid.subdetId() == HGCHEF || (detid.det() == DetId::HGCalHSi))
+        energyFH += hitmap_[it_haf->first]->energy() * it_haf->second;
+      else if (detid.subdetId() == BHM || detid.det() == DetId::HGCalHSc)
+        energyBH += hitmap_[it_haf->first]->energy() * it_haf->second;
+      else
+        assert(false);
     }
     pfclusterFromMultiCl_pos_.push_back(it_pfClus->position());
     pfclusterFromMultiCl_eta_.push_back(it_pfClus->eta());
@@ -1528,7 +1554,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       float energyFH = 0.;
       float energyBH = 0.;
       for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
-        if (DetId::Forward == (*cl)->seed().det()) {
+        if ((*cl)->seed().det() == DetId::Forward || (*cl)->seed().det() == DetId::HGCalEE || (*cl)->seed().det() == DetId::HGCalHSi) {
           if (false)
             std::cout << "SuperCluster Key: " << sc.key() << " own CaloCluster Key: " << cl->key();
           if (electrons_ValueMapClusters.contains(cl->id())) {
@@ -1759,16 +1785,8 @@ void HGCalAnalysis::endJob() {}
 void HGCalAnalysis::retrieveLayerPositions(const edm::EventSetup &es, unsigned layers) {
   recHitTools_.getEventSetup(es);
 
-  DetId id;
   for (unsigned ilayer = 1; ilayer <= layers; ++ilayer) {
-    if (ilayer <= 28) id = HGCalDetId(ForwardSubdetector::HGCEE, 1, ilayer, 1, 50, 1);
-    if (ilayer > 28 && ilayer <= 40)
-      id = HGCalDetId(ForwardSubdetector::HGCHEF, 1, ilayer - 28, 1, 50, 1);
-    if (ilayer > 40) id = HcalDetId(HcalSubdetector::HcalEndcap, 50, 100, ilayer - 40);
-    const GlobalPoint pos = recHitTools_.getPosition(id);
-    //  std::cout << "GEOM " ;
-    //	std::cout << " layer " << ilayer << " " << pos.z() << std::endl;
-
+    const GlobalPoint pos = recHitTools_.getPositionLayer(ilayer);
     layerPositions_.push_back(pos.z());
   }
 }
@@ -1798,7 +1816,7 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerClus
 
     if (storePCAvariables_) {
       double thickness =
-          (DetId::Forward == DetId(rh_detid).det()) ? recHitTools_.getSiThickness(rh_detid) : -1;
+          (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
       double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
       if (thickness > 99. && thickness < 101)
         mip *= invThicknessCorrection_[0];
@@ -1879,14 +1897,18 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
   const HGCRecHit *hit = hitmap_[detid];
 
   const GlobalPoint position = recHitTools_.getPosition(detid);
-  const unsigned int wafer =
-      (DetId::Forward == DetId(detid).det() ? recHitTools_.getWafer(detid)
-                                            : std::numeric_limits<unsigned int>::max());
-  const unsigned int cell =
-      (DetId::Forward == DetId(detid).det() ? recHitTools_.getCell(detid)
-                                            : std::numeric_limits<unsigned int>::max());
+  std::pair<int, int> wafer;
+  std::pair<int, int> cell;
+  if (detid.det() == DetId::Forward || detid.det() == DetId::HGCalEE || detid.det() == DetId::HGCalHSi) {
+    wafer = recHitTools_.getWafer(detid);
+    cell = recHitTools_.getCell(detid);
+  }
+  else {
+    wafer = std::pair<int, int>(std::numeric_limits<unsigned int>::max(), std::numeric_limits<unsigned int>::max());
+    cell = std::pair<int, int>(std::numeric_limits<unsigned int>::max(), std::numeric_limits<unsigned int>::max());
+  }
   const double cellThickness =
-      (DetId::Forward == DetId(detid).det() ? recHitTools_.getSiThickness(detid)
+      ((detid.det() == DetId::Forward || detid.det() == DetId::HGCalEE || detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(detid)
                                             : std::numeric_limits<std::float_t>::max());
   const bool isHalfCell = recHitTools_.isHalfCell(detid);
   const double eta = recHitTools_.getEta(position, vz_);
@@ -1899,8 +1921,10 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
   rechit_pt_.push_back(pt);
   rechit_energy_.push_back(hit->energy());
   rechit_layer_.push_back(layer);
-  rechit_wafer_.push_back(wafer);
-  rechit_cell_.push_back(cell);
+  rechit_wafer_u_.push_back(wafer.first);
+  rechit_wafer_v_.push_back(wafer.second);
+  rechit_cell_u_.push_back(cell.first);
+  rechit_cell_v_.push_back(cell.second);
   rechit_detid_.push_back(detid);
   rechit_x_.push_back(position.x());
   rechit_y_.push_back(position.y());
@@ -2020,7 +2044,7 @@ void HGCalAnalysis::doRecomputePCA(const reco::HGCalMultiCluster &cluster, math:
       if (local.Perp2() > radius2) continue;
 
       double thickness =
-          (DetId::Forward == DetId(rh_detid).det()) ? recHitTools_.getSiThickness(rh_detid) : -1;
+          (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
       double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
       if (thickness > 99. && thickness < 101)
         mip *= invThicknessCorrection_[0];
