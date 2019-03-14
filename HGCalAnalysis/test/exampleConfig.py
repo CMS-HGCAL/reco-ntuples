@@ -24,7 +24,7 @@ process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 process.source = cms.Source("PoolSource",
     # replace 'step3.root' with the source file you want to use
     fileNames = cms.untracked.vstring(
-        'file:step3.root'
+        '/store/cmst3/group/hgcal/CMG_studies/validation/step3.root'
     ),
     duplicateCheckMode = cms.untracked.string("noDuplicateCheck")
 )
