@@ -460,6 +460,14 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> pfcandidate_energy_;
   std::vector<int> pfcandidate_pdgid_;
 
+  ////////////////////
+  // gun particles per vertex
+  //
+  std::vector<std::vector<float> > gunparticle_energy_;
+  std::vector<std::vector<float> > gunparticle_px_;
+  std::vector<std::vector<float> > gunparticle_py_;
+  std::vector<std::vector<float> > gunparticle_pz_;
+
 
   ////////////////////
   // helper classes
@@ -812,6 +820,14 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
     t_->Branch("pfcandidate_pdgid", &pfcandidate_pdgid_);
   }
 
+  ////////////////////
+  // gun particles
+  //
+  t_->Branch("gunparticle_energy", &gunparticle_energy_);
+  t_->Branch("gunparticle_px", &gunparticle_px_);
+  t_->Branch("gunparticle_py", &gunparticle_py_);
+  t_->Branch("gunparticle_pz", &gunparticle_pz_);
+
 }
 HGCalAnalysis::~HGCalAnalysis() {
   // do anything here that needs to be done at desctruction time
@@ -1054,6 +1070,14 @@ void HGCalAnalysis::clearVariables() {
   pfcandidate_pt_.clear();
   pfcandidate_energy_.clear();
   pfcandidate_pdgid_.clear();
+
+  ////////////////////
+  // gun particles
+  //
+  gunparticle_energy_.clear();
+  gunparticle_px_.clear();
+  gunparticle_py_.clear();
+  gunparticle_pz_.clear();
 }
 
 void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup) {
@@ -1127,6 +1151,32 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   vz_ = primaryVertex->position().z() / 10.;
   Point sim_pv(vx_, vy_, vz_);
   // std::cout << "start the fun" << std::endl;
+
+  // fill the gunparticles per vertex
+  HepMC::GenEvent::vertex_const_iterator vertex_it;
+  for (vertex_it = hevH->GetEvent()->vertices_begin();
+       vertex_it != hevH->GetEvent()->vertices_end(); vertex_it++)
+  {
+    std::vector<float> gunparticle_energy;
+    std::vector<float> gunparticle_px;
+    std::vector<float> gunparticle_py;
+    std::vector<float> gunparticle_pz;
+
+    HepMC::GenVertex::particles_out_const_iterator particle_it;
+    for (particle_it = (*vertex_it)->particles_out_const_begin();
+         particle_it != (*vertex_it)->particles_out_const_end(); particle_it++)
+    {
+      gunparticle_energy.push_back((*particle_it)->momentum().e());
+      gunparticle_px.push_back((*particle_it)->momentum().px());
+      gunparticle_py.push_back((*particle_it)->momentum().py());
+      gunparticle_pz.push_back((*particle_it)->momentum().pz());
+    }
+
+    gunparticle_energy_.push_back(gunparticle_energy);
+    gunparticle_px_.push_back(gunparticle_px);
+    gunparticle_py_.push_back(gunparticle_py);
+    gunparticle_pz_.push_back(gunparticle_pz);
+  }
 
   HGCal_helpers::simpleTrackPropagator toHGCalPropagator(aField_);
   toHGCalPropagator.setPropagationTargetZ(layerPositions_[0]);
