@@ -191,6 +191,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   bool storePCAvariables_;
   bool storeElectrons_;
   bool storePFCandidates_;
+  bool storeGunParticles_;
   bool recomputePCA_;
   bool includeHaloPCA_;
   double layerClusterPtThreshold_;
@@ -463,10 +464,12 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   ////////////////////
   // gun particles per vertex
   //
+  std::vector<std::vector<int> > gunparticle_id_;
   std::vector<std::vector<float> > gunparticle_energy_;
-  std::vector<std::vector<float> > gunparticle_px_;
-  std::vector<std::vector<float> > gunparticle_py_;
-  std::vector<std::vector<float> > gunparticle_pz_;
+  std::vector<std::vector<float> > gunparticle_mass_;
+  std::vector<std::vector<float> > gunparticle_pt_;
+  std::vector<std::vector<float> > gunparticle_eta_;
+  std::vector<std::vector<float> > gunparticle_phi_;
 
 
   ////////////////////
@@ -509,6 +512,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
       storeElectrons_(iConfig.getParameter<bool>("storeElectrons")),
       storePFCandidates_(iConfig.getParameter<bool>("storePFCandidates")),
+      storeGunParticles_(iConfig.getParameter<bool>("storeGunParticles")),
       recomputePCA_(iConfig.getParameter<bool>("recomputePCA")),
       includeHaloPCA_(iConfig.getParameter<bool>("includeHaloPCA")),
       layerClusterPtThreshold_(iConfig.getParameter<double>("layerClusterPtThreshold")),
@@ -823,10 +827,14 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   ////////////////////
   // gun particles
   //
-  t_->Branch("gunparticle_energy", &gunparticle_energy_);
-  t_->Branch("gunparticle_px", &gunparticle_px_);
-  t_->Branch("gunparticle_py", &gunparticle_py_);
-  t_->Branch("gunparticle_pz", &gunparticle_pz_);
+  if (storeGunParticles_) {
+    t_->Branch("gunparticle_id", &gunparticle_id_);
+    t_->Branch("gunparticle_energy", &gunparticle_energy_);
+    t_->Branch("gunparticle_mass", &gunparticle_mass_);
+    t_->Branch("gunparticle_pt", &gunparticle_pt_);
+    t_->Branch("gunparticle_eta", &gunparticle_eta_);
+    t_->Branch("gunparticle_phi", &gunparticle_phi_);
+  }
 
 }
 HGCalAnalysis::~HGCalAnalysis() {
@@ -1074,10 +1082,12 @@ void HGCalAnalysis::clearVariables() {
   ////////////////////
   // gun particles
   //
+  gunparticle_id_.clear();
   gunparticle_energy_.clear();
-  gunparticle_px_.clear();
-  gunparticle_py_.clear();
-  gunparticle_pz_.clear();
+  gunparticle_mass_.clear();
+  gunparticle_pt_.clear();
+  gunparticle_eta_.clear();
+  gunparticle_phi_.clear();
 }
 
 void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup) {
@@ -1153,29 +1163,35 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   // std::cout << "start the fun" << std::endl;
 
   // fill the gunparticles per vertex
-  HepMC::GenEvent::vertex_const_iterator vertex_it;
-  for (vertex_it = hevH->GetEvent()->vertices_begin();
-       vertex_it != hevH->GetEvent()->vertices_end(); vertex_it++)
-  {
-    std::vector<float> gunparticle_energy;
-    std::vector<float> gunparticle_px;
-    std::vector<float> gunparticle_py;
-    std::vector<float> gunparticle_pz;
+  if (storeGunParticles_) {
+    HepMC::GenEvent::vertex_const_iterator vertex_it;
+    for (vertex_it = hevH->GetEvent()->vertices_begin();
+         vertex_it != hevH->GetEvent()->vertices_end(); vertex_it++) {
+      std::vector<int> gunparticle_id;
+      std::vector<float> gunparticle_energy;
+      std::vector<float> gunparticle_mass;
+      std::vector<float> gunparticle_pt;
+      std::vector<float> gunparticle_eta;
+      std::vector<float> gunparticle_phi;
 
-    HepMC::GenVertex::particles_out_const_iterator particle_it;
-    for (particle_it = (*vertex_it)->particles_out_const_begin();
-         particle_it != (*vertex_it)->particles_out_const_end(); particle_it++)
-    {
-      gunparticle_energy.push_back((*particle_it)->momentum().e());
-      gunparticle_px.push_back((*particle_it)->momentum().px());
-      gunparticle_py.push_back((*particle_it)->momentum().py());
-      gunparticle_pz.push_back((*particle_it)->momentum().pz());
+      HepMC::GenVertex::particles_out_const_iterator particle_it;
+      for (particle_it = (*vertex_it)->particles_out_const_begin();
+           particle_it != (*vertex_it)->particles_out_const_end(); particle_it++) {
+        gunparticle_id.push_back((*particle_it)->pdg_id());
+        gunparticle_energy.push_back((*particle_it)->momentum().e());
+        gunparticle_mass.push_back((*particle_it)->momentum().m());
+        gunparticle_pt.push_back((*particle_it)->momentum().perp());
+        gunparticle_eta.push_back((*particle_it)->momentum().eta());
+        gunparticle_phi.push_back((*particle_it)->momentum().phi());
+      }
+
+      gunparticle_id_.push_back(gunparticle_id);
+      gunparticle_energy_.push_back(gunparticle_energy);
+      gunparticle_mass_.push_back(gunparticle_mass);
+      gunparticle_pt_.push_back(gunparticle_pt);
+      gunparticle_eta_.push_back(gunparticle_eta);
+      gunparticle_phi_.push_back(gunparticle_phi);
     }
-
-    gunparticle_energy_.push_back(gunparticle_energy);
-    gunparticle_px_.push_back(gunparticle_px);
-    gunparticle_py_.push_back(gunparticle_py);
-    gunparticle_pz_.push_back(gunparticle_pz);
   }
 
   HGCal_helpers::simpleTrackPropagator toHGCalPropagator(aField_);
