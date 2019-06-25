@@ -1909,9 +1909,9 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
       ((detid.det() == DetId::Forward || detid.det() == DetId::HGCalEE || detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(detid)
                                             : std::numeric_limits<std::float_t>::max());
   const bool isHalfCell = recHitTools_.isHalfCell(detid);
-  const double eta = recHitTools_.getEta(position, vz_);
+  const double eta = recHitTools_.getEta(position);
   const double phi = recHitTools_.getPhi(position);
-  const double pt = recHitTools_.getPt(position, hit->energy(), vz_);
+  const double pt = recHitTools_.getPt(position, hit->energy());
 
   // fill the vectors
   rechit_eta_.push_back(eta);
