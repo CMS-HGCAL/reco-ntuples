@@ -191,6 +191,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   bool storePCAvariables_;
   bool storeElectrons_;
   bool storePFCandidates_;
+  bool storeGunParticles_;
   bool recomputePCA_;
   bool includeHaloPCA_;
   double layerClusterPtThreshold_;
@@ -460,6 +461,15 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> pfcandidate_energy_;
   std::vector<int> pfcandidate_pdgid_;
 
+  ////////////////////
+  // gun particles per vertex
+  //
+  std::vector<std::vector<int> > gunparticle_id_;
+  std::vector<std::vector<float> > gunparticle_energy_;
+  std::vector<std::vector<float> > gunparticle_pt_;
+  std::vector<std::vector<float> > gunparticle_eta_;
+  std::vector<std::vector<float> > gunparticle_phi_;
+
 
   ////////////////////
   // helper classes
@@ -501,6 +511,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
       storeElectrons_(iConfig.getParameter<bool>("storeElectrons")),
       storePFCandidates_(iConfig.getParameter<bool>("storePFCandidates")),
+      storeGunParticles_(iConfig.getParameter<bool>("storeGunParticles")),
       recomputePCA_(iConfig.getParameter<bool>("recomputePCA")),
       includeHaloPCA_(iConfig.getParameter<bool>("includeHaloPCA")),
       layerClusterPtThreshold_(iConfig.getParameter<double>("layerClusterPtThreshold")),
@@ -812,6 +823,17 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
     t_->Branch("pfcandidate_pdgid", &pfcandidate_pdgid_);
   }
 
+  ////////////////////
+  // gun particles
+  //
+  if (storeGunParticles_) {
+    t_->Branch("gunparticle_id", &gunparticle_id_);
+    t_->Branch("gunparticle_energy", &gunparticle_energy_);
+    t_->Branch("gunparticle_pt", &gunparticle_pt_);
+    t_->Branch("gunparticle_eta", &gunparticle_eta_);
+    t_->Branch("gunparticle_phi", &gunparticle_phi_);
+  }
+
 }
 HGCalAnalysis::~HGCalAnalysis() {
   // do anything here that needs to be done at desctruction time
@@ -1054,6 +1076,15 @@ void HGCalAnalysis::clearVariables() {
   pfcandidate_pt_.clear();
   pfcandidate_energy_.clear();
   pfcandidate_pdgid_.clear();
+
+  ////////////////////
+  // gun particles
+  //
+  gunparticle_id_.clear();
+  gunparticle_energy_.clear();
+  gunparticle_pt_.clear();
+  gunparticle_eta_.clear();
+  gunparticle_phi_.clear();
 }
 
 void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSetup) {
@@ -1127,6 +1158,35 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   vz_ = primaryVertex->position().z() / 10.;
   Point sim_pv(vx_, vy_, vz_);
   // std::cout << "start the fun" << std::endl;
+
+  // fill the gunparticles per vertex
+  if (storeGunParticles_) {
+    HepMC::GenEvent::vertex_const_iterator vertex_it;
+    for (vertex_it = hevH->GetEvent()->vertices_begin();
+         vertex_it != hevH->GetEvent()->vertices_end(); vertex_it++) {
+      std::vector<int> gunparticle_id;
+      std::vector<float> gunparticle_energy;
+      std::vector<float> gunparticle_pt;
+      std::vector<float> gunparticle_eta;
+      std::vector<float> gunparticle_phi;
+
+      HepMC::GenVertex::particles_out_const_iterator particle_it;
+      for (particle_it = (*vertex_it)->particles_out_const_begin();
+           particle_it != (*vertex_it)->particles_out_const_end(); particle_it++) {
+        gunparticle_id.push_back((*particle_it)->pdg_id());
+        gunparticle_energy.push_back((*particle_it)->momentum().e());
+        gunparticle_pt.push_back((*particle_it)->momentum().perp());
+        gunparticle_eta.push_back((*particle_it)->momentum().eta());
+        gunparticle_phi.push_back((*particle_it)->momentum().phi());
+      }
+
+      gunparticle_id_.push_back(gunparticle_id);
+      gunparticle_energy_.push_back(gunparticle_energy);
+      gunparticle_pt_.push_back(gunparticle_pt);
+      gunparticle_eta_.push_back(gunparticle_eta);
+      gunparticle_phi_.push_back(gunparticle_phi);
+    }
+  }
 
   HGCal_helpers::simpleTrackPropagator toHGCalPropagator(aField_);
   toHGCalPropagator.setPropagationTargetZ(layerPositions_[0]);
