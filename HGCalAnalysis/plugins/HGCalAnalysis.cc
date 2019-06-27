@@ -466,7 +466,6 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   //
   std::vector<std::vector<int> > gunparticle_id_;
   std::vector<std::vector<float> > gunparticle_energy_;
-  std::vector<std::vector<float> > gunparticle_mass_;
   std::vector<std::vector<float> > gunparticle_pt_;
   std::vector<std::vector<float> > gunparticle_eta_;
   std::vector<std::vector<float> > gunparticle_phi_;
@@ -830,7 +829,6 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   if (storeGunParticles_) {
     t_->Branch("gunparticle_id", &gunparticle_id_);
     t_->Branch("gunparticle_energy", &gunparticle_energy_);
-    t_->Branch("gunparticle_mass", &gunparticle_mass_);
     t_->Branch("gunparticle_pt", &gunparticle_pt_);
     t_->Branch("gunparticle_eta", &gunparticle_eta_);
     t_->Branch("gunparticle_phi", &gunparticle_phi_);
@@ -1084,7 +1082,6 @@ void HGCalAnalysis::clearVariables() {
   //
   gunparticle_id_.clear();
   gunparticle_energy_.clear();
-  gunparticle_mass_.clear();
   gunparticle_pt_.clear();
   gunparticle_eta_.clear();
   gunparticle_phi_.clear();
@@ -1169,7 +1166,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
          vertex_it != hevH->GetEvent()->vertices_end(); vertex_it++) {
       std::vector<int> gunparticle_id;
       std::vector<float> gunparticle_energy;
-      std::vector<float> gunparticle_mass;
       std::vector<float> gunparticle_pt;
       std::vector<float> gunparticle_eta;
       std::vector<float> gunparticle_phi;
@@ -1179,7 +1175,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
            particle_it != (*vertex_it)->particles_out_const_end(); particle_it++) {
         gunparticle_id.push_back((*particle_it)->pdg_id());
         gunparticle_energy.push_back((*particle_it)->momentum().e());
-        gunparticle_mass.push_back((*particle_it)->momentum().m());
         gunparticle_pt.push_back((*particle_it)->momentum().perp());
         gunparticle_eta.push_back((*particle_it)->momentum().eta());
         gunparticle_phi.push_back((*particle_it)->momentum().phi());
@@ -1187,7 +1182,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
 
       gunparticle_id_.push_back(gunparticle_id);
       gunparticle_energy_.push_back(gunparticle_energy);
-      gunparticle_mass_.push_back(gunparticle_mass);
       gunparticle_pt_.push_back(gunparticle_pt);
       gunparticle_eta_.push_back(gunparticle_eta);
       gunparticle_phi_.push_back(gunparticle_phi);
