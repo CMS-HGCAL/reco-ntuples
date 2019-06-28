@@ -12,3 +12,4 @@
 | rechit | `HGCalRecHit::HGCEERecHits` <br> `HGCalRecHit::HGCHEFRecHits` <br> `HGCalRecHit::HGCHEBRecHits` | `HGCRecHitCollection` | all reconstructed calorimeter hits - those that are associated to layer clusters have `rechit_cluster2d >= 0`, which is the index of the `cluster2d` in the ntuple |
 | calopart | `mix:MergedCaloTruth` | `std::vector<CaloParticle>` | Every CaloParticle is linked to the first stable particle originating from the cascade of particles that left hits in the calorimeters. This stable particle is not included as a SimCluster (unless it itself left hits in the calorimeters). |
 | track | `generalTracks` | `std::vector<reco::Track>` | tracks passing highPurity selection |
+| gunparticle | `offlinePrimaryVertices` | `reco::Vertex` | `id`, `energy`, `pt`, `eta` and `phi` of gun particles associated to their corresponding vertex |
