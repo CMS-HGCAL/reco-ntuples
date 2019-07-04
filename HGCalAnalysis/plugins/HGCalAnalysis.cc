@@ -293,6 +293,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<bool> rechit_isHalf_;
   std::vector<int> rechit_flags_;
   std::vector<int> rechit_cluster2d_;
+  std::vector<float> rechit_radius_;
 
   ////////////////////
   // layer clusters
@@ -645,6 +646,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   t_->Branch("rechit_isHalf", &rechit_isHalf_);
   t_->Branch("rechit_flags", &rechit_flags_);
   t_->Branch("rechit_cluster2d", &rechit_cluster2d_);
+  t_->Branch("rechit_radius", &rechit_radius_);
 
   ////////////////////
   // layer clusters
@@ -911,6 +913,7 @@ void HGCalAnalysis::clearVariables() {
   rechit_isHalf_.clear();
   rechit_flags_.clear();
   rechit_cluster2d_.clear();
+  rechit_radius_.clear();
   detIdToRecHitIndexMap_.clear();
 
   ////////////////////
@@ -1972,6 +1975,8 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
   const double eta = recHitTools_.getEta(position);
   const double phi = recHitTools_.getPhi(position);
   const double pt = recHitTools_.getPt(position, hit->energy());
+  const double radius =
+      ((detid.det() == DetId::Forward || detid.det() == DetId::HGCalEE || detid.det() == DetId::HGCalHSi) ? recHitTools_.getRadiusToSide(detid) : -0.1);
 
   // fill the vectors
   rechit_eta_.push_back(eta);
@@ -1992,6 +1997,7 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
   rechit_isHalf_.push_back(isHalfCell);
   rechit_flags_.push_back(flags);
   rechit_cluster2d_.push_back(cluster_index_);
+  rechit_radius_.push_back(radius);
 
   storedRecHits_.insert(detid);
   detIdToRecHitIndexMap_[detid] = rechit_index_;
