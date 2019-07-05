@@ -1976,7 +1976,7 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
   const double phi = recHitTools_.getPhi(position);
   const double pt = recHitTools_.getPt(position, hit->energy());
   const double radius =
-      ((detid.det() == DetId::Forward || detid.det() == DetId::HGCalEE || detid.det() == DetId::HGCalHSi) ? recHitTools_.getRadiusToSide(detid) : -0.1);
+      ((detid.det() == DetId::Forward || detid.det() == DetId::HGCalEE || detid.det() == DetId::HGCalHSi) ? recHitTools_.getRadiusToSide(detid) : -1.);
 
   // fill the vectors
   rechit_eta_.push_back(eta);
