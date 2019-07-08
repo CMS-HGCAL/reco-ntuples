@@ -1092,8 +1092,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
 
   clearVariables();
 
-  recHitTools_.getEventSetup(iSetup);
-
   Handle<HGCRecHitCollection> recHitHandleEE;
   Handle<HGCRecHitCollection> recHitHandleFH;
   Handle<HGCRecHitCollection> recHitHandleBH;
@@ -1821,7 +1819,8 @@ void HGCalAnalysis::beginRun(edm::Run const &iEvent, edm::EventSetup const &es) 
   es.getData(pdt);
   mySimEvent_->initializePdt(&(*pdt));
 
-  retrieveLayerPositions(es, 52);
+  recHitTools_.getEventSetup(es);
+  retrieveLayerPositions(es, recHitTools_.lastLayerBH());
 
   edm::ESHandle<MagneticField> magfield;
   es.get<IdealMagneticFieldRecord>().get(magfield);
@@ -1876,7 +1875,7 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerClus
       double thickness =
           (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
       double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
-      if (thickness > 99. && thickness < 101)
+      if (thickness > 99 && thickness < 121)
         mip *= invThicknessCorrection_[0];
       else if (thickness > 199 && thickness < 201)
         mip *= invThicknessCorrection_[1];
@@ -2025,7 +2024,7 @@ void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster &cluster, math::X
     unsigned hfsize = hf.size();
     if (hfsize == 0) continue;
     unsigned int layer = recHitTools_.getLayerWithOffset(hf[0].first);
-    if (layer > 28) continue;
+    if (layer > recHitTools_.lastLayerEE()) continue;
 
     for (unsigned int j = 0; j < hfsize; j++) {
       const DetId rh_detid = hf[j].first;
@@ -2086,7 +2085,7 @@ void HGCalAnalysis::doRecomputePCA(const reco::HGCalMultiCluster &cluster, math:
     unsigned hfsize = hf.size();
     if (hfsize == 0) continue;
     unsigned int layer = recHitTools_.getLayerWithOffset(hf[0].first);
-    if (layer > 28) continue;
+    if (layer > recHitTools_.lastLayerEE()) continue;
 
     for (unsigned int j = 0; j < hfsize; j++) {
       const DetId rh_detid = hf[j].first;
@@ -2104,7 +2103,7 @@ void HGCalAnalysis::doRecomputePCA(const reco::HGCalMultiCluster &cluster, math:
       double thickness =
           (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
       double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
-      if (thickness > 99. && thickness < 101)
+      if (thickness > 99. && thickness < 121)
         mip *= invThicknessCorrection_[0];
       else if (thickness > 199 && thickness < 201)
         mip *= invThicknessCorrection_[1];
