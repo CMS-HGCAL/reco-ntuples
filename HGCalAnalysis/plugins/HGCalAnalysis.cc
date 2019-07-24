@@ -49,7 +49,6 @@
 #include "CommonTools/UtilAlgos/interface/TFileService.h"
 #include "FWCore/ServiceRegistry/interface/Service.h"
 #include "TH1F.h"
-#include "TPrincipal.h"
 #include "TTree.h"
 
 #include "RecoLocalCalo/HGCalRecAlgos/interface/HGCalDepthPreClusterer.h"
@@ -59,8 +58,6 @@
 #include <set>
 #include <string>
 #include <vector>
-
-#include "TTree.h"
 
 namespace HGCal_helpers {
 
@@ -148,7 +145,6 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   //
   // constructors and destructor
   //
-  typedef ROOT::Math::Transform3DPJ Transform3D;
   typedef ROOT::Math::Transform3DPJ::Point Point;
 
   // approximative geometrical values
@@ -176,24 +172,14 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
 
   void retrieveLayerPositions(const edm::EventSetup &, unsigned layers);
 
-  void computeWidth(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
-                    math::XYZVector &axis, float &sigu, float &sigv, float &sigp, float &sige,
-                    float &cyl_ene, float radius = 5, bool withHalo = false);
-
-  void doRecomputePCA(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
-                      math::XYZVector &axis, float radius = 5, bool withHalo = false);
-
   // ---------parameters ----------------------------
   bool readCaloParticles_;
   bool readGen_;
   bool storeMoreGenInfo_;
   bool storeGenParticleExtrapolation_;
-  bool storePCAvariables_;
   bool storeElectrons_;
   bool storePFCandidates_;
   bool storeGunParticles_;
-  bool recomputePCA_;
-  bool includeHaloPCA_;
   double layerClusterPtThreshold_;
   double propagationPtThreshold_;
   std::string detector_;
@@ -324,24 +310,6 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::vector<float> multiclus_slopeY_;
   std::vector<std::vector<unsigned int>> multiclus_cluster2d_;
   std::vector<int> multiclus_cl2dSeed_;
-  std::vector<float> multiclus_pcaAxisX_;
-  std::vector<float> multiclus_pcaAxisY_;
-  std::vector<float> multiclus_pcaAxisZ_;
-  std::vector<float> multiclus_pcaPosX_;
-  std::vector<float> multiclus_pcaPosY_;
-  std::vector<float> multiclus_pcaPosZ_;
-  std::vector<float> multiclus_eigenVal1_;
-  std::vector<float> multiclus_eigenVal2_;
-  std::vector<float> multiclus_eigenVal3_;
-  std::vector<float> multiclus_eigenSig1_;
-  std::vector<float> multiclus_eigenSig2_;
-  std::vector<float> multiclus_eigenSig3_;
-  std::vector<float> multiclus_siguu_;
-  std::vector<float> multiclus_sigvv_;
-  std::vector<float> multiclus_sigpp_;
-  std::vector<float> multiclus_sigee_;
-  std::vector<float> multiclus_cyl_energy_;
-  std::vector<float> multiclus_cyl_pt_;
   std::vector<int> multiclus_firstLay_;
   std::vector<int> multiclus_lastLay_;
   std::vector<int> multiclus_NLay_;
@@ -492,14 +460,11 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   FSimEvent *mySimEvent_;
   edm::ParameterSet particleFilter_;
   std::vector<float> layerPositions_;
-  std::vector<double> dEdXWeights_;
-  std::vector<double> invThicknessCorrection_;
 
 
   // and also the magnetic field
   MagneticField const *aField_;
 
-  std::unique_ptr<TPrincipal> pca_;
 };
 
 HGCalAnalysis::HGCalAnalysis() { ; }
@@ -509,21 +474,15 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       readGen_(iConfig.getParameter<bool>("readGenParticles")),
       storeMoreGenInfo_(iConfig.getParameter<bool>("storeGenParticleOrigin")),
       storeGenParticleExtrapolation_(iConfig.getParameter<bool>("storeGenParticleExtrapolation")),
-      storePCAvariables_(iConfig.getParameter<bool>("storePCAvariables")),
       storeElectrons_(iConfig.getParameter<bool>("storeElectrons")),
       storePFCandidates_(iConfig.getParameter<bool>("storePFCandidates")),
       storeGunParticles_(iConfig.getParameter<bool>("storeGunParticles")),
-      recomputePCA_(iConfig.getParameter<bool>("recomputePCA")),
-      includeHaloPCA_(iConfig.getParameter<bool>("includeHaloPCA")),
       layerClusterPtThreshold_(iConfig.getParameter<double>("layerClusterPtThreshold")),
       propagationPtThreshold_(iConfig.getUntrackedParameter<double>("propagationPtThreshold", 3.0)),
       detector_(iConfig.getParameter<std::string>("detector")),
       inputTag_HGCalMultiCluster_(iConfig.getParameter<std::string>("inputTag_HGCalMultiCluster")),
       rawRecHits_(iConfig.getParameter<bool>("rawRecHits")),
-      particleFilter_(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
-      dEdXWeights_(iConfig.getParameter<std::vector<double>>("dEdXWeights")),
-      invThicknessCorrection_({1. / 1.132, 1. / 1.092, 1. / 1.084}),
-      pca_(new TPrincipal(3, "D")) {
+      particleFilter_(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")) {
   // now do what ever initialization is needed
   mySimEvent_ = new FSimEvent(particleFilter_);
 
@@ -680,27 +639,6 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
   t_->Branch("multiclus_firstLay", &multiclus_firstLay_);
   t_->Branch("multiclus_lastLay", &multiclus_lastLay_);
   t_->Branch("multiclus_NLay", &multiclus_NLay_);
-
-  if (storePCAvariables_) {
-    t_->Branch("multiclus_pcaAxisX", &multiclus_pcaAxisX_);
-    t_->Branch("multiclus_pcaAxisY", &multiclus_pcaAxisY_);
-    t_->Branch("multiclus_pcaAxisZ", &multiclus_pcaAxisZ_);
-    t_->Branch("multiclus_pcaPosX", &multiclus_pcaPosX_);
-    t_->Branch("multiclus_pcaPosY", &multiclus_pcaPosY_);
-    t_->Branch("multiclus_pcaPosZ", &multiclus_pcaPosZ_);
-    t_->Branch("multiclus_eigenVal1", &multiclus_eigenVal1_);
-    t_->Branch("multiclus_eigenVal2", &multiclus_eigenVal2_);
-    t_->Branch("multiclus_eigenVal3", &multiclus_eigenVal3_);
-    t_->Branch("multiclus_eigenSig1", &multiclus_eigenSig1_);
-    t_->Branch("multiclus_eigenSig2", &multiclus_eigenSig2_);
-    t_->Branch("multiclus_eigenSig3", &multiclus_eigenSig3_);
-    t_->Branch("multiclus_siguu", &multiclus_siguu_);
-    t_->Branch("multiclus_sigvv", &multiclus_sigvv_);
-    t_->Branch("multiclus_sigpp", &multiclus_sigpp_);
-    t_->Branch("multiclus_sigee", &multiclus_sigee_);
-    t_->Branch("multiclus_cyl_energy", &multiclus_cyl_energy_);
-    t_->Branch("multiclus_cyl_pt", &multiclus_cyl_pt_);
-  }
 
   ////////////////////
   // sim clusters
@@ -945,24 +883,6 @@ void HGCalAnalysis::clearVariables() {
   multiclus_slopeY_.clear();
   multiclus_cluster2d_.clear();
   multiclus_cl2dSeed_.clear();
-  multiclus_pcaAxisX_.clear();
-  multiclus_pcaAxisY_.clear();
-  multiclus_pcaAxisZ_.clear();
-  multiclus_pcaPosX_.clear();
-  multiclus_pcaPosY_.clear();
-  multiclus_pcaPosZ_.clear();
-  multiclus_eigenVal1_.clear();
-  multiclus_eigenVal2_.clear();
-  multiclus_eigenVal3_.clear();
-  multiclus_eigenSig1_.clear();
-  multiclus_eigenSig2_.clear();
-  multiclus_eigenSig3_.clear();
-  multiclus_siguu_.clear();
-  multiclus_sigvv_.clear();
-  multiclus_sigpp_.clear();
-  multiclus_sigee_.clear();
-  multiclus_cyl_energy_.clear();
-  multiclus_cyl_pt_.clear();
   multiclus_firstLay_.clear();
   multiclus_lastLay_.clear();
   multiclus_NLay_.clear();
@@ -1343,7 +1263,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   for (unsigned int i = 0; i < multiClusters.size(); i++) {
     int cl2dSeed = 0;
     std::set<int> layers;
-    pca_.reset(new TPrincipal(3, "D"));
     std::vector<unsigned int> cl2dIndices;
 
     for (reco::HGCalMultiCluster::component_iterator it = multiClusters[i].begin();
@@ -1368,49 +1287,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
     multiclus_firstLay_.push_back(*layers.begin());
     multiclus_lastLay_.push_back(*layers.rbegin());
     multiclus_NLay_.push_back(layers.size());
-
-    if (storePCAvariables_) {
-      pca_->MakePrincipals();
-      const TVectorD means = *(pca_->GetMeanValues());
-      const TMatrixD eigens = *(pca_->GetEigenVectors());
-      const TVectorD eigenVals = *(pca_->GetEigenValues());
-      const TVectorD sigmas = *(pca_->GetSigmas());
-      math::XYZPoint barycenter(means[0], means[1], means[2]);
-      math::XYZVector axis(eigens(0, 0), eigens(1, 0), eigens(2, 0));
-      if (axis.z() * barycenter.z() < 0.0) {
-        axis = math::XYZVector(-eigens(0, 0), -eigens(1, 0), -eigens(2, 0));
-      }
-      float sigu, sigv;
-      float sigp, sige;
-      float cyl_ene, cyl_pt;
-      float radius = 5.;  // radius of cylinder to select rechits
-      bool withHalo = includeHaloPCA_;
-
-      if (recomputePCA_) doRecomputePCA(multiClusters[i], barycenter, axis, radius, withHalo);
-
-      computeWidth(multiClusters[i], barycenter, axis, sigu, sigv, sigp, sige, cyl_ene, radius,
-                   withHalo);
-      cyl_pt = cyl_ene / cosh(multiClusters[i].eta());
-
-      multiclus_siguu_.push_back(sigu);
-      multiclus_sigvv_.push_back(sigv);
-      multiclus_sigpp_.push_back(sigp);
-      multiclus_sigee_.push_back(sige);
-      multiclus_cyl_energy_.push_back(cyl_ene);
-      multiclus_cyl_pt_.push_back(cyl_pt);
-      multiclus_pcaAxisX_.push_back(axis.x());
-      multiclus_pcaAxisY_.push_back(axis.y());
-      multiclus_pcaAxisZ_.push_back(axis.z());
-      multiclus_pcaPosX_.push_back(barycenter.x());
-      multiclus_pcaPosY_.push_back(barycenter.y());
-      multiclus_pcaPosZ_.push_back(barycenter.z());
-      multiclus_eigenVal1_.push_back(eigenVals(0));
-      multiclus_eigenVal2_.push_back(eigenVals(1));
-      multiclus_eigenVal3_.push_back(eigenVals(2));
-      multiclus_eigenSig1_.push_back(sigmas(0));
-      multiclus_eigenSig2_.push_back(sigmas(1));
-      multiclus_eigenSig3_.push_back(sigmas(2));
-    }
   }  // end of loop on multiclusters
 
   // Fills the additional 2d layers
@@ -1863,7 +1739,6 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerClus
     rhSeed = -1;
   }
   float maxEnergy = -1.;
-  Double_t pcavars[3];
   unsigned hfsize = hf.size();
 
   for (unsigned int j = 0; j < hfsize; j++) {
@@ -1873,33 +1748,6 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerClus
     layer = recHitTools_.getLayerWithOffset(rh_detid);
     const HGCRecHit *hit = hitmap_[rh_detid];
     ncoreHit += int(fraction);
-
-    if (storePCAvariables_) {
-      double thickness =
-          (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
-      double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
-      if (thickness > 99 && thickness < 121)
-        mip *= invThicknessCorrection_[0];
-      else if (thickness > 199 && thickness < 201)
-        mip *= invThicknessCorrection_[1];
-      else if (thickness > 299 && thickness < 301)
-        mip *= invThicknessCorrection_[2];
-      //		std::cout << " layer " << layer << " thickness " <<
-      // thickness << " mip " << mip << std::endl;
-
-      if (multiClusterIndex >= 0 and fraction > 0 && mip > 0) {
-        pcavars[0] = recHitTools_.getPosition(rh_detid).x();
-        pcavars[1] = recHitTools_.getPosition(rh_detid).y();
-        pcavars[2] = recHitTools_.getPosition(rh_detid).z();
-        //		  std::cout << pcavars[0] << " " << pcavars[1] << " " <<
-        // pcavars[2] << std::endl;
-        //		  std::cout << " Multiplicity " <<
-        // int(hit->energy()/mip)
-        //<<std::endl;
-        if (pcavars[2] != 0)
-          for (int i = 0; i < int(hit->energy() / mip); ++i) pca_->AddRow(pcavars);
-      }
-    }
 
     if (fillRecHits) {
       if (storedRecHits_.find(rh_detid) == storedRecHits_.end()) {
@@ -2003,140 +1851,7 @@ void HGCalAnalysis::fillRecHit(const DetId &detid, const float &fraction, const 
   ++rechit_index_;
 }
 
-void HGCalAnalysis::computeWidth(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
-                                 math::XYZVector &axis, float &sigu, float &sigv, float &sigp,
-                                 float &sige, float &cyl_ene, float radius, bool withHalo) {
-  sigu = 0.;
-  sigv = 0.;
-  sigp = 0.;
-  sige = 0.;
-  cyl_ene = 0.;
 
-  float radius2 = radius * radius;
-
-  math::XYZVector mainAxis(axis);
-  mainAxis.unit();
-  math::XYZVector phiAxis(bar.x(), bar.y(), 0);
-  math::XYZVector udir(mainAxis.Cross(phiAxis));
-  udir = udir.unit();
-
-  Transform3D trans(Point(bar), Point(bar + mainAxis), Point(bar + udir), Point(0, 0, 0),
-                    Point(0., 0., 1.), Point(1., 0., 0.));
-
-  float etot = 0;
-  for (reco::HGCalMultiCluster::component_iterator it = cluster.begin(); it != cluster.end();
-       it++) {
-    const std::vector<std::pair<DetId, float>> &hf = (*it)->hitsAndFractions();
-    unsigned hfsize = hf.size();
-    if (hfsize == 0) continue;
-    unsigned int layer = recHitTools_.getLayerWithOffset(hf[0].first);
-    if (layer > recHitTools_.lastLayerEE()) continue;
-
-    for (unsigned int j = 0; j < hfsize; j++) {
-      const DetId rh_detid = hf[j].first;
-      const HGCRecHit *hit = hitmap_[rh_detid];
-      float fraction = hf[j].second;
-
-      math::XYZPoint local = trans(Point(recHitTools_.getPosition(rh_detid)));
-      if (local.Perp2() > radius2) continue;
-
-      // Select halo hits or not
-      if (withHalo && fraction < 0) continue;
-      if (!withHalo && !(fraction > 0)) continue;
-
-      math::XYZPoint rh_point = Point(recHitTools_.getPosition(rh_detid));
-      sige += (rh_point.eta() - cluster.eta()) * (rh_point.eta() - cluster.eta()) * hit->energy();
-      sigp += deltaPhi(rh_point.phi(), cluster.phi()) * deltaPhi(rh_point.phi(), cluster.phi()) *
-              hit->energy();
-
-      sigu += local.x() * local.x() * hit->energy();
-      sigv += local.y() * local.y() * hit->energy();
-      etot += hit->energy();
-    }
-  }
-
-  if (etot > 0.) {
-    sigu = sigu / etot;
-    sigv = sigv / etot;
-    sigp = sigp / etot;
-    sige = sige / etot;
-  }
-  sigu = std::sqrt(sigu);
-  sigv = std::sqrt(sigv);
-  sigp = std::sqrt(sigp);
-  sige = std::sqrt(sige);
-
-  cyl_ene = etot;
-}
-
-void HGCalAnalysis::doRecomputePCA(const reco::HGCalMultiCluster &cluster, math::XYZPoint &bar,
-                                   math::XYZVector &axis, float radius, bool withHalo) {
-  float radius2 = radius * radius;
-
-  pca_.reset(new TPrincipal(3, "D"));
-  Double_t pcavars[3];
-
-  math::XYZVector mainAxis(axis);
-  mainAxis.unit();
-  math::XYZVector phiAxis(bar.x(), bar.y(), 0);
-  math::XYZVector udir(mainAxis.Cross(phiAxis));
-  udir = udir.unit();
-  Transform3D trans(Point(bar), Point(bar + mainAxis), Point(bar + udir), Point(0, 0, 0),
-                    Point(0., 0., 1.), Point(1., 0., 0.));
-
-  //// Populate PCA with rechits close to the axis
-  for (reco::HGCalMultiCluster::component_iterator it = cluster.begin(); it != cluster.end();
-       it++) {
-    const std::vector<std::pair<DetId, float>> &hf = (*it)->hitsAndFractions();
-    unsigned hfsize = hf.size();
-    if (hfsize == 0) continue;
-    unsigned int layer = recHitTools_.getLayerWithOffset(hf[0].first);
-    if (layer > recHitTools_.lastLayerEE()) continue;
-
-    for (unsigned int j = 0; j < hfsize; j++) {
-      const DetId rh_detid = hf[j].first;
-      const HGCRecHit *hit = hitmap_[rh_detid];
-      float fraction = hf[j].second;
-
-      // Select halo hits or not
-      if (withHalo && fraction < 0) continue;
-      if (!withHalo && !(fraction > 0)) continue;
-
-      // Skip hits far from the axis
-      math::XYZPoint local = trans(Point(recHitTools_.getPosition(rh_detid)));
-      if (local.Perp2() > radius2) continue;
-
-      double thickness =
-          (rh_detid.det() == DetId::Forward || rh_detid.det() == DetId::HGCalEE || rh_detid.det() == DetId::HGCalHSi) ? recHitTools_.getSiThickness(rh_detid) : -1;
-      double mip = dEdXWeights_[layer] * 0.001;  // convert in GeV
-      if (thickness > 99. && thickness < 121)
-        mip *= invThicknessCorrection_[0];
-      else if (thickness > 199 && thickness < 201)
-        mip *= invThicknessCorrection_[1];
-      else if (thickness > 299 && thickness < 301)
-        mip *= invThicknessCorrection_[2];
-
-      pcavars[0] = recHitTools_.getPosition(rh_detid).x();
-      pcavars[1] = recHitTools_.getPosition(rh_detid).y();
-      pcavars[2] = recHitTools_.getPosition(rh_detid).z();
-      if (pcavars[2] != 0) {
-        for (int i = 0; i < int(hit->energy() / mip); ++i) pca_->AddRow(pcavars);
-      }
-    }
-  }
-
-  // Recompute PCA
-  pca_->MakePrincipals();
-
-  const TMatrixD &eigens = *(pca_->GetEigenVectors());
-  math::XYZVector newaxis(eigens(0, 0), eigens(1, 0), eigens(2, 0));
-  if (newaxis.z() * bar.z() < 0.0) {
-    newaxis = math::XYZVector(-eigens(0, 0), -eigens(1, 0), -eigens(2, 0));
-  }
-  axis = newaxis;
-  const TVectorD means = *(pca_->GetMeanValues());
-  bar = math::XYZPoint(means[0], means[1], means[2]);
-}
 // ------------ method fills 'descriptions' with the allowed parameters for the
 // module  ------------
 
