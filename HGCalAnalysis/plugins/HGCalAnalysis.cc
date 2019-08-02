@@ -1917,8 +1917,8 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerClus
         fillRecHit(rh_detid, fraction, layer, cluster_index_);
       } else {
         // need to see what to do about existing rechits in case of sharing
-        std::cout << "RecHit already filled for different layer cluster: " << int(rh_detid)
-                  << std::endl;
+        // std::cout << "RecHit already filled for different layer cluster: " << int(rh_detid)
+        //          << std::endl;
       }
     }
   }
