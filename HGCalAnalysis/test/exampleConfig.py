@@ -17,7 +17,6 @@ except Exception: # ConfigFileReadError in case config does not exist
 from Configuration.AlCa.GlobalTag import GlobalTag
 process.GlobalTag = GlobalTag(process.GlobalTag, 'auto:phase2_realistic', '')
 from FastSimulation.Event.ParticleFilter_cfi import *
-from RecoLocalCalo.HGCalRecProducers.HGCalRecHit_cfi import dEdX
 
 process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(10) )
 
@@ -36,14 +35,10 @@ process.ana = cms.EDAnalyzer('HGCalAnalysis',
                              readCaloParticles = cms.bool(True),
                              storeGenParticleOrigin = cms.bool(True),
                              storeGenParticleExtrapolation = cms.bool(True),
-                             storePCAvariables = cms.bool(False),
                              storeElectrons = cms.bool(True),
                              storePFCandidates = cms.bool(True),
                              storeGunParticles = cms.bool(True),
                              readGenParticles = cms.bool(True),
-                             recomputePCA = cms.bool(False),
-                             includeHaloPCA = cms.bool(True),
-                             dEdXWeights = dEdX.weights,
                              layerClusterPtThreshold = cms.double(-1),  # All LayerCluster belonging to a multicluster are saved; this Pt threshold applied to the others
                              TestParticleFilter = ParticleFilterBlock.ParticleFilter
 )
