@@ -199,6 +199,7 @@ class HGCalAnalysis : public edm::one::EDAnalyzer<edm::one::WatchRuns, edm::one:
   std::string detector_;
   std::string inputTag_HGCalMultiCluster_;
   bool rawRecHits_;
+  bool verbose_;
 
   // ----------member data ---------------------------
 
@@ -520,6 +521,7 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
       detector_(iConfig.getParameter<std::string>("detector")),
       inputTag_HGCalMultiCluster_(iConfig.getParameter<std::string>("inputTag_HGCalMultiCluster")),
       rawRecHits_(iConfig.getParameter<bool>("rawRecHits")),
+      verbose_(iConfig.getParameter<bool>("verbose")),
       particleFilter_(iConfig.getParameter<edm::ParameterSet>("TestParticleFilter")),
       dEdXWeights_(iConfig.getParameter<std::vector<double>>("dEdXWeights")),
       invThicknessCorrection_({1. / 1.132, 1. / 1.092, 1. / 1.084}),
@@ -1917,8 +1919,10 @@ int HGCalAnalysis::fillLayerCluster(const edm::Ptr<reco::CaloCluster> &layerClus
         fillRecHit(rh_detid, fraction, layer, cluster_index_);
       } else {
         // need to see what to do about existing rechits in case of sharing
-        // std::cout << "RecHit already filled for different layer cluster: " << int(rh_detid)
-        //          << std::endl;
+        if (verbose_) {
+          std::cout << "RecHit already filled for different layer cluster: " << int(rh_detid)
+                   << std::endl;
+        }
       }
     }
   }
