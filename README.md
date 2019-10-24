@@ -4,11 +4,11 @@ Home of the Ntuplizer for the HGCAL reconstruction software studies
 
 Ntuple content definitions can be found at [Definitions.md](Definitions.md).
 
-This version is based on >= `CMSSW_11_0_0_pre4`. Please check if there are later `CMSSW_11_X_Y` versions available to profit from bugfixes.
+This version is based on >= `CMSSW_11_0_0_pre10`. Please check if there are later `CMSSW_11_X_Y` versions available to profit from bugfixes.
 
 ```shell
-cmsrel CMSSW_11_0_0_pre4
-cd CMSSW_11_0_0_pre4/src
+cmsrel CMSSW_11_0_0_pre10
+cd CMSSW_11_0_0_pre10/src
 cmsenv
 git clone git@github.com:CMS-HGCAL/reco-ntuples.git RecoNtuples
 cd RecoNtuples
