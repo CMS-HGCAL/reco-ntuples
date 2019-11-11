@@ -518,6 +518,10 @@ HGCalAnalysis::HGCalAnalysis(const edm::ParameterSet &iConfig)
     recHitsHF_   = consumes<HFRecHitCollection>(iConfig.getUntrackedParameter<string>("HFRecHits","hfreco"));
     algo_ = 4;
   }
+    else if (detector_ == "HF") {
+    recHitsHF_   = consumes<HFRecHitCollection>(iConfig.getUntrackedParameter<string>("HFRecHits","hfreco"));
+    algo_ = 5;
+  }
 
   clusters_ = consumes<reco::CaloClusterCollection>(edm::InputTag("hgcalLayerClusters"));
   simClusters_ = consumes<std::vector<SimCluster>>(edm::InputTag("mix", "MergedCaloTruth"));
@@ -1039,7 +1043,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   Handle<HGCRecHitCollection> recHitHandleFH;
   Handle<HGCRecHitCollection> recHitHandleBH;
   Handle<HGCRecHitCollection> recHitHandleNose;
-  Handle<HFRecHitCollection> recHitHandleHF;
+  Handle<HFRecHitCollection>  recHitHandleHF;
 
   Handle<reco::CaloClusterCollection> clusterHandle;
 
@@ -1101,7 +1105,6 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   float vy_ = primaryVertex->position().y() / 10.;
   vz_ = primaryVertex->position().z() / 10.;
   Point sim_pv(vx_, vy_, vz_);
-  // std::cout << "start the fun" << std::endl;
 
   // fill the gunparticles per vertex
   if (storeGunParticles_) {
@@ -1288,6 +1291,14 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       }
       break;
     }
+    case 5: {
+      iEvent.getByToken(recHitsHF_, recHitHandleHF);
+      const auto &rechitsHF = *recHitHandleHF;
+      for (unsigned int i = 0; i < rechitsHF.size(); ++i) {
+        hfhitmap_[rechitsHF[i].detid()] = &rechitsHF[i];
+      }
+      break;
+    }
     default:
       break;
   }
@@ -1403,6 +1414,19 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
         }
       }
      }
+
+    if (algo_ == 5) {
+      const HFRecHitCollection &rechitsHF = *recHitHandleHF;     
+       // loop over HF RecHits
+      for (HFRecHitCollection::const_iterator it_hit = rechitsHF.begin(); it_hit < rechitsHF.end();
+           ++it_hit) {
+        const HGCalDetId detid = it_hit->detid();
+        unsigned int layer = recHitTools_.getLayerWithOffset(detid);
+        if (storedRecHits_.find(detid) == storedRecHits_.end()) {
+          fillRecHitHF(detid, -1, layer);
+        }
+      }
+     }
   }
 
   if (readGen_) {
@@ -1504,7 +1528,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
   if (algo_ < 4){
     // loop over pfClusters From MultiClusters (python label particleFlowClusterHGCalFromMultiCl)
     for (std::vector<reco::PFCluster>::const_iterator it_pfClus = pfClustersFromMultiCl.begin();
-	 it_pfClus != pfClustersFromMultiCl.end(); ++it_pfClus) {
+         it_pfClus != pfClustersFromMultiCl.end(); ++it_pfClus) {
       const std::vector<std::pair<DetId, float>> hits_and_fractions = it_pfClus->hitsAndFractions();
       std::vector<uint32_t> hits;
       std::vector<float> fractions;
@@ -1513,16 +1537,16 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       float energyBH = 0.;
       for (std::vector<std::pair<DetId, float>>::const_iterator it_haf = hits_and_fractions.begin();
            it_haf != hits_and_fractions.end(); ++it_haf) {
-	hits.push_back(it_haf->first);
-	fractions.push_back(it_haf->second);
-	HGCalDetId detid = HGCalDetId(it_haf->first);
-	if (detid.subdetId() == HGCEE || detid.det() == DetId::HGCalEE)
+        hits.push_back(it_haf->first);
+        fractions.push_back(it_haf->second);
+        HGCalDetId detid = HGCalDetId(it_haf->first);
+        if (detid.subdetId() == HGCEE || detid.det() == DetId::HGCalEE)
           energyEE += hitmap_[it_haf->first]->energy() * it_haf->second;
-	else if (detid.subdetId() == HGCHEF || (detid.det() == DetId::HGCalHSi))
+        else if (detid.subdetId() == HGCHEF || (detid.det() == DetId::HGCalHSi))
           energyFH += hitmap_[it_haf->first]->energy() * it_haf->second;
-	else if (detid.subdetId() == BHM || detid.det() == DetId::HGCalHSc)
+        else if (detid.subdetId() == BHM || detid.det() == DetId::HGCalHSc)
           energyBH += hitmap_[it_haf->first]->energy() * it_haf->second;
-	else
+        else
           assert(false);
       }
       pfclusterFromMultiCl_pos_.push_back(it_pfClus->position());
@@ -1538,8 +1562,8 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       pfclusterFromMultiCl_fractions_.push_back(fractions);
       std::vector<uint32_t> rechits_indices;
       for (auto const i : hits) {
-	assert(detIdToRecHitIndexMap_.find(i) != detIdToRecHitIndexMap_.end());
-	rechits_indices.push_back(detIdToRecHitIndexMap_[i]);
+        assert(detIdToRecHitIndexMap_.find(i) != detIdToRecHitIndexMap_.end());
+        rechits_indices.push_back(detIdToRecHitIndexMap_[i]);
       }
       pfclusterFromMultiCl_rechits_.push_back(rechits_indices);
     }  // end loop over pfClusters From MultiClusters
@@ -1548,13 +1572,13 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
     // Loop over Ecal Driven Gsf Electrons From MultiClusters
     if (storeElectrons_) {
       for (auto const &ele : electrons) {
-	std::vector<uint32_t> pfclustersIndex;
-	auto const &sc = ele.superCluster();
-	float hoe = 0.;
-	float energyEE = 0.;
-	float energyFH = 0.;
-	float energyBH = 0.;
-	for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
+        std::vector<uint32_t> pfclustersIndex;
+        auto const &sc = ele.superCluster();
+        float hoe = 0.;
+        float energyEE = 0.;
+        float energyFH = 0.;
+        float energyBH = 0.;
+        for (reco::CaloCluster_iterator cl = sc->clustersBegin(); cl != sc->clustersEnd(); ++cl) {
           if ((*cl)->seed().det() == DetId::Forward || (*cl)->seed().det() == DetId::HGCalEE || (*cl)->seed().det() == DetId::HGCalHSi) {
             if (false)
               std::cout << "SuperCluster Key: " << sc.key() << " own CaloCluster Key: " << cl->key();
@@ -1566,64 +1590,64 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
               energyFH += pfclusterFromMultiCl_energyFH_[pfClusterKey];
               energyBH += pfclusterFromMultiCl_energyBH_[pfClusterKey];
               if (false) {
-        	std::cout << " PFCluster key: " << electrons_ValueMapClusters[*cl].key() << std::endl;
-        	std::cout << " PFCluster looks like: " << (*electrons_ValueMapClusters[*cl])
+                std::cout << " PFCluster key: " << electrons_ValueMapClusters[*cl].key() << std::endl;
+                std::cout << " PFCluster looks like: " << (*electrons_ValueMapClusters[*cl])
                           << std::endl;
-        	std::cout << " Own CaloCluster looks like: " << *(*cl) << std::endl;
-        	std::cout << " CastToPFCluster looks like: "
+                std::cout << " Own CaloCluster looks like: " << *(*cl) << std::endl;
+                std::cout << " CastToPFCluster looks like: "
                           << *(dynamic_cast<const reco::PFCluster *>(&*electrons_ValueMapClusters[*cl]))
                           << std::endl;
-        	for (auto const &pfrh :
+                for (auto const &pfrh :
                      dynamic_cast<const reco::PFCluster *>(&*electrons_ValueMapClusters[*cl])
-                	 ->recHitFractions()) {
+                         ->recHitFractions()) {
                   std::cout << " PFRecHit key: " << pfrh.recHitRef().key() << std::endl;
                   if (pfrh.recHitRef().isAvailable()) std::cout << pfrh << std::endl;
-        	}
+                }
               }  // end of DEBUG section
               assert(pfClusterKey <= pfclusterFromMultiCl_eta_.size());
             }
             hoe = (energyFH + energyBH) / (energyEE + energyFH + energyBH);
           }  // is within HGCAL
-	}    // End of loop over clusters within the SC
-	ecalDrivenGsfele_charge_.push_back(ele.charge());
-	ecalDrivenGsfele_eta_.push_back(ele.eta());
-	ecalDrivenGsfele_phi_.push_back(ele.phi());
-	ecalDrivenGsfele_pt_.push_back(ele.pt());
-	ecalDrivenGsfele_scpos_.push_back(ele.superCluster()->position());
-	ecalDrivenGsfele_sceta_.push_back(ele.superCluster()->eta());
-	ecalDrivenGsfele_scphi_.push_back(ele.superCluster()->phi());
-	ecalDrivenGsfele_seedlayer_.push_back(
+        }    // End of loop over clusters within the SC
+        ecalDrivenGsfele_charge_.push_back(ele.charge());
+        ecalDrivenGsfele_eta_.push_back(ele.eta());
+        ecalDrivenGsfele_phi_.push_back(ele.phi());
+        ecalDrivenGsfele_pt_.push_back(ele.pt());
+        ecalDrivenGsfele_scpos_.push_back(ele.superCluster()->position());
+        ecalDrivenGsfele_sceta_.push_back(ele.superCluster()->eta());
+        ecalDrivenGsfele_scphi_.push_back(ele.superCluster()->phi());
+        ecalDrivenGsfele_seedlayer_.push_back(
             recHitTools_.getLayerWithOffset(ele.superCluster()->seed()->seed()));
-	ecalDrivenGsfele_seedpos_.push_back(ele.superCluster()->seed()->position());
-	ecalDrivenGsfele_seedeta_.push_back(ele.superCluster()->seed()->eta());
-	ecalDrivenGsfele_seedphi_.push_back(ele.superCluster()->seed()->phi());
-	ecalDrivenGsfele_seedenergy_.push_back(ele.superCluster()->seed()->energy());
-	ecalDrivenGsfele_energy_.push_back(ele.energy());
-	ecalDrivenGsfele_energyEE_.push_back(energyEE);
-	ecalDrivenGsfele_energyFH_.push_back(energyFH);
-	ecalDrivenGsfele_energyBH_.push_back(energyBH);
-	ecalDrivenGsfele_isEB_.push_back(ele.isEB());
-	ecalDrivenGsfele_hoe_.push_back(hoe);
-	ecalDrivenGsfele_numClinSC_.push_back(sc->clusters().size());
-	ecalDrivenGsfele_track_dxy_.push_back(ele.gsfTrack()->dxy(vertices[0].position()));
-	ecalDrivenGsfele_track_dz_.push_back(ele.gsfTrack()->dz(vertices[0].position()));
-	ecalDrivenGsfele_track_simdxy_.push_back(ele.gsfTrack()->dxy(sim_pv));
-	ecalDrivenGsfele_track_simdz_.push_back(ele.gsfTrack()->dz(sim_pv));
-	ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_.push_back(
+        ecalDrivenGsfele_seedpos_.push_back(ele.superCluster()->seed()->position());
+        ecalDrivenGsfele_seedeta_.push_back(ele.superCluster()->seed()->eta());
+        ecalDrivenGsfele_seedphi_.push_back(ele.superCluster()->seed()->phi());
+        ecalDrivenGsfele_seedenergy_.push_back(ele.superCluster()->seed()->energy());
+        ecalDrivenGsfele_energy_.push_back(ele.energy());
+        ecalDrivenGsfele_energyEE_.push_back(energyEE);
+        ecalDrivenGsfele_energyFH_.push_back(energyFH);
+        ecalDrivenGsfele_energyBH_.push_back(energyBH);
+        ecalDrivenGsfele_isEB_.push_back(ele.isEB());
+        ecalDrivenGsfele_hoe_.push_back(hoe);
+        ecalDrivenGsfele_numClinSC_.push_back(sc->clusters().size());
+        ecalDrivenGsfele_track_dxy_.push_back(ele.gsfTrack()->dxy(vertices[0].position()));
+        ecalDrivenGsfele_track_dz_.push_back(ele.gsfTrack()->dz(vertices[0].position()));
+        ecalDrivenGsfele_track_simdxy_.push_back(ele.gsfTrack()->dxy(sim_pv));
+        ecalDrivenGsfele_track_simdz_.push_back(ele.gsfTrack()->dz(sim_pv));
+        ecalDrivenGsfele_deltaEtaSuperClusterTrackAtVtx_.push_back(
             ele.deltaEtaSuperClusterTrackAtVtx());
-	ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_.push_back(
+        ecalDrivenGsfele_deltaPhiSuperClusterTrackAtVtx_.push_back(
             ele.deltaPhiSuperClusterTrackAtVtx());
-	ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo_.push_back(ele.deltaEtaEleClusterTrackAtCalo());
-	ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo_.push_back(ele.deltaPhiEleClusterTrackAtCalo());
-	ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo_.push_back(
+        ecalDrivenGsfele_deltaEtaEleClusterTrackAtCalo_.push_back(ele.deltaEtaEleClusterTrackAtCalo());
+        ecalDrivenGsfele_deltaPhiEleClusterTrackAtCalo_.push_back(ele.deltaPhiEleClusterTrackAtCalo());
+        ecalDrivenGsfele_deltaEtaSeedClusterTrackAtCalo_.push_back(
             ele.deltaEtaSeedClusterTrackAtCalo());
-	ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo_.push_back(
+        ecalDrivenGsfele_deltaPhiSeedClusterTrackAtCalo_.push_back(
             ele.deltaPhiSeedClusterTrackAtCalo());
-	ecalDrivenGsfele_eSuperClusterOverP_.push_back(ele.eSuperClusterOverP());
-	ecalDrivenGsfele_eSeedClusterOverP_.push_back(ele.eSeedClusterOverP());
-	ecalDrivenGsfele_eSeedClusterOverPout_.push_back(ele.eSeedClusterOverPout());
-	ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
-	ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
+        ecalDrivenGsfele_eSuperClusterOverP_.push_back(ele.eSuperClusterOverP());
+        ecalDrivenGsfele_eSeedClusterOverP_.push_back(ele.eSeedClusterOverP());
+        ecalDrivenGsfele_eSeedClusterOverPout_.push_back(ele.eSeedClusterOverPout());
+        ecalDrivenGsfele_eEleClusterOverPout_.push_back(ele.eEleClusterOverPout());
+        ecalDrivenGsfele_pfClusterIndex_.push_back(pfclustersIndex);
       }  // End of loop over electrons
     }
   }
