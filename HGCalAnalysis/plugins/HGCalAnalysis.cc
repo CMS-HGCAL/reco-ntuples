@@ -1303,13 +1303,14 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
       break;
   }
 
+  const reco::CaloClusterCollection &clusters = *clusterHandle;
+  unsigned int nclus = clusters.size();
+  cluster_index_ = 0;
+  rechit_index_ = 0;
+  storedLayerClusters_.clear();
+  storedRecHits_.clear();
+
   if (algo_ < 4){
-    const reco::CaloClusterCollection &clusters = *clusterHandle;
-    unsigned int nclus = clusters.size();
-    cluster_index_ = 0;
-    rechit_index_ = 0;
-    storedLayerClusters_.clear();
-    storedRecHits_.clear();
     for (unsigned int i = 0; i < multiClusters.size(); i++) {
       int cl2dSeed = 0;
       std::set<int> layers;
@@ -1413,7 +1414,7 @@ void HGCalAnalysis::analyze(const edm::Event &iEvent, const edm::EventSetup &iSe
           fillRecHitHF(detid, -1, layer);
         }
       }
-     }
+    }
 
     if (algo_ == 5) {
       const HFRecHitCollection &rechitsHF = *recHitHandleHF;     
